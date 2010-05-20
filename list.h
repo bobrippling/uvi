@@ -3,12 +3,12 @@
 
 struct list
 {
-  char *data;
-  struct list *next, *prev;
+	char *data;
+	struct list *next, *prev;
 } *list_new(char *);
 
 void list_insertbefore(struct list *, char *); /* inserts char * before the list * */
-void list_insertafter(struct list *, char *);  /* inserts char * after the list * */
+void list_insertafter(struct list *, char *);	/* inserts char * after the list * */
 
 void list_append(struct list *, char *); /* inserts char * at the very end of the list */
 

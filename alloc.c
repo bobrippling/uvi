@@ -5,8 +5,8 @@
 
 void *umalloc(size_t s)
 {
-  void *p = malloc(s);
-  if(!p)
-    longjmp(allocerr, 1);
-  return p;
+	void *p = malloc(s);
+	if(!p)
+		longjmp(allocerr, 1);
+	return p;
 }
