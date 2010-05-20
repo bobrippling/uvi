@@ -1,17 +1,16 @@
-#ifndef FILE_H
-#define FILE_H
+#ifndef BUFFER_H
+#define BUFFER_H
 
 typedef struct
 	{
 		struct list *lines;
-		/* jump list */
+		/* TODO: jump list to lines->gethead(), etc */
 		char *fname;
 	} buffer_t;
 
-buffer_t *buffer_read(const char *);
-int			 buffer_write(buffer_t *);
-char		**buffer_getname(buffer_t *);
-
-struct list *buffer_getlines(buffer_t *);
+buffer_t	*buffer_new(void);
+int				buffer_read(buffer_t *, const char *);
+int				buffer_write(buffer_t *, const char *);
+void			buffer_free(buffer_t *);
 
 #endif
