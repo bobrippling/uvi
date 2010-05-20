@@ -6,7 +6,7 @@
 
 struct list *list_new(char *d)
 {
-	struct list *l = umalloc(sizeof(struct list));
+	struct list *l = umalloc(sizeof(*l));
 	l->data = d;
 	l->next = l->prev = NULL;
 	return l;
