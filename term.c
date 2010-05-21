@@ -102,10 +102,14 @@ new_file:
 		char *s;
 
 		if(!fgets(in, IN_SIZE, stdin)){
-			if(hadeof)
-				goto exit_loop;
-			incorrect_cmd();
-			hadeof = 1;
+			if(hadeof){
+				if(saved || hadeof >= 2)
+					goto exit_loop;
+				else
+					puts("not saved");
+			}else
+				incorrect_cmd();
+			hadeof++;
 			continue;
 		}
 
@@ -188,11 +192,13 @@ new_file:
 					if(s > in){
 						l = list_getindex(buffer->lines, rng.start - 1);
 
-						list_remove_range(&l, rng.end - rng.start);
+						list_remove_range(&l, rng.end - rng.start + 1);
 
 						buffer->lines = list_gethead(l);
 					}else
 						list_remove(list_getindex(buffer->lines, curline - 1));
+
+					saved = 0;
 				}else
 					incorrect_cmd();
 				break;
