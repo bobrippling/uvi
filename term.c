@@ -2,6 +2,7 @@
 #include <string.h>
 #include <limits.h>
 #include <ctype.h>
+#include <errno.h>
 
 #include "list.h"
 #include "buffer.h"
@@ -16,15 +17,73 @@
 static buffer_t *buffer;
 static int saved = 1;
 
+int validate_range(char *, char *, struct range *);
+
+int validate_range(char *s, char *in, struct range *rng)
+{
+	if(s > in){
+		/* validate range */
+		int lines = list_count(buffer->lines);
+
+		if(rng->start == RANGE_FIRST)
+			rng->start = 1;
+		if(rng->end == RANGE_FIRST)
+			rng->end = 1;
+		if(rng->start == RANGE_LAST)
+			rng->start = lines;
+		if(rng->end == RANGE_LAST)
+			rng->end = lines;
+
+		if(rng->start < 1 || rng->start > lines ||
+			 rng->end   < 1 || rng->end   > lines){
+			puts("out of range");
+			return 0;
+		}else if(rng->start > rng->end){
+			int ans;
+			fputs("swap backward range? (Y/n) ", stdout);
+			fflush(stdout);
+			ans = getchar();
+
+			if(ans == EOF){
+				putchar('\n');
+				return 0;
+			}else if(ans != '\n')
+				/* swallow the rest of the line */
+				do
+					switch(getchar()){
+						case EOF:
+						case '\n':
+							goto getchar_break;
+					}
+				while(1);
+getchar_break:
+
+
+			if(ans == '\n' || tolower(ans) == 'y'){
+				ans = rng->start;
+				rng->start = rng->end;
+				rng->end   = ans;
+			}else
+				return 0;
+		}
+	}
+
+	return 1;
+}
+
+
 int term_main(const char *filename)
 {
 	struct range rng;
 	char in[IN_SIZE];
-	int hadeof = 0;
+	int hadeof = 0, curline = 1;
 
 	if(filename){
 		int nread = buffer_read(&buffer, filename);
 		if(nread < 0){
+			if(errno == ENOENT)
+				goto new_file;
+
 			fprintf(stderr, PROG_NAME": %s: ", filename);
 			perror(NULL);
 			return 1;
@@ -32,13 +91,13 @@ int term_main(const char *filename)
 			fputs("(empty file)\n", stderr);
 		printf("%s: %dC, %dL\n", filename, buffer_nchars(buffer), buffer_nlines(buffer));
 	}else{
+new_file:
 		buffer = buffer_new();
 		puts("(new file)");
 	}
 
 	do{
 		char *s;
-		int flag = 0;
 
 		if(!fgets(in, IN_SIZE, stdin)){
 			if(hadeof)
@@ -53,6 +112,16 @@ int term_main(const char *filename)
 		if(s)
 			*s = '\0';
 
+		if(!strcmp(in, "DUMP")){
+			struct list *l = buffer->lines;
+			int i = 0;
+			puts("--- DUMP START ---");
+			while(l){
+				printf("%d: \"%s\"\n", ++i, l->data);
+				l = l->next;
+			}
+			puts("--- DUMP END ---");
+		}
 
 		s = parserange(in, &rng);
 		/* from this point on, s/in/s/g */
@@ -60,52 +129,9 @@ int term_main(const char *filename)
 			puts("invalid range");
 			continue;
 		}
-		if(s > in){
-			/* validate range */
-			int lines = list_count(buffer->lines);
+		if(!validate_range(s, in, &rng))
+			continue;
 
-			if(rng.start == RANGE_FIRST)
-				rng.start = 1;
-			if(rng.end == RANGE_FIRST)
-				rng.end = 1;
-			if(rng.start == RANGE_LAST)
-			  rng.start = lines;
-			if(rng.end == RANGE_LAST)
-				rng.end = lines;
-
-			if(rng.start < 1 || rng.start > lines ||
-				 rng.end   < 1 || rng.end   > lines){
-				puts("out of range");
-				continue;
-			}else if(rng.start > rng.end){
-				int ans;
-				fputs("swap backward range? (Y/n) ", stdout);
-				fflush(stdout);
-				ans = getchar();
-
-				if(ans == EOF){
-					putchar('\n');
-					continue;
-				}else if(ans != '\n')
-					/* swallow the rest of the line */
-					do
-						switch(getchar()){
-							case EOF:
-							case '\n':
-								goto getchar_break;
-						}
-					while(1);
-getchar_break:
-
-
-				if(ans == '\n' || tolower(ans) == 'y'){
-					ans = rng.start;
-					rng.start = rng.end;
-					rng.end   = ans;
-				}else
-					continue;
-			}
-		}
 
 		switch(*s){
 			case '\0':
@@ -131,10 +157,7 @@ getchar_break:
 				}
 				break;
 
-			case 'l':
-				flag = 1;
 			case 'p':
-			{
 				if(strlen(s) == 1){
 					struct list *l;
 					if(s > in){
@@ -156,7 +179,21 @@ getchar_break:
 				}else
 					incorrect_cmd();
 				break;
-			}
+
+			case 'd':
+				if(strlen(s) == 1){
+					struct list *l;
+					if(s > in){
+						l = list_getindex(buffer->lines, rng.start - 1);
+
+						list_remove_range(&l, rng.end - rng.start);
+
+						buffer->lines = list_gethead(l);
+					}else
+						list_remove(list_getindex(buffer->lines, curline - 1));
+				}else
+					incorrect_cmd();
+				break;
 
 			default:
 				puts("?");
