@@ -1,3 +1,5 @@
 s/ \+$// option
 
 *word* = bold, _word_ = underline
+
+special handling for \n (e.g. with 'r')

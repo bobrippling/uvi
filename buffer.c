@@ -23,7 +23,7 @@ buffer_t *buffer_new()
 	return b;
 }
 
-int buffer_read(buffer_t *buffer, const char *fname)
+int buffer_read(buffer_t **buffer, const char *fname)
 {
 	FILE *f = fopen(fname, "r");
 	struct list *tmp;
@@ -33,20 +33,23 @@ int buffer_read(buffer_t *buffer, const char *fname)
 	if(!f)
 		return -1;
 
-	buffer = buffer_new();
-	tmp = buffer->lines;
+	*buffer = buffer_new();
+	tmp = (*buffer)->lines;
 
 	do{
 		int thisread;
 
 		if((thisread = fgetline(&s, f)) < 0){
 			int eno = errno;
-			buffer_free(buffer);
+			buffer_free(*buffer);
+			fclose(f);
 			errno = eno;
 			return -1;
-		}else if(thisread == 0)
+		}else if(thisread == 0){
 			/* assert(feof()) */
+			fclose(f);
 			break;
+		}
 
 		nread += thisread;
 
@@ -54,22 +57,23 @@ int buffer_read(buffer_t *buffer, const char *fname)
 		tmp = list_gettail(tmp);
 	}while(1);
 
-	buffer->fname = umalloc(1+strlen(fname));
-	strcpy(buffer->fname, fname);
+
+	(*buffer)->fname = umalloc(1+strlen(fname));
+	strcpy((*buffer)->fname, fname);
 
 	return nread;
 }
 
 static int fgetline(char **s, FILE *in)
 {
-	int buffer_size = BUFFER_SIZE, nread;
+	size_t buffer_size = BUFFER_SIZE, nread;
 	char *c;
 	const long offset = ftell(in);
 
 	*s = umalloc(buffer_size);
 
 	do{
-		if((nread = fread(*s, buffer_size, sizeof(char), in))){
+		if(0 == (nread = fread(*s, sizeof(char), buffer_size, in))){
 			int eno = errno;
 			if(feof(in)){
 				/* no chars read */
@@ -117,7 +121,7 @@ int buffer_write(buffer_t *b, const char *fname)
 	FILE *f = fopen(fname, "w");
 	struct iovec *iov, *iovtmp;
 	struct list *l = b->lines;
-	int count, nwrite;
+	int count, nwrite, eno;
 
 	if(!f)
 		return 0;
@@ -131,7 +135,11 @@ int buffer_write(buffer_t *b, const char *fname)
 	}
 
 	nwrite = writev(fileno(f), iov, count);
+	eno = errno;
 	free(iov);
+	fclose(f);
+	errno = eno;
+
 	return nwrite;
 }
 
@@ -140,4 +148,25 @@ void buffer_free(buffer_t *b)
 	list_free(b->lines);
 	free(b->fname);
 	free(b);
+}
+
+int buffer_nchars(buffer_t *b)
+{
+	struct list *l = list_gethead(b->lines);
+	int chars = 0;
+
+	if(!l->data)
+		return 0;
+
+	while(l){
+		chars += strlen(l->data);
+		l = l->next;
+	}
+
+	return chars;
+}
+
+int buffer_nlines(buffer_t *b)
+{
+	return list_count(b->lines);
 }
