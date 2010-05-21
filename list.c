@@ -67,10 +67,12 @@ char *list_extract(struct list *l)
 		struct list *delthis = l->next;
 		l->data = l->next->data;
 		l->next = l->next->next;
+		if(l->next)
+			l->next->prev = l;
 
 		free(delthis);
 	}else if(l->prev){
-		l->prev->next = NULL;
+		l->prev->next = NULL; /* this is fine, l->next = NULL */
 		free(l);
 	}else
 		l->data = NULL;
@@ -82,6 +84,45 @@ char *list_extract(struct list *l)
 void list_remove(struct list *l)
 {
 	free(list_extract(l));
+}
+
+struct list *list_extract_range(struct list **l, int count)
+{
+	if(!(*l)->prev){
+		/* we can adjust where l points -> trivial */
+		struct list *top = *l, *bot = (*l)->next;
+
+		while(bot->next && --count)
+			bot = bot->next;
+
+		if(!(*l = bot->next))
+			*l = list_new(NULL);
+		(*l)->prev = NULL;
+		bot->next = NULL;
+		return top;
+	}else{
+		struct list *top = (*l)->prev, *bot = *l, *ret;
+
+		while(bot->next && --count)
+			bot = bot->next;
+
+		top->next = bot->next;
+		if(top->next)
+			top->next->prev = top;
+
+		/* isolate the list */
+		bot->next = NULL;
+		(*l)->prev = NULL;
+		ret = *l;
+		*l = top;
+
+		return ret;
+	}
+}
+
+void list_remove_range(struct list **l, int count)
+{
+	list_free(list_extract_range(l, count));
 }
 
 int list_count(struct list *l)
