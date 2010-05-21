@@ -117,8 +117,10 @@ struct list *list_getindex(struct list *l, int i)
 	l = list_gethead(l);
 	while(i --> 0 && l->next)
 		l = l->next;
-	if(i > 0)
+
+	if(i != -1)
 		return NULL;
+
 	return l;
 }
 
