@@ -7,7 +7,7 @@
 #include "list.h"
 #include "buffer.h"
 #include "term.h"
-#include "parse.h"
+#include "range.h"
 
 #include "config.h"
 
@@ -17,60 +17,37 @@
 static buffer_t *buffer;
 static int saved = 1;
 
-int validate_range(char *, char *, struct range *);
+int  qfunc(const char *);
+void pfunc(const char *);
 
-int validate_range(char *s, char *in, struct range *rng)
+int qfunc(const char *s)
 {
-	if(s > in){
-		/* validate range */
-		int lines = list_count(buffer->lines);
+	int ans;
+	fputs(s, stdout);
 
-		if(rng->start == RANGE_FIRST)
-			rng->start = 1;
-		if(rng->end == RANGE_FIRST)
-			rng->end = 1;
-		if(rng->start == RANGE_LAST)
-			rng->start = lines;
-		if(rng->end == RANGE_LAST)
-			rng->end = lines;
+	ans = getchar();
 
-		if(rng->start < 1 || rng->start > lines ||
-			 rng->end   < 1 || rng->end   > lines){
-			puts("out of range");
-			return 0;
-		}else if(rng->start > rng->end){
-			int ans;
-			fputs("swap backward range? (Y/n) ", stdout);
-			fflush(stdout);
-			ans = getchar();
-
-			if(ans == EOF){
-				putchar('\n');
-				return 0;
-			}else if(ans != '\n')
-				/* swallow the rest of the line */
-				do
-					switch(getchar()){
-						case EOF:
-						case '\n':
-							goto getchar_break;
-					}
-				while(1);
+	if(ans == EOF){
+		putchar('\n');
+		return 0;
+	}else if(ans != '\n')
+		/* swallow the rest of the line */
+		do
+			switch(getchar()){
+				case EOF:
+				case '\n':
+					goto getchar_break;
+			}
+		while(1);
 getchar_break:
 
-
-			if(ans == '\n' || tolower(ans) == 'y'){
-				ans = rng->start;
-				rng->start = rng->end;
-				rng->end   = ans;
-			}else
-				return 0;
-		}
-	}
-
-	return 1;
+	return ans == '\n' || tolower(ans) == 'y';
 }
 
+void pfunc(const char *s)
+{
+	printf("%s\n", s);
+}
 
 int term_main(const char *filename)
 {
@@ -100,6 +77,7 @@ new_file:
 
 	do{
 		char *s;
+		struct range lim;
 
 		if(!fgets(in, IN_SIZE, stdin)){
 			if(hadeof){
@@ -129,15 +107,19 @@ new_file:
 			puts("--- DUMP END ---");
 		}
 
-		s = parserange(in, &rng);
-		/* from this point on, s/in/s/g */
-		if(!s){
-			puts("invalid range");
-			continue;
-		}
-		if(!validate_range(s, in, &rng))
-			continue;
+		/*
+		 * TODO
+		 * move the below into cmd.c
+		 * same for both terminal and
+		 * ncurses implementations
+		 */
 
+		lim.start = curline;
+		lim.end   = list_count(buffer->lines);
+		s = parserange(in, &rng, &lim, &qfunc, &pfunc);
+		/* from this point on, s/in/s/g */
+		if(!s)
+			continue;
 
 		switch(*s){
 			case '\0':
