@@ -4,6 +4,7 @@
 #include "list.h"
 #include "buffer.h"
 #include "term.h"
+#include "parse.h"
 
 #include "config.h"
 
@@ -15,6 +16,7 @@ static int saved = 1;
 
 int term_main(const char *filename)
 {
+	struct range rng;
 	char in[IN_SIZE];
 	int hadeof = 0;
 
@@ -33,7 +35,7 @@ int term_main(const char *filename)
 	}
 
 	do{
-		char *c;
+		char *s;
 
 		if(!fgets(in, IN_SIZE, stdin)){
 			if(hadeof)
@@ -44,22 +46,30 @@ int term_main(const char *filename)
 		}
 
 		hadeof = 0;
-		c = strchr(in, '\n');
-		if(c)
-			*c = '\0';
+		s = strchr(in, '\n');
+		if(s)
+			*s = '\0';
 
 
-		/* TODO: parse range */
-		switch(*in){
+		s = parserange(in, &rng);
+		/* from this point on, s/in/s/g */
+		if(!s){
+			puts("invalid range");
+			continue;
+		}
+		if(s > in)
+			printf("range: %d,%d\n", rng.start, rng.end);
+
+		switch(*s){
 			case '\0':
 				incorrect_cmd();
 				break;
 
 			case 'q':
-				if(strlen(in) > 2)
+				if(strlen(s) > 2)
 					incorrect_cmd();
 				else{
-					switch(in[1]){
+					switch(s[1]){
 						case '\0':
 							if(!saved){
 								puts("unsaved");
@@ -77,7 +87,7 @@ int term_main(const char *filename)
 			case 'p':
 			{
 				/* TODO: range */
-				if(strlen(in) == 1){
+				if(strlen(s) == 1){
 					struct list *l = buffer->lines;
 					if(l->data)
 						while(l){
