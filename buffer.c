@@ -13,7 +13,7 @@
 #define BUFFER_SIZE 128
 /* nearest 2^n, st > 80 */
 
-static int fgetline(char **, FILE *);
+static int fgetline(char **, FILE *, char *);
 
 buffer_t *buffer_new()
 {
@@ -28,7 +28,7 @@ int buffer_read(buffer_t **buffer, const char *fname)
 	FILE *f = fopen(fname, "r");
 	struct list *tmp;
 	int nread = 0;
-	char *s;
+	char *s, haseol;
 
 	if(!f)
 		return -1;
@@ -39,7 +39,7 @@ int buffer_read(buffer_t **buffer, const char *fname)
 	do{
 		int thisread;
 
-		if((thisread = fgetline(&s, f)) < 0){
+		if((thisread = fgetline(&s, f, &haseol)) < 0){
 			int eno = errno;
 			buffer_free(*buffer);
 			fclose(f);
@@ -61,10 +61,12 @@ int buffer_read(buffer_t **buffer, const char *fname)
 	(*buffer)->fname = umalloc(1+strlen(fname));
 	strcpy((*buffer)->fname, fname);
 
+	(*buffer)->haseol = haseol;
+
 	return nread;
 }
 
-static int fgetline(char **s, FILE *in)
+static int fgetline(char **s, FILE *in, char *haseol)
 {
 	size_t buffer_size = BUFFER_SIZE;
 	char *c;
@@ -90,7 +92,12 @@ static int fgetline(char **s, FILE *in)
 		if((c = strchr(*s, '\n'))){
 			/* in an ideal world... */
 			*c = '\0';
+			*haseol = 1;
 			return 1 + strlen(*s);
+		}else if(feof(in)){
+			/* no eol... jerks */
+			*haseol = 0;
+			return strlen(*s);
 		}else{
 			/* need a bigger biffer for this line */
 			/* and buffer, too */

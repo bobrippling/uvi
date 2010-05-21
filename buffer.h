@@ -5,7 +5,7 @@ typedef struct
 	{
 		struct list *lines;
 		/* TODO: jump list to lines->gethead(), etc */
-		char *fname;
+		char *fname, haseol;
 	} buffer_t;
 
 buffer_t	*buffer_new(void);
