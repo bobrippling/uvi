@@ -17,10 +17,10 @@
 static buffer_t *buffer;
 static int saved = 1;
 
-int  qfunc(const char *);
-void pfunc(const char *);
+static int  qfunc(const char *);
+static void pfunc(const char *);
 
-int qfunc(const char *s)
+static int qfunc(const char *s)
 {
 	int ans;
 	fputs(s, stdout);
@@ -44,7 +44,7 @@ getchar_break:
 	return ans == '\n' || tolower(ans) == 'y';
 }
 
-void pfunc(const char *s)
+static void pfunc(const char *s)
 {
 	printf("%s\n", s);
 }
