@@ -49,8 +49,11 @@ char *parserange(char *s, struct range *r)
 				return s;
 			}else
 				return NULL;
-		}else
-			return NULL;
+		}else{
+			r->start = start;
+			r->end   = start;
+			return s;
+		}
 	}else if(*s == '%'){
 		r->start = RANGE_FIRST;
 		r->end   = RANGE_LAST;
