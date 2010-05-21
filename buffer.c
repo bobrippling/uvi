@@ -66,14 +66,14 @@ int buffer_read(buffer_t **buffer, const char *fname)
 
 static int fgetline(char **s, FILE *in)
 {
-	size_t buffer_size = BUFFER_SIZE, nread;
+	size_t buffer_size = BUFFER_SIZE;
 	char *c;
 	const long offset = ftell(in);
 
 	*s = umalloc(buffer_size);
 
 	do{
-		if(0 == (nread = fread(*s, sizeof(char), buffer_size, in))){
+		if(!fgets(*s, buffer_size, in)){
 			int eno = errno;
 			if(feof(in)){
 				/* no chars read */
@@ -90,7 +90,7 @@ static int fgetline(char **s, FILE *in)
 		if((c = strchr(*s, '\n'))){
 			/* in an ideal world... */
 			*c = '\0';
-			return nread;
+			return 1 + strlen(*s);
 		}else{
 			/* need a bigger biffer for this line */
 			/* and buffer, too */
@@ -159,7 +159,7 @@ int buffer_nchars(buffer_t *b)
 		return 0;
 
 	while(l){
-		chars += strlen(l->data);
+		chars += 1 + strlen(l->data);
 		l = l->next;
 	}
 
