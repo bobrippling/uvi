@@ -89,7 +89,9 @@ int term_main(const char *filename)
 			return 1;
 		}else if(nread == 0)
 			fputs("(empty file)\n", stderr);
-		printf("%s: %dC, %dL\n", filename, buffer_nchars(buffer), buffer_nlines(buffer));
+		else
+			printf("%s: %dC, %dL%s\n", filename, buffer_nchars(buffer),
+					buffer_nlines(buffer), buffer->haseol ? "" : " (noeol)");
 	}else{
 new_file:
 		buffer = buffer_new();
