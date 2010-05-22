@@ -18,7 +18,7 @@
 static buffer_t *buffer;
 static int saved = 1;
 
-static int  qfunc(const char *);
+static int	qfunc(const char *);
 static void pfunc(const char *, ...);
 static void wrongfunc(void);
 
@@ -53,11 +53,11 @@ getchar_break:
 
 static void pfunc(const char *s, ...)
 {
-  va_list l;
-  va_start(l, s);
+	va_list l;
+	va_start(l, s);
 	vprintf(s, l);
-  va_end(l);
-  putchar('\n');
+	va_end(l);
+	putchar('\n');
 }
 
 int term_main(const char *filename)
@@ -119,7 +119,7 @@ new_file:
 		}
 
 		lim.start = curline;
-		lim.end   = list_count(buffer->lines);
+		lim.end	 = list_count(buffer->lines);
 
 		s = parserange(in, &rng, &lim, &qfunc, &pfunc);
 		/* from this point on, s/in/s/g */

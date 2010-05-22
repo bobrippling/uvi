@@ -109,38 +109,42 @@ int runcommand(
 				wrongfunc();
 			break;
 
-    case 'w':
-      if(rng || strlen(s) > 2){
-        wrongfunc();
-        break;
-      }
-      switch(s[1]){
-        case 'q':
-          flag = 1;
-        case '\0':
-          break;
+		case 'w':
+			if(rng || strlen(s) > 2){
+				wrongfunc();
+				break;
+			}
+			switch(s[1]){
+				case 'q':
+					flag = 1;
+				case '\0':
+					break;
 
-        default:
-          wrongfunc();
-      }
+				default:
+					wrongfunc();
+			}
 
 
-      if(!buffer->fname){
-        pfunc("buffer has no filename");
-        break;
-      }else{
-        int nw = buffer_write(buffer);
-        if(nw == -1){
-          pfunc("%s: %s", buffer->fname, strerror(errno));
-          break;
-        }
-        pfunc("%s: %dC", buffer->fname, nw);
-      }
-      if(!flag)
-        break;
+			if(!buffer->fname){
+				pfunc("buffer has no filename");
+				break;
+			}else{
+				int nw = buffer_write(buffer);
+				if(nw == -1){
+					pfunc("%s: %s", buffer->fname, strerror(errno));
+					break;
+				}
+				*saved = 1;
+				pfunc("%s: %dC", buffer->fname, nw);
+			}
+			if(!flag)
+				break;
 
 		case 'q':
-			if(rng || strlen(s) > 2)
+			if(flag)
+				return 0;
+
+			if(rng ||	strlen(s) > 2)
 				wrongfunc();
 			else{
 				switch(s[1]){
@@ -159,7 +163,7 @@ int runcommand(
 			break;
 
 		case 'g':
-      /* print current line index */
+			/* print current line index */
 			if(strlen(s) == 1 && !rng){
 				char buf[8];
 				int i = list_indexof(buffer->lines, curline);
@@ -184,9 +188,9 @@ int runcommand(
 						pfunc(l->data);
 
 				}else if(curline)
-          pfunc(curline->data);
-        else
-          pfunc("Invalid current line!");
+					pfunc(curline->data);
+				else
+					pfunc("Invalid current line!");
 			}else
 				wrongfunc();
 			break;

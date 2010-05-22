@@ -3,7 +3,7 @@
 
 #include "range.h"
 
-static int   number(char **, int, int);
+static int	 number(char **, int, int);
 static char *getrange(char *, struct range *, int, int);
 
 static int curv;
@@ -52,40 +52,40 @@ static char *getrange(char *s, struct range *r, int cur, int lim)
 			++s;
 			if(number(&s, cur, lim)){
 				r->start = start;
-				r->end   = curv;
+				r->end	 = curv;
 				return s;
 			}else
 				return NULL;
 		}else{
 			r->start = start;
-			r->end   = start;
+			r->end	 = start;
 			return s;
 		}
 	}else if(*s == '%'){
 		r->start = 1;
-		r->end   = lim;
+		r->end	 = lim;
 		return s + 1;
 	}else
 		return s;
 }
 
 char *parserange(char *in, struct range *rng,
-    struct range *lim, int (*qfunc)(const char *),
-    void (*pfunc)(const char *, ...))
+		struct range *lim, int (*qfunc)(const char *),
+		void (*pfunc)(const char *, ...))
 {
 	char *s = getrange(in, rng, lim->start, lim->end);
 
 	if(s > in){
 		/* validate range */
 		if(rng->start < 1 || rng->start > lim->end ||
-			 rng->end   < 1 || rng->end   > lim->end){
+			 rng->end	 < 1 || rng->end	 > lim->end){
 			pfunc("out of range");
 			return NULL;
 		}else if(rng->start > rng->end){
 			if(qfunc("swap backward range? (Y/n) ")){
 				int tmp = rng->start;
 				rng->start = rng->end;
-				rng->end   = tmp;
+				rng->end	 = tmp;
 			}else
 				return NULL;
 		}

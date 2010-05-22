@@ -129,7 +129,7 @@ int buffer_write(buffer_t *b)
 	struct iovec *iov, *iovtmp;
 	struct list *l = b->lines;
 	int count, nwrite, eno;
-  /*can't be const*/char nl = '\n';
+	/*can't be const*/char nl = '\n';
 
 	if(!f)
 		return -1;
@@ -137,11 +137,11 @@ int buffer_write(buffer_t *b)
 	iovtmp = iov = umalloc((count = list_count(b->lines) * 2) * sizeof(*iov));
 
 	while(l){
-		iovtmp->iov_len  = strlen((iovtmp->iov_base = l->data));
+		iovtmp->iov_len	= strlen((iovtmp->iov_base = l->data));
 		iovtmp++;
-    iovtmp->iov_base = &nl;
-    iovtmp->iov_len  = 1;
-    iovtmp++;
+		iovtmp->iov_base = &nl;
+		iovtmp->iov_len	= 1;
+		iovtmp++;
 		l = l->next;
 	}
 
