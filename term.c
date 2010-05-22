@@ -3,6 +3,7 @@
 #include <limits.h>
 #include <ctype.h>
 #include <errno.h>
+#include <stdarg.h>
 
 #include "list.h"
 #include "buffer.h"
@@ -18,7 +19,7 @@ static buffer_t *buffer;
 static int saved = 1;
 
 static int  qfunc(const char *);
-static void pfunc(const char *);
+static void pfunc(const char *, ...);
 static void wrongfunc(void);
 
 static void wrongfunc()
@@ -50,9 +51,12 @@ getchar_break:
 	return ans == '\n' || tolower(ans) == 'y';
 }
 
-static void pfunc(const char *s)
+static void pfunc(const char *s, ...)
 {
-	printf("%s\n", s);
+  va_list l;
+  va_start(l, s);
+	vprintf(s, l);
+  va_end(l);
 }
 
 int term_main(const char *filename)
@@ -122,7 +126,7 @@ new_file:
 			continue;
 		else if(s > in && strlen(s) == 0){
 			/* just a number, move to that line */
-			curline = rng.start + 1;
+			curline = rng.start - 1;
 			continue;
 		}
 
