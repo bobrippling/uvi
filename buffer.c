@@ -123,21 +123,25 @@ static int fgetline(char **s, FILE *in, char *haseol)
 
 
 /* returns bytes written */
-int buffer_write(buffer_t *b, const char *fname)
+int buffer_write(buffer_t *b)
 {
-	FILE *f = fopen(fname, "w");
+	FILE *f = fopen(b->fname, "w");
 	struct iovec *iov, *iovtmp;
 	struct list *l = b->lines;
 	int count, nwrite, eno;
+  /*can't be const*/char nl = '\n';
 
 	if(!f)
-		return 0;
+		return -1;
 
-	iovtmp = iov = umalloc((count = list_count(b->lines)) * sizeof(*iov));
+	iovtmp = iov = umalloc((count = list_count(b->lines) * 2) * sizeof(*iov));
 
 	while(l){
 		iovtmp->iov_len  = strlen((iovtmp->iov_base = l->data));
 		iovtmp++;
+    iovtmp->iov_base = &nl;
+    iovtmp->iov_len  = 1;
+    iovtmp++;
 		l = l->next;
 	}
 
