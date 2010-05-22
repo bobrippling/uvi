@@ -8,17 +8,23 @@
 #include "buffer.h"
 #include "term.h"
 #include "range.h"
+#include "command.h"
 
 #include "config.h"
 
 #define IN_SIZE 256
-#define incorrect_cmd() do{ fputs("?\n", stdout); } while(0)
 
 static buffer_t *buffer;
 static int saved = 1;
 
 static int  qfunc(const char *);
 static void pfunc(const char *);
+static void wrongfunc(void);
+
+static void wrongfunc()
+{
+	fputs("?\n", stdout);
+}
 
 static int qfunc(const char *s)
 {
@@ -82,11 +88,11 @@ new_file:
 		if(!fgets(in, IN_SIZE, stdin)){
 			if(hadeof){
 				if(saved || hadeof >= 2)
-					goto exit_loop;
+					return 0;
 				else
 					puts("not saved");
 			}else
-				incorrect_cmd();
+				wrongfunc();
 			hadeof++;
 			continue;
 		}
@@ -121,75 +127,10 @@ new_file:
 		if(!s)
 			continue;
 
-		switch(*s){
-			case '\0':
-				incorrect_cmd();
-				break;
-
-			case 'q':
-				if(s > in || strlen(s) > 2)
-					incorrect_cmd();
-				else{
-					switch(s[1]){
-						case '\0':
-							if(!saved){
-								puts("unsaved");
-								break;
-							}else
-						case '!':
-								goto exit_loop;
-
-						default:
-								incorrect_cmd();
-					}
-				}
-				break;
-
-			case 'p':
-				if(strlen(s) == 1){
-					struct list *l;
-					if(s > in){
-						int i = rng.start - 1;
-
-						for(l = list_getindex(buffer->lines, i);
-								i++ != rng.end;
-								l = l->next)
-								puts(l->data);
-
-					}else{
-				    l = buffer->lines;
-						if(l->data)
-							while(l){
-								puts(l->data);
-								l = l->next;
-							}
-					}
-				}else
-					incorrect_cmd();
-				break;
-
-			case 'd':
-				if(strlen(s) == 1){
-					struct list *l;
-					if(s > in){
-						l = list_getindex(buffer->lines, rng.start - 1);
-
-						list_remove_range(&l, rng.end - rng.start + 1);
-
-						buffer->lines = list_gethead(l);
-					}else
-						list_remove(list_getindex(buffer->lines, curline - 1));
-
-					saved = 0;
-				}else
-					incorrect_cmd();
-				break;
-
-			default:
-				puts("?");
-		}
+		if(!runcommand(s, s > in ? &rng : NULL, buffer,
+					&saved, &curline, wrongfunc, pfunc))
+			break;
 	}while(1);
-exit_loop:
 
 	return 0;
 }
