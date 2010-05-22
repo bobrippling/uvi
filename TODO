@@ -1,5 +1,3 @@
-Fix line numbering / g command
-
 s/ \+$// option
 
 *word* = bold, _word_ = underline
