@@ -1,10 +1,12 @@
 #ifndef COMMAND_H
 #define COMMAND_H
 
-int runcommand(const char *,
+int runcommand(
+		const char *,
 		struct range *,
 		buffer_t *,
-		int *saved, int *curline,
+		struct list *curline,
+		int *saved,
 		void (*)(void),
 		void (*)(const char *)
 		);
