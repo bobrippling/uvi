@@ -57,6 +57,7 @@ static void pfunc(const char *s, ...)
   va_start(l, s);
 	vprintf(s, l);
   va_end(l);
+  putchar('\n');
 }
 
 int term_main(const char *filename)
