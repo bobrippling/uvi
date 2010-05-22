@@ -23,6 +23,7 @@ void         list_remove_range(struct list **, int);
  */
 
 int list_count(struct list *);
+int list_indexof(struct list *, struct list *);
 
 struct list *list_gethead(struct list *);
 struct list *list_gettail(struct list *);

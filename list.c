@@ -139,6 +139,18 @@ int list_count(struct list *l)
 	return i;
 }
 
+int list_indexof(struct list *l, struct list *p)
+{
+	int i = 0;
+	l = list_gethead(l);
+	while(l && l != p)
+		i++, l = l->next;
+
+	if(l == p)
+		return i;
+	return -1;
+}
+
 struct list *list_gethead(struct list *l)
 {
 	while(l->prev)
