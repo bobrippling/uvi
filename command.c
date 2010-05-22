@@ -74,7 +74,7 @@ int runcommand(
 	struct list *curline,
 	int *saved,
 	void (*wrongfunc)(void),
-	void (*pfunc)(const char *))
+	void (*pfunc)(const char *, ...))
 {
 	int flag = 0;
 
@@ -109,6 +109,36 @@ int runcommand(
 				wrongfunc();
 			break;
 
+    case 'w':
+      if(rng || strlen(s) > 2){
+        wrongfunc();
+        break;
+      }
+      switch(s[1]){
+        case 'q':
+          flag = 1;
+        case '\0':
+          break;
+
+        default:
+          wrongfunc();
+      }
+
+
+      if(!buffer->fname){
+        pfunc("buffer has no filename");
+        break;
+      }else{
+        int nw = buffer_write(buffer);
+        if(nw == -1){
+          pfunc("%s: %s", buffer->fname, strerror(errno));
+          break;
+        }
+        pfunc("%s: %dC", buffer->fname, nw);
+      }
+      if(!flag)
+        break;
+
 		case 'q':
 			if(rng || strlen(s) > 2)
 				wrongfunc();
@@ -129,6 +159,7 @@ int runcommand(
 			break;
 
 		case 'g':
+      /* print current line index */
 			if(strlen(s) == 1 && !rng){
 				char buf[8];
 				int i = list_indexof(buffer->lines, curline);
@@ -152,14 +183,10 @@ int runcommand(
 							l = l->next)
 						pfunc(l->data);
 
-				}else{
-					l = buffer->lines;
-					if(l->data)
-						while(l){
-							pfunc(l->data);
-							l = l->next;
-						}
-				}
+				}else if(curline)
+          pfunc(curline->data);
+        else
+          pfunc("Invalid current line!");
 			}else
 				wrongfunc();
 			break;
