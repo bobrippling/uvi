@@ -113,22 +113,22 @@ new_file:
 			puts("--- DUMP END ---");
 		}
 
-		/*
-		 * TODO
-		 * move the below into cmd.c
-		 * same for both terminal and
-		 * ncurses implementations
-		 */
-
 		lim.start = curline;
 		lim.end   = list_count(buffer->lines);
+
 		s = parserange(in, &rng, &lim, &qfunc, &pfunc);
 		/* from this point on, s/in/s/g */
 		if(!s)
 			continue;
+		else if(s > in && strlen(s) == 0){
+			/* just a number, move to that line */
+			curline = rng.start + 1;
+			continue;
+		}
 
 		if(!runcommand(s, s > in ? &rng : NULL, buffer,
-					&saved, &curline, wrongfunc, pfunc))
+					list_getindex(buffer->lines, curline),
+					&saved, wrongfunc, pfunc))
 			break;
 	}while(1);
 
