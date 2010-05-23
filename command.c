@@ -103,29 +103,11 @@ insert:
 				l = readlines(gfunc);
 
 				if(l){
-					void (*func)(struct list *, char *);
-          struct list *line = list_getindex(buffer_lines(buffer), *curline),
-                      *tmp;
-
-					if(flag){
-						l = list_gettail(l);
-						func = &list_insertafter;
-					}else
-						func = &list_insertbefore;
-
-					if(!line) /* empty buffer */
-						line = buffer_lines(buffer);
-
-					while(l){
-						func(line, l->data);
-						tmp = l;
-						if(flag)
-							l = l->prev;
-						else
-							l = l->next;
-						free(tmp); /* can't free(l->next) - l may be NULL */
-					}
-
+					struct list *line = list_getindex(buffer_lines(buffer), *curline);
+					if(flag)
+						list_insertlistafter(line, l);
+					else
+						list_insertlistbefore(line, l);
 					*saved = 0;
 				}
 			}else
@@ -201,7 +183,7 @@ insert:
           int i = rng.start - 1;
 
 					for(l = list_getindex(buffer_lines(buffer), i);
-              i++ != rng.end;
+							i++ != rng.end;
 							l = l->next)
 						pfunc(l->data);
 
