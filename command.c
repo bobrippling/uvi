@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <setjmp.h>
@@ -12,15 +11,15 @@
 #include "list.h"
 #include "alloc.h"
 
-static struct list *readlines(void);
+static struct list *readlines(char *(*gfunc)(char *, int));
 
-static struct list *readlines(void)
+static struct list *readlines(char *(*gfunc)(char *, int))
 {
 #define BUFFER_SIZE 128
 	struct list *l = list_new(NULL);
 	char buffer[BUFFER_SIZE];
 
-	while(fgets(buffer, BUFFER_SIZE, stdin)){
+	while(gfunc(buffer, BUFFER_SIZE)){
 		char *nl = strchr(buffer, '\n');
 
 		if(nl){
@@ -28,7 +27,7 @@ static struct list *readlines(void)
 			*nl = '\0';
 			strcpy(s, buffer);
 			list_append(l, s);
-		}else if(!feof(stdin) && !ferror(stdin)){
+		}else{
 			int size = BUFFER_SIZE;
 			char *s = NULL, *insert;
 
@@ -48,12 +47,7 @@ static struct list *readlines(void)
 					*tmp = '\0';
 					break;
 				}
-			}while(fgets(buffer, BUFFER_SIZE, stdin));
-		}else{
-			int eno = errno;
-			list_free(l);
-			errno = eno;
-			return NULL;
+			}while(gfunc(buffer, BUFFER_SIZE));
 		}
 	}
 
@@ -74,7 +68,8 @@ int runcommand(
 	struct list *curline,
 	int *saved,
 	void (*wrongfunc)(void),
-	void (*pfunc)(const char *, ...))
+	void (*pfunc)(const char *, ...),
+	char *(*gfunc)(char *, int))
 {
 	int flag = 0;
 
@@ -87,7 +82,7 @@ int runcommand(
 			flag = 1;
 		case 'i':
 			if(!rng && strlen(s) == 1){
-				struct list *l = readlines(), *tmp;
+				struct list *l = readlines(gfunc), *tmp;
 
 				if(l){
 					void (*func)(struct list *, char *);
@@ -165,12 +160,10 @@ int runcommand(
 		case 'g':
 			/* print current line index */
 			if(strlen(s) == 1 && !rng){
-				char buf[8];
 				int i = list_indexof(buffer->lines, curline);
-				if(i != -1){
-					sprintf(buf, "%d", i + 1);
-					pfunc(buf);
-				}else
+				if(i != -1)
+					pfunc("%d", i);
+				else
 					pfunc("Invalid index...?");
 			}else
 				wrongfunc();

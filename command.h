@@ -8,7 +8,8 @@ int runcommand(
 		struct list *curline,
 		int *saved,
 		void (*)(void),
-		void (*)(const char *, ...)
+		void (*)(const char *, ...),
+    char *(*)(char *, int)
 		);
 
 #endif
