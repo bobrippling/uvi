@@ -16,4 +16,6 @@ void			buffer_free(buffer_t *);
 int				buffer_nchars(buffer_t *);
 int				buffer_nlines(buffer_t *);
 
+#define buffer_lines(x) ((x)->lines)
+
 #endif
