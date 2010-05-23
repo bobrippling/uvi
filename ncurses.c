@@ -6,8 +6,12 @@
 #include "ncurses.h"
 #include "config.h"
 
+#define CTRL_AND(c) ((c) & 037)
+#define ESC         27
+
 static void nc_up(void);
 static void nc_down(void);
+static int colon(void);
 
 static buffer_t *buffer;
 
@@ -22,7 +26,8 @@ static void nc_up()
 
   if(!init){
     initscr();
-    cbreak(); /* use raw() to intercept ^C, ^Z */
+    /*cbreak(); * use raw() to intercept ^C, ^Z */
+    raw();
     noecho();
 
     /* halfdelay() for main-loop style timeout */
@@ -32,13 +37,23 @@ static void nc_up()
     keypad(stdscr, TRUE);
 
     init = 1;
-  }else
-    refresh();
+  }
+  refresh();
+}
+
+static int colon()
+{
+#define BUF_SIZE 128
+  /*char buffer[128];
+  getnstr(buffer, BUF_SIZE);*/
+#undef BUF_SIZE
 }
 
 
 int ncurses_main(const char *filename)
 {
+  int c;
+
 	if(filename){
 		int nread = buffer_read(&buffer, filename);
 		if(nread < 0){
@@ -59,6 +74,27 @@ new_file:
 		puts("(new file)");
 	}
   nc_up();
+
+
+  do
+    switch((c = getch())){
+      case 'Z':
+        if(getch() == 'Z')
+          goto exit_while;
+        break;
+
+      case ':':
+        if(!colon())
+          goto exit_while;
+        break;
+
+
+      default:
+        mvprintw(1, 2, "unknown: %c (%d)", c, c);
+    }
+  while(1);
+exit_while:
+
 
   nc_down();
   return 0;
