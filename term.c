@@ -97,7 +97,7 @@ new_file:
 		if(!fgets(in, IN_SIZE, stdin)){
 			if(hadeof){
 				if(saved || hadeof >= 2)
-					return 0;
+					break;
 				else
 					puts("not saved");
 			}else
@@ -117,6 +117,8 @@ new_file:
 					&gfunc, &qfunc))
 			break;
 	}while(1);
+
+	buffer_free(buffer);
 
 	return 0;
 }
