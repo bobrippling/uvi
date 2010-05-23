@@ -71,25 +71,11 @@ int term_main(const char *filename)
 	char in[IN_SIZE];
 	int hadeof = 0, curline = 1;
 
-	if(filename){
-		int nread = buffer_read(&buffer, filename);
-		if(nread < 0){
-			if(errno == ENOENT)
-				goto new_file;
-
-			fprintf(stderr, PROG_NAME": %s: ", filename);
-			perror(NULL);
-			return 1;
-		}else if(nread == 0)
-			puts("(empty file)\n");
-		else
-			printf("%s: %dC, %dL%s\n", filename, buffer_nchars(buffer),
-					buffer_nlines(buffer), buffer->haseol ? "" : " (noeol)");
-	}else{
-new_file:
-		buffer = buffer_new();
-		puts("(new file)");
-	}
+  if(!(buffer = command_readfile(filename, pfunc))){
+    fprintf(stderr, PROG_NAME": %s: ", filename);
+    perror(NULL);
+    return 1;
+  }
 
 	do{
 		char *s;
@@ -111,7 +97,7 @@ new_file:
 		if(s)
 			*s = '\0';
 
-		if(!runcommand(in, buffer,
+		if(!command_run(in, buffer,
 					&curline, &saved,
 					&wrongfunc, &pfunc,
 					&gfunc, &qfunc))
