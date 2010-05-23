@@ -26,7 +26,7 @@ static void nc_up(void);
 static void nc_down(void);
 static void sigh(int);
 
-static void pfunc(const char *, ...);
+#define pfunc status
 static void wrongfunc(void);
 static int	qfunc(const char *);
 static enum gret gfunc(char *, int);
@@ -83,16 +83,6 @@ static void status(const char *s, ...)
 	clrtoeol();
 	vwprintw(stdscr, s, l);
 	va_end(l);
-}
-
-static void pfunc(const char *s, ...)
-{
-	va_list l;
-	va_start(l, s);
-	move(maxy, 0);
-	vwprintw(stdscr, s, l);
-	va_end(l);
-	addch('\n');
 }
 
 static int qfunc(const char *s)
@@ -187,7 +177,7 @@ static void wrongfunc(void)
 static void open(int ins)
 {
 	struct list *cur = list_getindex(buffer_lines(buffer), curline),
-							*new = readlines(&gfunc);
+							*new = command_readlines(&gfunc);
 
 	if(ins)
 		list_insertlistbefore(cur, new);
@@ -209,7 +199,7 @@ static int colon()
 			if(c)
 				*c = '\0';
 
-			return runcommand(in, buffer,
+			return command_run(in, buffer,
 					&curline, &saved,
 					&wrongfunc, &pfunc,
 					&gfunc, &qfunc);
@@ -237,27 +227,12 @@ int ncurses_main(const char *filename)
 
 	nc_up();
 
-	if(filename){
-		int nread = buffer_read(&buffer, filename);
-		if(nread < 0){
-			if(errno == ENOENT)
-				goto new_file;
-
-			nc_down();
-			fprintf(stderr, PROG_NAME": %s: ", filename);
-			perror(NULL);
-			return 1;
-		}else if(nread == 0)
-			status("(empty file)\n");
-		else
-			pfunc("%s: %dC, %dL%s\n", filename,
-					buffer_nchars(buffer), buffer_nlines(buffer),
-					buffer->haseol ? "" : " (noeol)");
-	}else{
-new_file:
-		buffer = buffer_new();
-		status("(new file)");
-	}
+  if(!(buffer = command_readfile(filename, pfunc))){
+    nc_down();
+    fprintf(stderr, PROG_NAME": %s: ", filename);
+    perror(NULL);
+    return 1;
+  }
 
 	do{
 		int flag = 0;
