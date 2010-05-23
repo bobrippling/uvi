@@ -2,20 +2,28 @@
 #include <errno.h>
 #include <ctype.h>
 #include <string.h>
+#include <signal.h>
 
 #include "buffer.h"
 #include "range.h"
 #include "command.h"
 #include "list.h"
+#include "main.h"
 
 #include "ncurses.h"
 #include "config.h"
 
 #define CTRL_AND(c) ((c) & 037)
-#define ESC         27
+#define C_ESC       27
+#define C_EOF       4
+#define C_DEL       127
+#define C_BACKSPACE 263
+#define C_NEWLINE   '\r'
+#define C_CTRL_C    3
 
 static void nc_up(void);
 static void nc_down(void);
+static void sigh(int);
 
 static void pfunc(const char *, ...);
 static void wrongfunc(void);
@@ -81,40 +89,106 @@ static int qfunc(const char *s)
   return c == '\n' || tolower(c) == 'y';
 }
 
-static char *gfunc(char *s, int len)
+static char *gfunc(char *s, int size)
 {
-  return getnstr(s, len) == OK ? s : NULL;
+  /*return getnstr(s, len) == OK ? s : NULL;*/
+	int x, y, c, count = 0;
+	enum { CANCEL, SUCCESS, FAILURE } ret;
+	getyx(stdscr, y, x);
+  clrtoeol();
+
+	do
+		switch((c = getch())){
+			case C_EOF:
+				if(count){
+			case C_NEWLINE:
+			case '\n':
+					s[count] = '\0';
+					ret = SUCCESS;
+					goto exit;
+				}else{
+					ret = CANCEL;
+					goto exit;
+				}
+
+			case C_DEL:
+			case C_BACKSPACE:
+				if(!count){
+					ret = CANCEL;
+					goto exit;
+				}
+				count--;
+				move(y, --x);
+				break;
+
+			case C_ESC:
+				ret = CANCEL;
+				goto exit;
+
+			default:
+				if(isprint(c)){
+					s[count++] = c;
+					addch(c);
+					x++;
+					if(count >= size-1){
+						s[count] = '\0';
+						ret = SUCCESS;
+						goto exit;
+					}
+				}else{
+					ret = CANCEL;
+					goto exit;
+				}
+		}
+	while(1);
+
+exit:
+	move(0, 0);
+
+	switch(ret){
+		case CANCEL:
+			*s = '\0';
+		case SUCCESS:
+			return s;
+		case FAILURE:
+			break;
+	}
+	return NULL;
 }
 
 static void wrongfunc(void)
 {
-  mvaddch(maxy, 0, '?');
+	move(maxy, 0);
+	clrtoeol();
+	addch('?');
 }
 
 static int colon()
 {
 #define BUF_SIZE 128
   char in[128];
-  echo();
   mvaddch(maxy, 0, ':');
-  clrtoeol();
-  if(getnstr(in, BUF_SIZE) == OK){
-    noecho();
-    move(0, 0);
+  if(gfunc(in, BUF_SIZE))
 		return runcommand(in, buffer,
           &curline, &saved,
           &wrongfunc, &pfunc,
           &gfunc, &qfunc);
-  }
-  noecho();
+
   return 1;
 #undef BUF_SIZE
 }
 
+static void sigh(int sig)
+{
+	nc_down();
+	bail(sig);
+}
 
 int ncurses_main(const char *filename)
 {
   int c;
+
+	signal(SIGINT, &sigh);
 
   nc_up();
 
@@ -153,6 +227,9 @@ new_file:
           goto exit_while;
         break;
 
+			case C_CTRL_C:
+				sigh(SIGINT);
+				break;
 
       default:
         mvprintw(1, 2, "unknown: %c (%d)", c, c);
