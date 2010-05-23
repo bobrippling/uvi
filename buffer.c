@@ -10,9 +10,6 @@
 #include "buffer.h"
 #include "list.h"
 
-#define BUFFER_SIZE 128
-/* nearest 2^n, st > 80 */
-
 static int fgetline(char **, FILE *, char *);
 
 buffer_t *buffer_new()
@@ -68,6 +65,8 @@ int buffer_read(buffer_t **buffer, const char *fname)
 
 static int fgetline(char **s, FILE *in, char *haseol)
 {
+#define BUFFER_SIZE 128
+/* nearest 2^n, st > 80 */
 	size_t buffer_size = BUFFER_SIZE;
 	char *c;
 	const long offset = ftell(in);
@@ -119,6 +118,7 @@ static int fgetline(char **s, FILE *in, char *haseol)
 			}
 		}
 	}while(1);
+#undef BUFFER_SIZE
 }
 
 
