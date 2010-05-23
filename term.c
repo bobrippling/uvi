@@ -82,7 +82,7 @@ int term_main(const char *filename)
 			perror(NULL);
 			return 1;
 		}else if(nread == 0)
-			fputs("(empty file)\n", stderr);
+			fputs("(empty file)\n");
 		else
 			printf("%s: %dC, %dL%s\n", filename, buffer_nchars(buffer),
 					buffer_nlines(buffer), buffer->haseol ? "" : " (noeol)");
@@ -114,7 +114,7 @@ new_file:
 			*s = '\0';
 
 		lim.start = curline;
-		lim.end	 = list_count(buffer->lines);
+		lim.end	  = list_count(buffer->lines);
 
 		s = parserange(in, &rng, &lim, &qfunc, &pfunc);
 		/* from this point on, s/in/s/g */
