@@ -43,6 +43,71 @@ void list_insertafter(struct list *l, char *d)
 		l->data = d;
 }
 
+void list_insertlistbefore(struct list *l, struct list *new)
+{
+	new = list_gethead(new);
+
+	if(!l->data){
+		/* empty list; trivial */
+		l->data = new->data;
+		new = new->next;
+		free(new->prev);
+
+		l->next /* should be null */ = new;
+		new->prev = l;
+	}else if(!l->prev){
+		/*
+		 * at head, and l->data is occupied
+		 * replace l->data with new->data
+		 * and l->next with new->next
+		 * then tag l->data onto the end of new
+		 */
+		struct list *block = new;
+		char *saved = l->data;
+
+		l->data = new->data;
+		block->data = saved;
+		new = new->next;
+
+		if(new){
+			/* more than one line being inserted */
+			struct list *newend = list_gettail(new);
+
+			newend->next = block;
+			block->prev = newend;
+
+			newend = newend->next;
+
+			if((newend->next = l->next))
+				newend->next->prev = newend;
+
+			new->prev = l;
+			l->next = new;
+
+		}else{
+			/* tag block onto the end of l */
+			if((block->next = l->next))
+				block->next->prev = block;
+			l->next = block;
+			block->prev = l;
+		}
+	}else
+		list_insertlistafter(l->prev, new);
+}
+
+void list_insertlistafter(struct list *l, struct list *new)
+{
+	struct list *newend = list_gettail(new);
+
+	newend->next = l->next;
+	if(newend->next)
+		newend->next->prev = newend;
+
+	l->next = new;
+	new->prev = l;
+}
+
+
 /* inserts char * at the very end of the list */
 void list_append(struct list *l, char *d)
 {
