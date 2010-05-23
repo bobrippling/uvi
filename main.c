@@ -2,10 +2,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <setjmp.h>
+#include <unistd.h>
 
 #include "term.h"
 #include "ncurses.h"
 
+#include "main.h"
 #include "config.h"
 
 static void usage(const char *);
@@ -18,6 +20,15 @@ void usage(const char *s)
 	fprintf(stderr, "Usage: %s [-t] [--] [filename]\n", s);
   fputs("  -t: terminal mode\n", stderr);
 	exit(1);
+}
+
+void bail(int sig)
+{
+	/* TODO: save open buffers */
+	const char m[] = "Bailing!\n";
+
+	write(STDERR_FILENO, m, strlen(m));
+	exit(sig);
 }
 
 int main(int argc, const char **argv)
