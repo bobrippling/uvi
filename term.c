@@ -113,17 +113,6 @@ new_file:
 		if(s)
 			*s = '\0';
 
-		if(!strcmp(in, "DUMP")){
-			struct list *l = buffer->lines;
-			int i = 0;
-			puts("--- DUMP START ---");
-			while(l){
-				printf("%d: \"%s\"\n", ++i, l->data);
-				l = l->next;
-			}
-			puts("--- DUMP END ---");
-		}
-
 		lim.start = curline;
 		lim.end	 = list_count(buffer->lines);
 
