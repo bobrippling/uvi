@@ -11,43 +11,57 @@
 #include "list.h"
 #include "alloc.h"
 
-struct list *readlines(char *(*gfunc)(char *, int))
+struct list *readlines(enum gret (*gfunc)(char *, int))
 {
 #define BUFFER_SIZE 128
 	struct list *l = list_new(NULL);
 	char buffer[BUFFER_SIZE];
+	int loop = 1;
 
-	while(gfunc(buffer, BUFFER_SIZE)){
-		char *nl = strchr(buffer, '\n');
+	do
+		switch(gfunc(buffer, BUFFER_SIZE)){
+			case g_EOF:
+				loop = 0;
+				break;
 
-		if(nl){
-			char *s = umalloc(strlen(buffer)); /* no need for +1 - \n is removed */
-			*nl = '\0';
-			strcpy(s, buffer);
-			list_append(l, s);
-		}else{
-			int size = BUFFER_SIZE;
-			char *s = NULL, *insert;
+			case g_LAST:
+				/* add this buffer, then bail out */
+				loop = 0;
+			case g_CONTINUE:
+			{
+				char *nl = strchr(buffer, '\n');
 
-			do{
-				char *tmp;
+				if(nl){
+					char *s = umalloc(strlen(buffer)); /* no need for +1 - \n is removed */
+					*nl = '\0';
+					strcpy(s, buffer);
+					list_append(l, s);
+				}else{
+					int size = BUFFER_SIZE;
+					char *s = NULL, *insert;
 
-				size *= 2;
-				if(!(tmp = realloc(s, size))){
-					free(s);
-					longjmp(allocerr, 1);
-				}
-				s = tmp;
-				insert = s + size - BUFFER_SIZE;
+					do{
+						char *tmp;
 
-				strcpy(insert, buffer);
-				if((tmp = strchr(insert, '\n'))){
-					*tmp = '\0';
+						size *= 2;
+						if(!(tmp = realloc(s, size))){
+							free(s);
+							longjmp(allocerr, 1);
+						}
+						s = tmp;
+						insert = s + size - BUFFER_SIZE;
+
+						strcpy(insert, buffer);
+						if((tmp = strchr(insert, '\n'))){
+							*tmp = '\0';
+							break;
+						}
+					}while(gfunc(buffer, BUFFER_SIZE) == g_CONTINUE);
 					break;
 				}
-			}while(gfunc(buffer, BUFFER_SIZE));
+			}
 		}
-	}
+	while(loop);
 
 	if(!l->data){
 		/* EOF straight away */
@@ -65,7 +79,7 @@ int runcommand(
 	int *curline, int *saved,
 	void (*wrongfunc)(void),
 	void (*pfunc)(const char *, ...),
-	char *(*gfunc)(char *, int),
+	enum gret (*gfunc)(char *, int),
 	int	(*qfunc)(const char *)
 	)
 {

@@ -20,7 +20,7 @@ static int saved = 1;
 
 static int	qfunc(const char *);
 static void pfunc(const char *, ...);
-static char *gfunc(char *, int);
+static enum gret gfunc(char *, int);
 static void wrongfunc(void);
 
 static void wrongfunc()
@@ -28,9 +28,9 @@ static void wrongfunc()
 	fputs("?\n", stdout);
 }
 
-static char *gfunc(char *s, int i)
+static enum gret gfunc(char *s, int i)
 {
-	return fgets(s, i, stdin);
+	return fgets(s, i, stdin) ? g_CONTINUE : g_EOF;
 }
 
 static int qfunc(const char *s)
