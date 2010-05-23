@@ -68,7 +68,7 @@ static void nc_up()
 
 static void status(const char *s)
 {
-  mvaddstr(maxy, 0, s);
+  (void)mvaddstr(maxy, 0, s);
 }
 
 static void pfunc(const char *s, ...)
@@ -167,7 +167,7 @@ static int colon()
 {
 #define BUF_SIZE 128
   char in[128];
-  mvaddch(maxy, 0, ':');
+  (void)mvaddch(maxy, 0, ':');
   if(gfunc(in, BUF_SIZE))
 		return runcommand(in, buffer,
           &curline, &saved,
