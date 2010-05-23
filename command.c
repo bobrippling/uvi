@@ -11,7 +11,7 @@
 #include "list.h"
 #include "alloc.h"
 
-struct list *readlines(enum gret (*gfunc)(char *, int))
+struct list *command_readlines(enum gret (*gfunc)(char *, int))
 {
 #define BUFFER_SIZE 128
 	struct list *l = list_new(NULL);
@@ -73,7 +73,7 @@ struct list *readlines(enum gret (*gfunc)(char *, int))
 }
 
 
-int runcommand(
+int command_run(
 	char *in,
 	buffer_t *buffer,
 	int *curline, int *saved,
@@ -112,7 +112,7 @@ int runcommand(
 			if(!HAVE_RANGE && strlen(s) == 1){
 				struct list *l;
 insert:
-				l = readlines(gfunc);
+				l = command_readlines(gfunc);
 
 				if(l){
 					struct list *line = list_getindex(buffer_lines(buffer), *curline);
@@ -248,4 +248,30 @@ insert:
 	}
 
 	return 1;
+}
+
+buffer_t *command_readfile(const char *filename, void (*pfunc)(const char *, ...))
+{
+  buffer_t *buffer;
+	if(filename){
+		int nread = buffer_read(&buffer, filename);
+		if(nread < 0){
+			if(errno == ENOENT)
+				goto new_file;
+			return NULL;
+		}else if(nread == 0)
+			pfunc("(empty file)\n");
+		else
+			pfunc("%s: %dC, %dL%s\n", filename,
+					buffer_nchars(buffer), buffer_nlines(buffer),
+					buffer->haseol ? "" : " (noeol)");
+	}else{
+    char *s;
+new_file:
+    s = umalloc(sizeof(char));
+    *s = '\0';
+		buffer = buffer_new(s);
+		pfunc("(new file)");
+	}
+  return buffer;
 }

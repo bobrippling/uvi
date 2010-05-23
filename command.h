@@ -8,9 +8,9 @@ enum gret
 	g_CONTINUE
 };
 
-struct list *readlines(enum gret (*)(char *, int));
+struct list *command_readlines(enum gret (*)(char *, int));
 
-int runcommand(
+int command_run(
 	char *,
 	buffer_t *,
 	int *, int *,
@@ -20,5 +20,8 @@ int runcommand(
 	enum gret (*)(char *, int),
 	int	      (*)(const char *)
 	);
+
+buffer_t *command_readfile(const char *,
+    void (*)(const char *, ...));
 
 #endif
