@@ -1,4 +1,4 @@
-CC      = clang
+CC      = gcc
 CFLAGS  = -g -pipe -W -Wall -Wcast-align -Wcast-qual -Wshadow -Wnested-externs -Waggregate-return -Wbad-function-cast -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Winline -Wredundant-decls -Wextra -pedantic -ansi
 LDFLAGS = -lncurses
 
@@ -31,4 +31,4 @@ ncurses.o: ncurses.c buffer.h range.h command.h list.h main.h view.h \
 range.o: range.c range.h
 term.o: term.c list.h buffer.h term.h range.h command.h config.h
 test.o: test.c list.h
-view.o: view.c list.h buffer.h view.h
+view.o: view.c list.h buffer.h view.h alloc.h
