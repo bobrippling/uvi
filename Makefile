@@ -1,12 +1,11 @@
 CFLAGS  = -g -pipe -W -Wall -Wcast-align -Wcast-qual -Wshadow -Wnested-externs -Waggregate-return -Wbad-function-cast -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Winline -Wredundant-decls -Wextra -pedantic -ansi
-LDFLAGS = -L/usr/lib/ncurses -lncurses
+LDFLAGS = -lncurses
 
 Q = @
 
 uvi: main.o term.o ncurses.o buffer.o list.o alloc.o range.o command.o
 	@echo LD $@
-	$Q${CC} ${CFLAGS} -o $@ $^ ${LDFLAGS}
-	@# order of flags is important
+	$Q${CC} ${CFLAGS} ${LDFLAGS} -o $@ $^
 
 ncurses.o:ncurses.c
 	@echo CC $@
