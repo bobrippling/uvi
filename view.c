@@ -61,9 +61,11 @@ void view_move(enum direction d)
 					break;
 			}
 
-			/* only end up here is cury changed */
+			/* only end up here has cury changed */
 			if(cl){
 				xlim = strlen(cl->data)-1;
+				if(xlim < 0)
+					xlim = 0;
 				if(curx > xlim)
 					curx = xlim;
 			}
