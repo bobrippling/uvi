@@ -77,6 +77,7 @@ int command_run(
 	char *in,
 	buffer_t *buffer,
 	int *curline, int *saved,
+	/* Note: curline is the index, i.e. 0 to $-1 */
 	void (*wrongfunc)(void),
 	void (*pfunc)(const char *, ...),
 	enum gret (*gfunc)(char *, int),
@@ -97,7 +98,7 @@ int command_run(
 		return 1;
 	else if(HAVE_RANGE && *s == '\0'){
 		/* just a number, move to that line */
-		*curline = rng.start - 1;
+		*curline = rng.start - 1; /* -1, because they enter between 1 & $ */
 		return 1;
 	}
 
@@ -116,6 +117,7 @@ insert:
 
 				if(l){
 					struct list *line = list_getindex(buffer_lines(buffer), *curline);
+
 					if(flag)
 						list_insertlistafter(line, l);
 					else
@@ -197,14 +199,14 @@ insert:
 					for(l = list_getindex(buffer_lines(buffer), i);
 							i++ != rng.end;
 							l = l->next)
-						pfunc(l->data);
+						pfunc("%s", l->data);
 
 				}else{
 					l = list_getindex(buffer_lines(buffer), *curline);
 					if(l)
-						pfunc(l->data);
+						pfunc("%s", l->data);
 					else
-						pfunc("Invalid current line!");
+						pfunc("Invalid current line ('p')!");
 				}
 			}else
 				wrongfunc();
@@ -221,13 +223,20 @@ insert:
 
 					list_remove_range(&l, rng.end - rng.start + 1);
 
-					buffer_lines(buffer) = list_getindex(buffer_lines(buffer), rng.start - 1);
+					/* l must be used below, since buffer_lines(buffer) is now invalid */
+					l = buffer_lines(buffer) = list_getindex(l, rng.start - 1);
+
+					if(!l->data){
+						/* just deleted everything, make empty line */
+						l->data = umalloc(sizeof(char));
+						*l->data = '\0';
+					}
 				}else{
 					l = list_getindex(buffer_lines(buffer), *curline);
 					if(l)
 						list_remove(l);
 					else{
-						pfunc("Invalid current line!");
+						pfunc("Invalid current line ('%c')!", *s);
 						break;
 					}
 				}
@@ -260,9 +269,9 @@ buffer_t *command_readfile(const char *filename, void (*pfunc)(const char *, ...
 				goto new_file;
 			return NULL;
 		}else if(nread == 0)
-			pfunc("(empty file)\n");
+			pfunc("(empty file)");
 		else
-			pfunc("%s: %dC, %dL%s\n", filename,
+			pfunc("%s: %dC, %dL%s", filename,
 					buffer_nchars(buffer), buffer_nlines(buffer),
 					buffer->haseol ? "" : " (noeol)");
 	}else{
