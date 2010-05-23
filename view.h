@@ -1,6 +1,18 @@
 #ifndef NC_PRINT_H
 #define NC_PRINT_H
 
-void viewbuffer(buffer_t *, int);
+enum direction
+{
+	LEFT,
+	RIGHT,
+	UP,
+	DOWN,
+	CURRENT
+};
+
+void view_buffer(buffer_t *);
+void view_init(void);
+void view_term(void);
+void view_move(enum direction);
 
 #endif
