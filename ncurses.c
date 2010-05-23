@@ -38,7 +38,7 @@ static void status(const char *, ...);
 
 /* extern'd for view.c */
 buffer_t *buffer;
-int curline = 1, maxy, maxx, saved = 1, curx, cury;
+int curline = 0, maxy, maxx, saved = 1, curx, cury;
 
 static void nc_down()
 {

@@ -69,7 +69,7 @@ static void pfunc(const char *s, ...)
 int term_main(const char *filename)
 {
 	char in[IN_SIZE];
-	int hadeof = 0, curline = 1;
+	int hadeof = 0, curline = 0;
 
   if(!(buffer = command_readfile(filename, pfunc))){
     fprintf(stderr, PROG_NAME": %s: ", filename);
