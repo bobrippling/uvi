@@ -30,7 +30,7 @@ static void wrongfunc()
 
 static char *gfunc(char *s, int i)
 {
-  return fgets(s, i, stdin);
+	return fgets(s, i, stdin);
 }
 
 static int qfunc(const char *s)
@@ -112,9 +112,9 @@ new_file:
 			*s = '\0';
 
 		if(!runcommand(in, buffer,
-          &curline, &saved,
-          &wrongfunc, &pfunc,
-          &gfunc, &qfunc))
+					&curline, &saved,
+					&wrongfunc, &pfunc,
+					&gfunc, &qfunc))
 			break;
 	}while(1);
 

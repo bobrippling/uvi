@@ -15,10 +15,10 @@ void list_insertlistafter(struct list *, struct list *);
 
 void list_append(struct list *, char *); /* inserts char * at the very end of the list */
 
-char        *list_extract(struct list *); /* removes the list * from its list and returns it */
-void         list_remove(struct list *); /* as above, but frees the extract'd */
+char				*list_extract(struct list *); /* removes the list * from its list and returns it */
+void				 list_remove(struct list *); /* as above, but frees the extract'd */
 struct list *list_extract_range(struct list **, int);
-void         list_remove_range(struct list **, int);
+void				 list_remove_range(struct list **, int);
 
 /*
  * list_extract returns the extracted list, and adjusts the pointer

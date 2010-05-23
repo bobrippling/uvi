@@ -18,7 +18,7 @@ jmp_buf allocerr;
 void usage(const char *s)
 {
 	fprintf(stderr, "Usage: %s [-t] [--] [filename]\n", s);
-  fputs("  -t: terminal mode\n", stderr);
+	fputs("  -t: terminal mode\n", stderr);
 	exit(1);
 }
 
@@ -44,9 +44,9 @@ int main(int argc, const char **argv)
 						argv_options = 0;
 						break;
 
-          case 't':
-            term = 1;
-            break;
+					case 't':
+						term = 1;
+						break;
 
 					default:
 						usage(*argv);
@@ -64,8 +64,8 @@ int main(int argc, const char **argv)
 		return 1;
 	}
 
-  if(term)
-    return term_main(fname);
-  else
-    return ncurses_main(fname);
+	if(term)
+		return term_main(fname);
+	else
+		return ncurses_main(fname);
 }

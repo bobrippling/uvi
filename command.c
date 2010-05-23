@@ -64,30 +64,30 @@ static struct list *readlines(char *(*gfunc)(char *, int))
 int runcommand(
 	char *in,
 	buffer_t *buffer,
-  int *curline, int *saved,
+	int *curline, int *saved,
 	void (*wrongfunc)(void),
 	void (*pfunc)(const char *, ...),
 	char *(*gfunc)(char *, int),
-  int  (*qfunc)(const char *)
-  )
+	int	(*qfunc)(const char *)
+	)
 {
 #define HAVE_RANGE (s > in)
-  struct range lim, rng;
+	struct range lim, rng;
 	int flag = 0;
-  char *s;
+	char *s;
 
-  lim.start = *curline;
-  lim.end	  = list_count(buffer_lines(buffer));
+	lim.start = *curline;
+	lim.end		= list_count(buffer_lines(buffer));
 
-  s = parserange(in, &rng, &lim, qfunc, pfunc);
-  /* from this point on, s/in/s/g */
-  if(!s)
-    return 1;
-  else if(HAVE_RANGE && *s == '\0'){
-    /* just a number, move to that line */
-    *curline = rng.start - 1;
-    return 1;
-  }
+	s = parserange(in, &rng, &lim, qfunc, pfunc);
+	/* from this point on, s/in/s/g */
+	if(!s)
+		return 1;
+	else if(HAVE_RANGE && *s == '\0'){
+		/* just a number, move to that line */
+		*curline = rng.start - 1;
+		return 1;
+	}
 
 	switch(*s){
 		case '\0':
@@ -169,10 +169,10 @@ insert:
 
 		case 'g':
 			/* print current line index */
-      if(HAVE_RANGE)
-        wrongfunc();
-      else
-        pfunc("%d", 1 + *curline);
+			if(HAVE_RANGE)
+				wrongfunc();
+			else
+				pfunc("%d", 1 + *curline);
 			break;
 
 		case 'p':
@@ -180,7 +180,7 @@ insert:
 				struct list *l;
 
 				if(HAVE_RANGE){
-          int i = rng.start - 1;
+					int i = rng.start - 1;
 
 					for(l = list_getindex(buffer_lines(buffer), i);
 							i++ != rng.end;
@@ -188,12 +188,12 @@ insert:
 						pfunc(l->data);
 
 				}else{
-          l = list_getindex(buffer_lines(buffer), *curline);
-          if(l)
-            pfunc(l->data);
-          else
-            pfunc("Invalid current line!");
-        }
+					l = list_getindex(buffer_lines(buffer), *curline);
+					if(l)
+						pfunc(l->data);
+					else
+						pfunc("Invalid current line!");
+				}
 			}else
 				wrongfunc();
 			break;
@@ -211,14 +211,14 @@ insert:
 
 					buffer_lines(buffer) = list_getindex(buffer_lines(buffer), rng.start - 1);
 				}else{
-          l = list_getindex(buffer_lines(buffer), *curline);
-          if(l)
-            list_remove(l);
-          else{
-            pfunc("Invalid current line!");
+					l = list_getindex(buffer_lines(buffer), *curline);
+					if(l)
+						list_remove(l);
+					else{
+						pfunc("Invalid current line!");
 						break;
 					}
-        }
+				}
 
 				*saved = 0;
 			}else{

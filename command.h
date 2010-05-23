@@ -4,11 +4,11 @@
 int runcommand(
 	char *,
 	buffer_t *,
-  int *, int *,
-	void  (*)(void),
-	void  (*)(const char *, ...),
+	int *, int *,
+	void	(*)(void),
+	void	(*)(const char *, ...),
 	char *(*)(char *, int),
-  int   (*)(const char *)
-  );
+	int	 (*)(const char *)
+	);
 
 #endif
