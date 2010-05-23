@@ -29,13 +29,9 @@ static void sigh(int);
 static void pfunc(const char *, ...);
 static void wrongfunc(void);
 static int	qfunc(const char *);
-static char *gfunc(char *, int);
+static enum gret gfunc(char *, int);
 
 static char nc_getch(void);
-enum ret
-{
-	SUCCESS, FAILURE, CANCEL
-} static nc_gets(char *, int);
 static void open(int);
 static int	colon(void);
 static void status(const char *, ...);
@@ -107,16 +103,67 @@ static int qfunc(const char *s)
 	return c == '\n' || tolower(c) == 'y';
 }
 
-static char *gfunc(char *s, int size)
+static enum gret gfunc(char *s, int size)
 {
-	switch(nc_gets(s, size)){
-		case SUCCESS:
-			return s;
-		case FAILURE:
-		case CANCEL:
-			break;
-	}
-	return NULL;
+	/*return getnstr(s, len) == OK ? s : NULL;*/
+	int x, y, c, count = 0;
+	enum gret r;
+
+	getyx(stdscr, y, x);
+	clrtoeol();
+
+	do
+		switch((c = nc_getch())){
+			case C_ESC:
+				r = g_LAST;
+				goto exit;
+
+			case C_NEWLINE:
+			case '\n':
+				r = g_CONTINUE;
+				goto exit;
+
+			case C_DEL:
+			case C_BACKSPACE:
+				if(!count){
+					r = g_EOF;
+					goto exit;
+				}
+				count--;
+				move(y, --x);
+				break;
+
+				/* TODO: CTRL_AND('v') */
+
+			default:
+				if(isprint(c)){
+					s[count++] = c;
+					addch(c);
+					x++;
+					if(count >= size-1){
+						s[count] = '\0';
+						r = g_CONTINUE;
+						goto exit;
+					}
+				}else{
+					r = g_LAST;
+					goto exit;
+				}
+		}
+	while(1);
+
+exit:
+	if(count < size-1){
+		s[count]   = '\n';
+		s[count+1] = '\0';
+	}else
+		s[count] = '\0';
+	addch('\n');
+	if(y < maxy)
+		y++;
+
+	move(y, 0);
+	return r;
 }
 
 static char nc_getch()
@@ -130,76 +177,6 @@ static char nc_getch()
 	return c;
 }
 
-static enum ret nc_gets(char *s, int size)
-{
-	/*return getnstr(s, len) == OK ? s : NULL;*/
-	int x, y, c, count = 0;
-	enum ret r;
-
-	getyx(stdscr, y, x);
-	clrtoeol();
-
-	do
-		switch((c = nc_getch())){
-			case C_EOF:
-				if(count){
-					s[count] = '\0';
-					r = SUCCESS;
-					goto exit;
-				}else{
-					r = FAILURE;
-					goto exit;
-				}
-
-			case C_NEWLINE:
-			case '\n':
-				if(count < size-1){
-					s[count]   = '\n';
-					s[count+1] = '\0';
-				}else
-					s[count] = '\0';
-				r = SUCCESS;
-				addch('\n');
-				if(y < maxy)
-					y++;
-				goto exit;
-
-			case C_DEL:
-			case C_BACKSPACE:
-				if(!count){
-					r = CANCEL;
-					goto exit;
-				}
-				count--;
-				move(y, --x);
-				break;
-
-			case C_ESC:
-				r = CANCEL;
-				goto exit;
-
-			default:
-				if(isprint(c)){
-					s[count++] = c;
-					addch(c);
-					x++;
-					if(count >= size-1){
-						s[count] = '\0';
-						r = SUCCESS;
-						goto exit;
-					}
-				}else{
-					r = CANCEL;
-					goto exit;
-				}
-		}
-	while(1);
-
-exit:
-	move(y, 0);
-	return r;
-}
-
 static void wrongfunc(void)
 {
 	move(maxy, 0);
@@ -207,15 +184,15 @@ static void wrongfunc(void)
 	addch('?');
 }
 
-static void open(int append)
+static void open(int ins)
 {
-	struct list *new = readlines(&gfunc),
-							*cur = list_getindex(buffer_lines(buffer), curline);
+	struct list *cur = list_getindex(buffer_lines(buffer), curline),
+							*new = readlines(&gfunc);
 
-	if(append)
-		list_insertlistafter(cur, new);
-	else
+	if(ins)
 		list_insertlistbefore(cur, new);
+	else
+		list_insertlistafter(cur, new);
 
 	saved = 0;
 }
@@ -226,8 +203,8 @@ static int colon()
 	char in[128], *c;
 
 	(void)mvaddch(maxy, 0, ':');
-	switch(nc_gets(in, BUF_SIZE)){
-		case SUCCESS:
+	switch(gfunc(in, BUF_SIZE)){
+		case g_CONTINUE:
 			c = strchr(in, '\n');
 			if(c)
 				*c = '\0';
@@ -237,8 +214,8 @@ static int colon()
 					&wrongfunc, &pfunc,
 					&gfunc, &qfunc);
 
-		case FAILURE:
-		case CANCEL:
+		case g_LAST: /* esc means cancel in this sense */
+		case g_EOF:
 			break;
 	}
 
@@ -283,6 +260,8 @@ new_file:
 	}
 
 	do{
+		int flag = 0;
+
 		if(changed){
 			view_buffer(buffer);
 			changed = 0;
@@ -291,8 +270,6 @@ new_file:
 		view_move(CURRENT);
 
 		switch((c = nc_getch())){
-			int flag = 0;
-
 			case 'Z':
 				if(nc_getch() == 'Z')
 					/* TODO: check saved */
@@ -304,6 +281,17 @@ new_file:
 					goto exit_while;
 				changed = 1;
 				break;
+
+			case CTRL_AND('g'):
+				{
+					const int i = list_count(buffer_lines(buffer));
+
+					status("\"%s\"%s %d/%d %.2f%%",
+							buffer->fname ? buffer->fname : "(empty file)",
+							saved ? "" : " [Modified]", 1+curline,
+							i, 100.0f * (float)(1+curline) / (float)i);
+					break;
+				}
 
 			case 'O':
 				flag = 1;
