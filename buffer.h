@@ -8,7 +8,7 @@ typedef struct
 		char *fname, haseol;
 	} buffer_t;
 
-buffer_t	*buffer_new(void);
+buffer_t	*buffer_new(char *);
 int				buffer_read(buffer_t **, const char *);
 int				buffer_write(buffer_t *);
 void			buffer_free(buffer_t *);

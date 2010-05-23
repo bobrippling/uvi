@@ -12,10 +12,10 @@
 
 static int fgetline(char **, FILE *, char *);
 
-buffer_t *buffer_new()
+buffer_t *buffer_new(char *p)
 {
 	buffer_t *b = umalloc(sizeof(*b));
-	b->lines = list_new(NULL);
+	b->lines = list_new(p);
 	b->fname = NULL;
 	return b;
 }
@@ -30,7 +30,7 @@ int buffer_read(buffer_t **buffer, const char *fname)
 	if(!f)
 		return -1;
 
-	*buffer = buffer_new();
+	*buffer = buffer_new(NULL);
 	tmp = (*buffer)->lines;
 
 	do{
