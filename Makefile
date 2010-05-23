@@ -1,8 +1,13 @@
-CFLAGS = -g -pipe -W -Wall -Wcast-align -Wcast-qual -Wshadow -Wnested-externs -Waggregate-return -Wbad-function-cast -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Winline -Wredundant-decls -Wextra -pedantic -ansi
+CFLAGS  = -g -pipe -W -Wall -Wcast-align -Wcast-qual -Wshadow -Wnested-externs -Waggregate-return -Wbad-function-cast -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Winline -Wredundant-decls -Wextra -pedantic -ansi
+LDFLAGS = -lncurses -L/usr/lib/ncurses/
 
-uvi: main.o term.o buffer.o list.o alloc.o range.o command.o
+uvi: main.o term.o ncurses.o buffer.o list.o alloc.o range.o command.o
 	@echo LD $@
 	@${CC} ${CFLAGS} ${LDFLAGS} -o $@ $^
+
+ncurses.o:ncurses.c
+	@echo CC $@
+	@${CC} ${CFLAGS} -I/usr/include/ncurses -c -o $@ $<
 
 %.o:%.c
 	@echo CC $@
