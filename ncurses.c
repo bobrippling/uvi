@@ -9,6 +9,7 @@
 #include "command.h"
 #include "list.h"
 #include "main.h"
+#include "view.h"
 
 #include "ncurses.h"
 #include "config.h"
@@ -36,7 +37,7 @@ enum ret
 	SUCCESS, FAILURE, CANCEL
 } static nc_gets(char *, int);
 static int	colon(void);
-static void status(const char *);
+static void status(const char *, ...);
 
 static buffer_t *buffer;
 static int curline = 1, maxy, maxx, saved = 1;
@@ -71,9 +72,14 @@ static void nc_up()
 	refresh();
 }
 
-static void status(const char *s)
+static void status(const char *s, ...)
 {
-	(void)mvaddstr(maxy, 0, s);
+	va_list l;
+	va_start(l, s);
+	move(maxy, 0);
+	clrtoeol();
+	vwprintw(stdscr, s, l);
+	va_end(l);
 }
 
 static void pfunc(const char *s, ...)
@@ -89,7 +95,7 @@ static void pfunc(const char *s, ...)
 static int qfunc(const char *s)
 {
 	int c;
-	status(s);
+	status("%s", s);
 	c = nc_getch();
 	return c == '\n' || tolower(c) == 'y';
 }
@@ -254,7 +260,8 @@ new_file:
 	}
 
 
-	do
+	do{
+		viewbuffer(buffer, curline - 1);
 		switch((c = nc_getch())){
 			case 'Z':
 				if(nc_getch() == 'Z')
@@ -268,12 +275,13 @@ new_file:
 
 			case C_CTRL_C:
 				sigh(SIGINT);
+			case C_ESC:
 				break;
 
 			default:
-				mvprintw(1, 2, "unknown: %c (%d)", c, c);
+				status("unknown: %c (%d)", c, c);
 		}
-	while(1);
+	}while(1);
 exit_while:
 
 
