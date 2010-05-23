@@ -4,6 +4,7 @@
 #include <setjmp.h>
 
 #include "term.h"
+#include "ncurses.h"
 
 #include "config.h"
 
@@ -14,13 +15,14 @@ jmp_buf allocerr;
 
 void usage(const char *s)
 {
-	fprintf(stderr, "Usage: %s [filename]\n", s);
+	fprintf(stderr, "Usage: %s [-t] [--] [filename]\n", s);
+  fputs("  -t: terminal mode\n", stderr);
 	exit(1);
 }
 
 int main(int argc, const char **argv)
 {
-	int i, argv_options = 1;
+	int i, argv_options = 1, term = 0;
 	const char *fname = NULL;
 
 	for(i = 1; i < argc; i++)
@@ -30,6 +32,10 @@ int main(int argc, const char **argv)
 					case '-':
 						argv_options = 0;
 						break;
+
+          case 't':
+            term = 1;
+            break;
 
 					default:
 						usage(*argv);
@@ -47,5 +53,8 @@ int main(int argc, const char **argv)
 		return 1;
 	}
 
-	return term_main(fname);
+  if(term)
+    return term_main(fname);
+  else
+    return ncurses_main(fname);
 }
