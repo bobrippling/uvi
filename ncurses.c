@@ -140,7 +140,11 @@ static enum ret nc_gets(char *s, int size)
 
 			case C_NEWLINE:
 			case '\n':
-				s[count] = '\0';
+				if(count < size-1){
+					s[count]   = '\n';
+					s[count+1] = '\0';
+				}else
+					s[count] = '\0';
 				r = SUCCESS;
 				goto exit;
 
@@ -190,13 +194,24 @@ static void wrongfunc(void)
 static int colon()
 {
 #define BUF_SIZE 128
-	char in[128];
+	char in[128], *c;
+
 	(void)mvaddch(maxy, 0, ':');
-	if(gfunc(in, BUF_SIZE))
-		return runcommand(in, buffer,
+	switch(nc_gets(in, BUF_SIZE)){
+		case SUCCESS:
+			c = strchr(in, '\n');
+			if(c)
+				*c = '\0';
+
+			return runcommand(in, buffer,
 					&curline, &saved,
 					&wrongfunc, &pfunc,
 					&gfunc, &qfunc);
+
+		case FAILURE:
+		case CANCEL:
+			break;
+	}
 
 	return 1;
 #undef BUF_SIZE
