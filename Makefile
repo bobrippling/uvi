@@ -4,7 +4,7 @@ LDFLAGS = -lncurses
 
 Q = @
 
-uvi: main.o term.o ncurses.o buffer.o list.o alloc.o range.o command.o
+uvi: main.o term.o ncurses.o view.o buffer.o list.o alloc.o range.o command.o
 	@echo LD $@
 	$Q${CC} ${CFLAGS} ${LDFLAGS} -o $@ $^
 
@@ -16,15 +16,6 @@ ncurses.o:ncurses.c
 	@echo CC $@
 	$Q${CC} ${CFLAGS} -c -o $@ $<
 
-alloc.o: alloc.c alloc.h
-buffer.o: buffer.c alloc.h buffer.h list.h
-command.o: command.c range.h buffer.h command.h list.h
-list.o: list.c list.h alloc.h
-main.o: main.c term.h config.h
-range.o: range.c range.h
-term.o: term.c list.h buffer.h term.h range.h command.h config.h
-test.o: test.c list.h
-
 clean:
 	rm -f *.o uvi
 
@@ -34,9 +25,10 @@ alloc.o: alloc.c alloc.h
 buffer.o: buffer.c alloc.h buffer.h list.h
 command.o: command.c range.h buffer.h command.h list.h alloc.h
 list.o: list.c list.h alloc.h
-main.o: main.c term.h ncurses.h config.h
-ncurses.o: ncurses.c buffer.h range.h command.h list.h ncurses.h config.h
+main.o: main.c term.h ncurses.h main.h config.h
+ncurses.o: ncurses.c buffer.h range.h command.h list.h main.h view.h \
+ ncurses.h config.h
 range.o: range.c range.h
 term.o: term.c list.h buffer.h term.h range.h command.h config.h
 test.o: test.c list.h
-
+view.o: view.c list.h buffer.h view.h
