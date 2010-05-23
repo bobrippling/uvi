@@ -68,7 +68,6 @@ static void pfunc(const char *s, ...)
 
 int term_main(const char *filename)
 {
-	struct range rng;
 	char in[IN_SIZE];
 	int hadeof = 0, curline = 1;
 
@@ -82,7 +81,7 @@ int term_main(const char *filename)
 			perror(NULL);
 			return 1;
 		}else if(nread == 0)
-			fputs("(empty file)\n");
+			puts("(empty file)\n");
 		else
 			printf("%s: %dC, %dL%s\n", filename, buffer_nchars(buffer),
 					buffer_nlines(buffer), buffer->haseol ? "" : " (noeol)");
@@ -94,7 +93,6 @@ new_file:
 
 	do{
 		char *s;
-		struct range lim;
 
 		if(!fgets(in, IN_SIZE, stdin)){
 			if(hadeof){
@@ -113,22 +111,10 @@ new_file:
 		if(s)
 			*s = '\0';
 
-		lim.start = curline;
-		lim.end	  = list_count(buffer->lines);
-
-		s = parserange(in, &rng, &lim, &qfunc, &pfunc);
-		/* from this point on, s/in/s/g */
-		if(!s)
-			continue;
-		else if(s > in && strlen(s) == 0){
-			/* just a number, move to that line */
-			curline = rng.start - 1;
-			continue;
-		}
-
-		if(!runcommand(s, s > in ? &rng : NULL, buffer,
-					list_getindex(buffer->lines, curline),
-					&saved, &wrongfunc, &pfunc, &gfunc))
+		if(!runcommand(in, buffer,
+          &curline, &saved,
+          &wrongfunc, &pfunc,
+          &gfunc, &qfunc))
 			break;
 	}while(1);
 

@@ -2,14 +2,13 @@
 #define COMMAND_H
 
 int runcommand(
-		const char *,
-		struct range *,
-		buffer_t *,
-		struct list *curline,
-		int *saved,
-		void (*)(void),
-		void (*)(const char *, ...),
-    char *(*)(char *, int)
-		);
+	char *,
+	buffer_t *,
+  int *, int *,
+	void  (*)(void),
+	void  (*)(const char *, ...),
+	char *(*)(char *, int),
+  int   (*)(const char *)
+  );
 
 #endif

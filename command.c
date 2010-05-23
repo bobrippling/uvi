@@ -62,16 +62,32 @@ static struct list *readlines(char *(*gfunc)(char *, int))
 
 
 int runcommand(
-	const char *s,
-	struct range *rng,
+	char *in,
 	buffer_t *buffer,
-	struct list *curline,
-	int *saved,
+  int *curline, int *saved,
 	void (*wrongfunc)(void),
 	void (*pfunc)(const char *, ...),
-	char *(*gfunc)(char *, int))
+	char *(*gfunc)(char *, int),
+  int  (*qfunc)(const char *)
+  )
 {
+#define HAVE_RANGE (s > in)
+  struct range lim, rng;
 	int flag = 0;
+  char *s;
+
+  lim.start = *curline;
+  lim.end	  = list_count(buffer->lines);
+
+  s = parserange(in, &rng, &lim, qfunc, pfunc);
+  /* from this point on, s/in/s/g */
+  if(!s)
+    return 1;
+  else if(HAVE_RANGE && strlen(s) == 0){
+    /* just a number, move to that line */
+    *curline = rng.start - 1;
+    return 1;
+  }
 
 	switch(*s){
 		case '\0':
@@ -81,20 +97,22 @@ int runcommand(
 		case 'a':
 			flag = 1;
 		case 'i':
-			if(!rng && strlen(s) == 1){
-				struct list *l = readlines(gfunc), *tmp;
+			if(HAVE_RANGE && strlen(s) == 1){
+				struct list *l = readlines(gfunc);
 
 				if(l){
 					void (*func)(struct list *, char *);
+          struct list *line = list_getindex(buffer->lines, *curline),
+                      *tmp;
 
 					l = list_gettail(l);
 					func = flag ? &list_insertafter : &list_insertbefore;
 
-					if(!curline) /* empty buffer */
-						curline = buffer->lines;
+					if(!line) /* empty buffer */
+						line = buffer->lines;
 
 					while(l){
-						func(curline, l->data);
+						func(line, l->data);
 						tmp = l;
 						l = l->prev;
 						free(tmp); /* can't free(l->next) - l may be NULL */
@@ -105,7 +123,7 @@ int runcommand(
 			break;
 
 		case 'w':
-			if(rng || strlen(s) > 2){
+			if(HAVE_RANGE || strlen(s) > 2){
 				wrongfunc();
 				break;
 			}
@@ -139,7 +157,7 @@ int runcommand(
 			if(flag)
 				return 0;
 
-			if(rng ||	strlen(s) > 2)
+			if(HAVE_RANGE || strlen(s) > 2)
 				wrongfunc();
 			else{
 				switch(s[1]){
@@ -159,31 +177,31 @@ int runcommand(
 
 		case 'g':
 			/* print current line index */
-			if(strlen(s) == 1 && !rng){
-				int i = list_indexof(buffer->lines, curline);
-				if(i != -1)
-					pfunc("%d", i);
-				else
-					pfunc("Invalid index...?");
-			}else
-				wrongfunc();
+      if(HAVE_RANGE)
+        wrongfunc();
+      else
+        pfunc("%d", *curline);
 			break;
 
 		case 'p':
 			if(strlen(s) == 1){
 				struct list *l;
-				if(rng){
-					int i = rng->start - 1;
+
+				if(HAVE_RANGE){
+          int i = rng.start - 1;
 
 					for(l = list_getindex(buffer->lines, i);
-							i++ != rng->end;
+              i++ != rng.end;
 							l = l->next)
 						pfunc(l->data);
 
-				}else if(curline)
-					pfunc(curline->data);
-				else
-					pfunc("Invalid current line!");
+				}else{
+          l = list_getindex(buffer->lines, *curline);
+          if(l)
+            pfunc(l->data);
+          else
+            pfunc("Invalid current line!");
+        }
 			}else
 				wrongfunc();
 			break;
@@ -191,14 +209,19 @@ int runcommand(
 		case 'd':
 			if(strlen(s) == 1){
 				struct list *l;
-				if(rng){
-					l = list_getindex(buffer->lines, rng->start - 1);
+				if(HAVE_RANGE){
+					l = list_getindex(buffer->lines, rng.start - 1);
 
-					list_remove_range(&l, rng->end - rng->start + 1);
+					list_remove_range(&l, rng.end - rng.start + 1);
 
 					buffer->lines = list_gethead(l);
-				}else
-					list_remove(curline);
+				}else{
+          l = list_getindex(buffer->lines, *curline);
+          if(l)
+            list_remove(l);
+          else
+            pfunc("Invalid current line!");
+        }
 
 				*saved = 0;
 			}else
