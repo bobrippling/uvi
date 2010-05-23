@@ -20,11 +20,17 @@ static int saved = 1;
 
 static int	qfunc(const char *);
 static void pfunc(const char *, ...);
+static char *gfunc(char *, int);
 static void wrongfunc(void);
 
 static void wrongfunc()
 {
 	fputs("?\n", stdout);
+}
+
+static char *gfunc(char *s, int i)
+{
+  return fgets(s, i, stdin);
 }
 
 static int qfunc(const char *s)
@@ -133,7 +139,7 @@ new_file:
 
 		if(!runcommand(s, s > in ? &rng : NULL, buffer,
 					list_getindex(buffer->lines, curline),
-					&saved, wrongfunc, pfunc))
+					&saved, &wrongfunc, &pfunc, &gfunc))
 			break;
 	}while(1);
 
