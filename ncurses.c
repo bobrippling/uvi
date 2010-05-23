@@ -36,14 +36,17 @@ enum ret
 {
 	SUCCESS, FAILURE, CANCEL
 } static nc_gets(char *, int);
+static void open(int);
 static int	colon(void);
 static void status(const char *, ...);
 
-static buffer_t *buffer;
-static int curline = 1, maxy, maxx, saved = 1;
+/* extern'd for view.c */
+buffer_t *buffer;
+int curline = 1, maxy, maxx, saved = 1, curx, cury;
 
 static void nc_down()
 {
+	view_term();
 	endwin();
 }
 
@@ -65,7 +68,11 @@ static void nc_up()
 
 		getmaxyx(stdscr, maxy, maxx);
 		--maxy;
-		--maxx;
+		--maxx; /* TODO: use SIGWINCH */
+
+		curx = cury = 0;
+
+		view_init();
 
 		init = 1;
 	}
@@ -152,6 +159,9 @@ static enum ret nc_gets(char *s, int size)
 				}else
 					s[count] = '\0';
 				r = SUCCESS;
+				addch('\n');
+				if(y < maxy)
+					y++;
 				goto exit;
 
 			case C_DEL:
@@ -197,6 +207,19 @@ static void wrongfunc(void)
 	addch('?');
 }
 
+static void open(int append)
+{
+	struct list *new = readlines(&gfunc),
+							*cur = list_getindex(buffer_lines(buffer), curline);
+
+	if(append)
+		list_insertlistafter(cur, new);
+	else
+		list_insertlistbefore(cur, new);
+
+	saved = 0;
+}
+
 static int colon()
 {
 #define BUF_SIZE 128
@@ -231,7 +254,7 @@ static void sigh(int sig)
 
 int ncurses_main(const char *filename)
 {
-	int c;
+	int c, changed = 1;
 
 	signal(SIGINT, &sigh);
 
@@ -259,18 +282,47 @@ new_file:
 		status("(new file)");
 	}
 
-
 	do{
-		viewbuffer(buffer, curline - 1);
+		if(changed){
+			view_buffer(buffer);
+			changed = 0;
+		}
+		refresh(); /* outside (changed) in case cursor is moved */
+		view_move(CURRENT);
+
 		switch((c = nc_getch())){
+			int flag = 0;
+
 			case 'Z':
 				if(nc_getch() == 'Z')
+					/* TODO: check saved */
 					goto exit_while;
 				break;
 
 			case ':':
 				if(!colon())
 					goto exit_while;
+				changed = 1;
+				break;
+
+			case 'O':
+				flag = 1;
+			case 'o':
+				open(flag);
+				changed = 1;
+				break;
+
+			case 'j':
+				view_move(DOWN);
+				break;
+			case 'k':
+				view_move(UP);
+				break;
+			case 'h':
+				view_move(LEFT);
+				break;
+			case 'l':
+				view_move(RIGHT);
 				break;
 
 			case C_CTRL_C:
@@ -284,6 +336,7 @@ new_file:
 	}while(1);
 exit_while:
 
+	buffer_free(buffer);
 
 	nc_down();
 	return 0;

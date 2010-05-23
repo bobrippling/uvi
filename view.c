@@ -10,13 +10,11 @@
 #include "alloc.h"
 
 static char *strbuffer;
-static int curx, cury;
-extern int curline, maxy, maxx;
+extern int curline, maxy, maxx, curx, cury;
 extern buffer_t *buffer;
 
 void view_init()
 {
-	curx = cury = 0;
 	strbuffer = umalloc(maxx + 1);
 }
 
@@ -44,17 +42,31 @@ void view_move(enum direction d)
 				curx++;
 			break;
 
-		case UP:
-			if(cury > 0)
-				cury--;
-			break;
-
-		case DOWN:
-			if(cury < ylim)
-				cury++;
-			break;
-
 		case CURRENT:
+			break;
+
+		case UP:
+		case DOWN:
+			if(d == UP){
+				if(cury > 0){
+					cury--;
+					cl = cl->prev;
+				}else
+					break;
+			}else{
+				if(cury < ylim){
+					cury++;
+					cl = cl->next;
+				}else
+					break;
+			}
+
+			/* only end up here is cury changed */
+			if(cl){
+				xlim = strlen(cl->data)-1;
+				if(curx > xlim)
+					curx = xlim;
+			}
 			break;
 	}
 
