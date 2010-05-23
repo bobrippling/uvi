@@ -1,6 +1,8 @@
 #ifndef COMMAND_H
 #define COMMAND_H
 
+struct list *readlines(char *(*)(char *, int));
+
 int runcommand(
 	char *,
 	buffer_t *,

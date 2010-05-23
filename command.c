@@ -11,9 +11,7 @@
 #include "list.h"
 #include "alloc.h"
 
-static struct list *readlines(char *(*gfunc)(char *, int));
-
-static struct list *readlines(char *(*gfunc)(char *, int))
+struct list *readlines(char *(*gfunc)(char *, int))
 {
 #define BUFFER_SIZE 128
 	struct list *l = list_new(NULL);
