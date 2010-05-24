@@ -212,8 +212,17 @@ static void open(int before)
 
 	if(before)
 		list_insertlistbefore(cur, new);
-	else
-		list_insertlistafter(cur, new);
+	else{
+		if(!cur){
+			/*
+			 * we are appending to the end of the file, hence
+			 * line cury doesn't exist yet
+			 */
+			list_appendlist(buffer_lines(buffer), new);
+			cury = list_count(buffer_lines(buffer)) - 1;
+		}else
+			list_insertlistafter(cur, new);
+	}
 
 	saved = 0;
 }
