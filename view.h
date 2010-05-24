@@ -15,8 +15,6 @@ enum direction
 };
 
 void view_buffer(buffer_t *);
-void view_init(void);
-void view_term(void);
 void view_move(enum direction);
 
 #endif

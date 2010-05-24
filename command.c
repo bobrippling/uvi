@@ -91,7 +91,7 @@ int command_run(
 	char *s;
 
 	lim.start = *curline;
-	lim.end		= list_count(buffer_lines(buffer));
+	lim.end		= buffer_nlines(buffer);
 
 	s = parserange(in, &rng, &lim, qfunc, pfunc);
 	/* from this point on, s/in/s/g */
@@ -117,12 +117,12 @@ insert:
 				l = command_readlines(gfunc);
 
 				if(l){
-					struct list *line = list_getindex(buffer_lines(buffer), *curline);
+					struct list *line = buffer_getindex(buffer, *curline);
 
 					if(flag)
-						list_insertlistafter(line, l);
+						buffer_insertlistafter(buffer, line, l);
 					else
-						list_insertlistbefore(line, l);
+						buffer_insertlistbefore(buffer, line, l);
 					*saved = 0;
 				}
 			}else
@@ -157,7 +157,7 @@ insert:
 				}
 				*saved = 1;
 				pfunc("\"%s\" %dL, %dC written", buffer->fname,
-						list_count(buffer_lines(buffer)), nw);
+						buffer_nlines(buffer), nw);
 			}
 			if(!flag)
 				break;
@@ -199,13 +199,13 @@ insert:
 				if(HAVE_RANGE){
 					int i = rng.start - 1;
 
-					for(l = list_getindex(buffer_lines(buffer), i);
+					for(l = buffer_getindex(buffer, i);
 							i++ != rng.end;
 							l = l->next)
 						pfunc("%s", l->data);
 
 				}else{
-					l = list_getindex(buffer_lines(buffer), *curline);
+					l = buffer_getindex(buffer, *curline);
 					if(l)
 						pfunc("%s", l->data);
 					else
@@ -220,35 +220,19 @@ insert:
 
 		case 'd':
 			if(strlen(s) == 1){
-				struct list *l;
 				if(HAVE_RANGE){
-					struct list *newpos;
+					buffer_remove_range(buffer, &rng);
 
-					l = list_getindex(buffer_lines(buffer), rng.start - 1);
+					if(!buffer_getindex(buffer, rng.start))
+						*curline = buffer_indexof(buffer, buffer_gettail(buffer));
 
-					list_remove_range(&l, rng.end - rng.start + 1);
-					newpos = l;
-
-					/* l must be used below, since buffer_lines(buffer) is now invalid */
-					if(!(l = list_getindex(newpos, rng.start - 1)))
-						/* removed lines, and curline was in the range rng */
-						l = list_gettail(newpos);
-
-					buffer_lines(buffer) = list_gethead(l);
-					*curline = list_indexof(buffer_lines(buffer), newpos);
-
-					if(!l->data){
-						/* just deleted everything, make empty line */
-						l->data = umalloc(sizeof(char));
-						*l->data = '\0';
-					}
 				}else{
-					l = list_getindex(buffer_lines(buffer), *curline);
+					struct list *l = buffer_getindex(buffer, *curline);
 					if(l){
 						if(!l->next)
 							--*curline;
 
-						list_remove(l);
+						buffer_remove(buffer, l);
 					}else{
 						pfunc("Invalid current line ('%c')!", *s);
 						break;
@@ -271,7 +255,7 @@ insert:
 				wrongfunc();
 			else{
 				if(s[1] == '\0')
-					shellout(NULL);
+					shellout("sh");
 				else
 					shellout(s + 1);
 			}

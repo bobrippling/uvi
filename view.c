@@ -5,28 +5,19 @@
 #include <stdlib.h>
 
 #include "list.h"
+#include "range.h"
 #include "buffer.h"
 #include "view.h"
 #include "alloc.h"
 
-static char *strbuffer;
 extern int maxy, maxx, curx, cury;
 extern buffer_t *buffer;
 
-void view_init()
-{
-	strbuffer = umalloc(maxx + 1);
-}
-
-void view_term()
-{
-	free(strbuffer);
-}
 
 void view_move(enum direction d)
 {
-	struct list *cl = list_getindex(buffer_lines(buffer), cury);
-	int xlim = maxx, ylim = list_count(buffer_lines(buffer))-1;
+	struct list *cl = buffer_getindex(buffer, cury);
+	int xlim = maxx, ylim = buffer_nlines(buffer)-1;
 
 	if(cl && cl->data)
 		xlim = strlen(cl->data)-1;
@@ -85,7 +76,7 @@ void view_move(enum direction d)
 
 void view_buffer(buffer_t *b)
 {
-	struct list *l = list_gethead(buffer_lines(b));
+	struct list *l = buffer_gethead(b);
 	int y = 0;
 
 	move(0, 0);
@@ -93,8 +84,7 @@ void view_buffer(buffer_t *b)
 		goto tilde;
 
 	while(l){
-		strncpy(strbuffer, l->data, maxx);
-		printw(strbuffer);
+		addnstr(l->data, maxx);
 		addch('\n');
 		y++;
 		l = l->next;

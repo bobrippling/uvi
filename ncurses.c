@@ -8,8 +8,8 @@
 #include <sys/wait.h>
 #include <stdio.h>
 
-#include "buffer.h"
 #include "range.h"
+#include "buffer.h"
 #include "command.h"
 #include "list.h"
 #include "main.h"
@@ -47,7 +47,6 @@ int maxy, maxx, saved = 1, curx, cury;
 
 static void nc_down()
 {
-	view_term();
 	endwin();
 }
 
@@ -72,8 +71,6 @@ static void nc_up()
 		--maxx; /* TODO: use SIGWINCH */
 
 		curx = cury = 0;
-
-		view_init();
 
 		init = 1;
 	}
@@ -207,21 +204,21 @@ static void open(int before)
 	if(!before)
 		move(++cury, (curx = 0));
 
-	cur = list_getindex(buffer_lines(buffer), cury);
+	cur = buffer_getindex(buffer, cury);
 	new = command_readlines(&gfunc);
 
 	if(before)
-		list_insertlistbefore(cur, new);
+		buffer_insertlistbefore(buffer, cur, new);
 	else{
 		if(!cur){
 			/*
 			 * we are appending to the end of the file, hence
 			 * line cury doesn't exist yet
 			 */
-			list_appendlist(buffer_lines(buffer), new);
-			cury = list_count(buffer_lines(buffer)) - 1;
+			buffer_appendlist(buffer, new);
+			cury = buffer_nlines(buffer) - 1;
 		}else
-			list_insertlistafter(cur, new);
+			buffer_insertlistafter(buffer, cur, new);
 	}
 
 	saved = 0;
@@ -295,19 +292,19 @@ int ncurses_main(const char *filename)
 			case ':':
 				if(!colon())
 					goto exit_while;
-				changed = 1;
+				changed = 1; /* need to review() */
 				break;
 
 			case CTRL_AND('g'):
-				{
-					const int i = list_count(buffer_lines(buffer));
+			{
+				const int i = buffer_nlines(buffer);
 
-					status("\"%s\"%s %d/%d %.2f%%",
-							buffer->fname ? buffer->fname : "(empty file)",
-							saved ? "" : " [Modified]", 1+cury,
-							i, 100.0f * (float)(1+cury) / (float)i);
-					break;
-				}
+				status("\"%s\"%s %d/%d %.2f%%",
+						buffer->fname ? buffer->fname : "(empty file)",
+						saved ? "" : " [Modified]", 1+cury,
+						i, 100.0f * (float)(1+cury) / (float)i);
+				break;
+			}
 
 			case 'O':
 				flag = 1;

@@ -8,9 +8,9 @@
 #include <sys/wait.h>
 
 #include "list.h"
+#include "range.h"
 #include "buffer.h"
 #include "term.h"
-#include "range.h"
 #include "command.h"
 
 #include "config.h"

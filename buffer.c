@@ -7,6 +7,7 @@
 #include <string.h>
 
 #include "alloc.h"
+#include "range.h"
 #include "buffer.h"
 #include "list.h"
 
@@ -24,7 +25,7 @@ int buffer_read(buffer_t **buffer, const char *fname)
 {
 	FILE *f = fopen(fname, "r");
 	struct list *tmp;
-	int nread = 0;
+	int nread = 0, nlines = 0;
 	char *s, haseol;
 
 	if(!f)
@@ -49,6 +50,7 @@ int buffer_read(buffer_t **buffer, const char *fname)
 		}
 
 		nread += thisread;
+		nlines++;
 
 		list_append(tmp, s);
 		tmp = list_gettail(tmp);
@@ -58,7 +60,9 @@ int buffer_read(buffer_t **buffer, const char *fname)
 	(*buffer)->fname = umalloc(1+strlen(fname));
 	strcpy((*buffer)->fname, fname);
 
-	(*buffer)->haseol = haseol;
+	(*buffer)->haseol  = haseol;
+	(*buffer)->changed = 0;
+	(*buffer)->nlines  = nlines;
 
 	return nread;
 }
@@ -127,7 +131,7 @@ int buffer_write(buffer_t *b)
 {
 	FILE *f = fopen(b->fname, "w");
 	struct iovec *iov, *iovtmp;
-	struct list *l = list_gethead(buffer_lines(b));
+	struct list *l = list_gethead(b->lines);
 	int count, nwrite, eno;
 	/*can't be const*/char nl = '\n';
 
@@ -167,7 +171,7 @@ int buffer_nchars(buffer_t *b)
 	int chars = 0;
 
 	if(!l->data)
-		return 0;
+		return 1;
 
 	while(l){
 		chars += 1 + strlen(l->data);
@@ -179,5 +183,44 @@ int buffer_nchars(buffer_t *b)
 
 int buffer_nlines(buffer_t *b)
 {
-	return list_count(b->lines);
+	if(buffer_changed(b)){
+		b->nlines = list_count(b->lines);
+		buffer_changed(b) = 0;
+	}
+
+	return b->nlines;
+}
+
+
+void buffer_remove_range(buffer_t *buffer, struct range *rng)
+{
+	list_free(buffer_extract_range(buffer, rng));
+}
+
+
+struct list *buffer_extract_range(buffer_t *buffer, struct range *rng)
+{
+	struct list *l, *newpos, *extracted;
+
+	l = list_getindex(buffer->lines, rng->start - 1);
+
+	extracted = list_extract_range(&l, rng->end - rng->start + 1);
+	newpos = l;
+
+	/* l must be used below, since buffer->lines is now invalid */
+	if(!(l = list_getindex(newpos, rng->start - 1)))
+		/* removed lines, and curline was in the range rng */
+		l = list_gettail(newpos);
+
+	buffer->lines = list_gethead(l);
+
+	if(!l->data){
+		/* just deleted everything, make empty line */
+		l->data = umalloc(sizeof(char));
+		*l->data = '\0';
+	}
+
+	buffer->changed = 1;
+
+	return extracted;
 }
