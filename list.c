@@ -43,6 +43,21 @@ void list_insertafter(struct list *l, char *d)
 		l->data = d;
 }
 
+/* inserts char * at the very end of the list */
+void list_append(struct list *l, char *d)
+{
+	if(!l->data){
+		l->data = d;
+		return;
+	}
+
+	while(l->next)
+		l = l->next;
+
+	l->next = list_new(d);
+	l->next->prev = l;
+}
+
 void list_insertlistbefore(struct list *l, struct list *new)
 {
 	new = list_gethead(new);
@@ -108,20 +123,25 @@ void list_insertlistafter(struct list *l, struct list *new)
 }
 
 
-/* inserts char * at the very end of the list */
-void list_append(struct list *l, char *d)
+void list_appendlist(struct list *l, struct list *new)
 {
+	l = list_gettail(l);
 	if(!l->data){
-		l->data = d;
-		return;
+		struct list *delthis = new;
+
+		l->data = new->data;
+		new = new->next;
+		free(delthis);
+
+		l->next = new;
+		if(new)
+			new->prev = l;
+	}else{
+		l->next = new;
+		new->prev = l;
 	}
-
-	while(l->next)
-		l = l->next;
-
-	l->next = list_new(d);
-	l->next->prev = l;
 }
+
 
 /* removes the list * from its list and returns it */
 char *list_extract(struct list *l)
