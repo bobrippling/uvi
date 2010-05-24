@@ -141,6 +141,7 @@ insert:
 
 				default:
 					wrongfunc();
+					break;
 			}
 
 
@@ -150,7 +151,7 @@ insert:
 			}else{
 				int nw = buffer_write(buffer);
 				if(nw == -1){
-					pfunc("%s: %s", buffer->fname, strerror(errno));
+					pfunc("Couldn't save \"%s\": %s", buffer->fname, strerror(errno));
 					break;
 				}
 				*saved = 1;
