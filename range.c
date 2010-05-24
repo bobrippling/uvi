@@ -36,7 +36,7 @@ static int number(char **sp, int cur, int lim)
 
 			case '.':
 				++*sp;
-				curv = cur;
+				curv = cur+1;
 				return 1;
 		}
 
