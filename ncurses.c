@@ -205,6 +205,12 @@ static void open(int before)
 		move(++cury, (curx = 0));
 
 	cur = buffer_getindex(buffer, cury);
+	/*
+	 * if !before, then cury has been ++'d,
+	 * this means cury is after what we want, hence
+	 * hence why buffer_insertlistafter() isn't used below
+	 */
+
 	new = command_readlines(&gfunc);
 
 	if(before)
@@ -218,7 +224,8 @@ static void open(int before)
 			buffer_appendlist(buffer, new);
 			cury = buffer_nlines(buffer) - 1;
 		}else
-			buffer_insertlistafter(buffer, cur, new);
+			/* Here is what i was talking about before w.r.t. buffer_insertlistafter() */
+			buffer_insertlistbefore(buffer, cur, new);
 	}
 
 	saved = 0;
@@ -227,7 +234,7 @@ static void open(int before)
 static int colon()
 {
 #define BUF_SIZE 128
-	char in[128], *c;
+	char in[BUF_SIZE], *c;
 
 	(void)mvaddch(maxy, 0, ':');
 	switch(gfunc(in, BUF_SIZE)){

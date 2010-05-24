@@ -1,8 +1,6 @@
-replace all list_.* with buffer_.*, then store line count, etc, in the buffer
+'d','a' and 'i' ncurses commands
 
 [0-9]* repetition before switch(getch()) for ncurses
-
-'d','a' and 'i' ncurses commands
 
 test/work with files whose len > LINES (CTRL_AND([eydufb]))
 
