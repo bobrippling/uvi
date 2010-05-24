@@ -81,7 +81,8 @@ int command_run(
 	void (*wrongfunc)(void),
 	void (*pfunc)(const char *, ...),
 	enum gret (*gfunc)(char *, int),
-	int	(*qfunc)(const char *)
+	int	(*qfunc)(const char *),
+	void (*shellout)(const char *)
 	)
 {
 #define HAVE_RANGE (s > in)
@@ -155,7 +156,8 @@ insert:
 					break;
 				}
 				*saved = 1;
-				pfunc("%s: %dC", buffer->fname, nw);
+				pfunc("\"%s\" %dL, %dC written", buffer->fname,
+						list_count(buffer_lines(buffer)), nw);
 			}
 			if(!flag)
 				break;
@@ -220,12 +222,20 @@ insert:
 			if(strlen(s) == 1){
 				struct list *l;
 				if(HAVE_RANGE){
+					struct list *newpos;
+
 					l = list_getindex(buffer_lines(buffer), rng.start - 1);
 
 					list_remove_range(&l, rng.end - rng.start + 1);
+					newpos = l;
 
 					/* l must be used below, since buffer_lines(buffer) is now invalid */
-					l = buffer_lines(buffer) = list_getindex(l, rng.start - 1);
+					if(!(l = list_getindex(newpos, rng.start - 1)))
+						/* removed lines, and curline was in the range rng */
+						l = list_gettail(newpos);
+
+					buffer_lines(buffer) = list_gethead(l);
+					*curline = list_indexof(buffer_lines(buffer), newpos);
 
 					if(!l->data){
 						/* just deleted everything, make empty line */
@@ -234,9 +244,12 @@ insert:
 					}
 				}else{
 					l = list_getindex(buffer_lines(buffer), *curline);
-					if(l)
+					if(l){
+						if(!l->next)
+							--*curline;
+
 						list_remove(l);
-					else{
+					}else{
 						pfunc("Invalid current line ('%c')!", *s);
 						break;
 					}
@@ -252,6 +265,17 @@ insert:
 			/* carry on with 'c' stuff */
 			flag = 0;
 			goto insert;
+
+		case '!':
+			if(HAVE_RANGE)
+				wrongfunc();
+			else{
+				if(s[1] == '\0')
+					shellout(NULL);
+				else
+					shellout(s + 1);
+			}
+			break;
 
 		default:
 			wrongfunc();

@@ -14,11 +14,12 @@ int command_run(
 	char *,
 	buffer_t *,
 	int *, int *,
-	/* wrongfunc, pfunc, gfunc, qfunc */
+	/* wrongfunc, pfunc, gfunc, qfunc, shellout */
 	void	    (*)(void),
 	void	    (*)(const char *, ...),
 	enum gret (*)(char *, int),
-	int	      (*)(const char *)
+	int	      (*)(const char *),
+	void      (*)(const char *)
 	);
 
 buffer_t *command_readfile(const char *,
