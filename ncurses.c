@@ -3,6 +3,10 @@
 #include <ctype.h>
 #include <string.h>
 #include <signal.h>
+/* system*/
+#include <stdlib.h>
+#include <sys/wait.h>
+#include <stdio.h>
 
 #include "buffer.h"
 #include "range.h"
@@ -30,6 +34,7 @@ static void sigh(int);
 static void wrongfunc(void);
 static int	qfunc(const char *);
 static enum gret gfunc(char *, int);
+static void shellout(const char *);
 
 static char nc_getch(void);
 static void open(int);
@@ -38,7 +43,7 @@ static void status(const char *, ...);
 
 /* extern'd for view.c */
 buffer_t *buffer;
-int curline = 0, maxy, maxx, saved = 1, curx, cury;
+int maxy, maxx, saved = 1, curx, cury;
 
 static void nc_down()
 {
@@ -91,6 +96,27 @@ static int qfunc(const char *s)
 	status("%s", s);
 	c = nc_getch();
 	return c == '\n' || tolower(c) == 'y';
+}
+
+static void shellout(const char *cmd)
+{
+	int ret;
+
+	endwin();
+
+	ret = system(cmd);
+	if(ret == -1)
+		perror("system()");
+	else
+		printf("\"%s\" returned %d\n", cmd, WEXITSTATUS(ret));
+
+	fputs("Press enter to continue...", stdout);
+	fflush(stdout);
+	ret = getchar();
+	if(ret != '\n' && ret != EOF)
+		while((ret = getchar()) != '\n' && ret != EOF);
+
+	refresh();
 }
 
 static enum gret gfunc(char *s, int size)
@@ -181,7 +207,7 @@ static void open(int before)
 	if(!before)
 		move(++cury, (curx = 0));
 
-	cur = list_getindex(buffer_lines(buffer), curline);
+	cur = list_getindex(buffer_lines(buffer), cury);
 	new = command_readlines(&gfunc);
 
 	if(before)
@@ -205,9 +231,10 @@ static int colon()
 				*c = '\0';
 
 			return command_run(in, buffer,
-					&curline, &saved,
+					&cury, &saved,
 					&wrongfunc, &pfunc,
-					&gfunc, &qfunc);
+					&gfunc, &qfunc, &shellout);
+
 
 		case g_LAST: /* esc means cancel in this sense */
 		case g_EOF:
@@ -268,8 +295,8 @@ int ncurses_main(const char *filename)
 
 					status("\"%s\"%s %d/%d %.2f%%",
 							buffer->fname ? buffer->fname : "(empty file)",
-							saved ? "" : " [Modified]", 1+curline,
-							i, 100.0f * (float)(1+curline) / (float)i);
+							saved ? "" : " [Modified]", 1+cury,
+							i, 100.0f * (float)(1+cury) / (float)i);
 					break;
 				}
 
@@ -280,6 +307,12 @@ int ncurses_main(const char *filename)
 				changed = 1;
 				break;
 
+			case '0':
+				view_move(ABSOLUTE_LEFT);
+				break;
+			case '$':
+				view_move(ABSOLUTE_RIGHT);
+				break;
 			case 'j':
 				view_move(DOWN);
 				break;

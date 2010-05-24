@@ -4,6 +4,8 @@
 #include <ctype.h>
 #include <errno.h>
 #include <stdarg.h>
+#include <stdlib.h>
+#include <sys/wait.h>
 
 #include "list.h"
 #include "buffer.h"
@@ -22,6 +24,7 @@ static int	qfunc(const char *);
 static void pfunc(const char *, ...);
 static enum gret gfunc(char *, int);
 static void wrongfunc(void);
+static void shellout(const char *);
 
 static void wrongfunc()
 {
@@ -66,6 +69,16 @@ static void pfunc(const char *s, ...)
 	putchar('\n');
 }
 
+static void shellout(const char *cmd)
+{
+	int ret = system(cmd);
+	if(ret == -1)
+		perror("system()");
+	else
+		printf("\"%s\" returned %d\n", cmd, WEXITSTATUS(ret));
+}
+
+
 int term_main(const char *filename)
 {
 	char in[IN_SIZE];
@@ -100,7 +113,7 @@ int term_main(const char *filename)
 		if(!command_run(in, buffer,
 					&curline, &saved,
 					&wrongfunc, &pfunc,
-					&gfunc, &qfunc))
+					&gfunc, &qfunc, &shellout))
 			break;
 	}while(1);
 
