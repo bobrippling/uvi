@@ -127,14 +127,14 @@ int buffer_write(buffer_t *b)
 {
 	FILE *f = fopen(b->fname, "w");
 	struct iovec *iov, *iovtmp;
-	struct list *l = b->lines;
+	struct list *l = list_gethead(buffer_lines(b));
 	int count, nwrite, eno;
 	/*can't be const*/char nl = '\n';
 
 	if(!f)
 		return -1;
 
-	iovtmp = iov = umalloc((count = list_count(b->lines) * 2) * sizeof(*iov));
+	iovtmp = iov = umalloc((count = list_count(l) * 2) * sizeof(*iov));
 
 	while(l){
 		iovtmp->iov_len	= strlen((iovtmp->iov_base = l->data));
