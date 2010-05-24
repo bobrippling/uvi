@@ -1,3 +1,5 @@
+replace all list_.* with buffer_.*, then store line count, etc, in the buffer
+
 [0-9]* repetition before switch(getch()) for ncurses
 
 'd','a' and 'i' ncurses commands
