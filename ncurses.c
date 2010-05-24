@@ -174,12 +174,17 @@ static void wrongfunc(void)
 	addch('?');
 }
 
-static void open(int ins)
+static void open(int before)
 {
-	struct list *cur = list_getindex(buffer_lines(buffer), curline),
-							*new = command_readlines(&gfunc);
+	struct list *cur, *new;
 
-	if(ins)
+	if(!before)
+		move(++cury, (curx = 0));
+
+	cur = list_getindex(buffer_lines(buffer), curline);
+	new = command_readlines(&gfunc);
+
+	if(before)
 		list_insertlistbefore(cur, new);
 	else
 		list_insertlistafter(cur, new);
