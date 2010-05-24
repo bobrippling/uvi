@@ -10,7 +10,7 @@
 #include "alloc.h"
 
 static char *strbuffer;
-extern int curline, maxy, maxx, curx, cury;
+extern int maxy, maxx, curx, cury;
 extern buffer_t *buffer;
 
 void view_init()
@@ -25,13 +25,21 @@ void view_term()
 
 void view_move(enum direction d)
 {
-	struct list *cl = list_getindex(buffer_lines(buffer), curline);
+	struct list *cl = list_getindex(buffer_lines(buffer), cury);
 	int xlim = maxx, ylim = list_count(buffer_lines(buffer))-1;
 
 	if(cl && cl->data)
 		xlim = strlen(cl->data)-1;
 
 	switch(d){
+		case ABSOLUTE_LEFT:
+			curx = 0;
+			break;
+
+		case ABSOLUTE_RIGHT:
+			curx = xlim;
+			break;
+
 		case LEFT:
 			if(curx > 0)
 				curx--;
@@ -72,7 +80,6 @@ void view_move(enum direction d)
 			break;
 	}
 
-	curline = cury;
 	move(cury, curx);
 }
 

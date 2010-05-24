@@ -7,6 +7,10 @@ enum direction
 	RIGHT,
 	UP,
 	DOWN,
+
+	ABSOLUTE_LEFT,
+	ABSOLUTE_RIGHT,
+
 	CURRENT
 };
 
