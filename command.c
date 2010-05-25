@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <setjmp.h>
@@ -10,6 +11,8 @@
 #include "buffer.h"
 #include "list.h"
 #include "alloc.h"
+
+#include "config.h"
 
 struct list *command_readlines(enum gret (*gfunc)(char *, int))
 {
@@ -292,4 +295,36 @@ new_file:
 		pfunc("(new file)");
 	}
   return buffer;
+}
+
+void command_dumpbuffer(buffer_t *b)
+{
+#define DUMP_POSTFIX "_dump"
+#define POSTFIX_LEN  6
+	FILE *f;
+
+	if(!b)
+		return;
+
+	if(!buffer_hasfilename(b))
+		f = fopen(PROG_NAME DUMP_POSTFIX, "w");
+	else{
+		char *s = malloc(strlen(buffer_filename(b)) + POSTFIX_LEN);
+		if(!s)
+			f = fopen(PROG_NAME DUMP_POSTFIX, "w");
+		else{
+			strcpy(s, buffer_filename(b));
+			strcat(s, DUMP_POSTFIX);
+			f = fopen(s, "w");
+		}
+	}
+
+	if(f){
+		struct list *head = buffer_gethead(b);
+		while(head){
+			fprintf(f, "%s\n", head->data);
+			head = head->next;
+		}
+		fclose(f);
+	}
 }

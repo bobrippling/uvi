@@ -25,4 +25,6 @@ int command_run(
 buffer_t *command_readfile(const char *,
     void (*)(const char *, ...));
 
+void command_dumpbuffer(buffer_t *);
+
 #endif
