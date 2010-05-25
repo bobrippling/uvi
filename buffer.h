@@ -33,6 +33,8 @@ struct list	*buffer_extract_range(buffer_t *, struct range *);
 /* helpers */
 #define buffer_changed(b)									((b)->changed)
 #define buffer_haseol(b)									((b)->haseol)
+#define buffer_filename(b)								((b)->fname ? (b)->fname : "(empty file)")
+#define buffer_hasfilename(b)							(!!(b)->fname)
 
 
 /* functions that change the buffer */
