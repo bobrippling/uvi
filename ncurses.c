@@ -3,6 +3,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <signal.h>
+#include <setjmp.h>
 /* system*/
 #include <stdlib.h>
 #include <sys/wait.h>
@@ -14,6 +15,7 @@
 #include "list.h"
 #include "main.h"
 #include "view.h"
+#include "alloc.h"
 
 #include "ncurses.h"
 #include "config.h"
@@ -26,6 +28,7 @@
 #define C_NEWLINE	 '\r'
 #define C_CTRL_C		3
 
+static void initpad(void);
 static void nc_up(void);
 static void nc_down(void);
 static void sigh(int);
@@ -41,12 +44,18 @@ static void open(int);
 static int	colon(void);
 static void status(const char *, ...);
 
+#define MAX_X (COLS - 1)
+#define MAX_Y (LINES - 1)
+
 /* extern'd for view.c */
 buffer_t *buffer;
-int maxy, maxx, saved = 1, curx, cury;
+WINDOW *pad;
+int saved = 1, padheight, padwidth, padtop, padleft, padx, pady;
+static int gfunc_onpad = 0;
 
 static void nc_down()
 {
+	delwin(pad);
 	endwin();
 }
 
@@ -66,22 +75,33 @@ static void nc_up()
 		intrflush(stdscr, FALSE);
 		keypad(stdscr, TRUE);
 
-		getmaxyx(stdscr, maxy, maxx);
-		--maxy;
-		--maxx; /* TODO: use SIGWINCH */
-
-		curx = cury = 0;
+		padx = pady = padtop = padleft = 0;
 
 		init = 1;
 	}
 	refresh();
 }
 
+static void initpad()
+{
+	padheight = buffer_nlines(buffer) * 2;
+	padwidth = COLS;
+
+	if(!padheight)
+		padheight = 1;
+
+	pad = newpad(padheight, padwidth);
+	if(!pad){
+		endwin();
+		longjmp(allocerr, 1);
+	}
+}
+
 static void status(const char *s, ...)
 {
 	va_list l;
 	va_start(l, s);
-	move(maxy, 0);
+	move(MAX_Y, 0);
 	clrtoeol();
 	vwprintw(stdscr, s, l);
 	va_end(l);
@@ -122,8 +142,17 @@ static enum gret gfunc(char *s, int size)
 	int x, y, c, count = 0;
 	enum gret r;
 
-	getyx(stdscr, y, x);
-	clrtoeol();
+	/* if we're on a pad, draw over the top of it, onto stdscr */
+	if(gfunc_onpad){
+		getyx(pad, y, x);
+		x -= padleft;
+		y -= padtop;
+		move(y, x);
+		clrtoeol();
+	}else{
+		getyx(stdscr, y, x);
+		clrtoeol();
+	}
 
 	do
 		switch((c = nc_getch())){
@@ -152,6 +181,7 @@ static enum gret gfunc(char *s, int size)
 				if(isprint(c)){
 					s[count++] = c;
 					addch(c);
+
 					x++;
 					if(count >= size-1){
 						s[count] = '\0';
@@ -171,11 +201,14 @@ exit:
 		s[count+1] = '\0';
 	}else
 		s[count] = '\0';
-	addch('\n');
-	if(y < maxy)
-		y++;
 
-	move(y, 0);
+	addch('\n');
+	move(++y, 0);
+	if(gfunc_onpad){
+		++pady;
+		wmove(pad, pady, padx = 0);
+	}
+
 	return r;
 }
 
@@ -192,7 +225,7 @@ static char nc_getch()
 
 static void wrongfunc(void)
 {
-	move(maxy, 0);
+	move(MAX_Y, 0);
 	clrtoeol();
 	addch('?');
 }
@@ -202,15 +235,16 @@ static void open(int before)
 	struct list *cur, *new;
 
 	if(!before)
-		move(++cury, (curx = 0));
+		wmove(pad, ++pady, (padx = 0));
 
-	cur = buffer_getindex(buffer, cury);
+	cur = buffer_getindex(buffer, pady);
 	/*
 	 * if !before, then cury has been ++'d,
 	 * this means cury is after what we want, hence
 	 * hence why buffer_insertlistafter() isn't used below
 	 */
 
+	gfunc_onpad = 1;
 	new = command_readlines(&gfunc);
 
 	if(before)
@@ -222,7 +256,7 @@ static void open(int before)
 			 * line cury doesn't exist yet
 			 */
 			buffer_appendlist(buffer, new);
-			cury = buffer_nlines(buffer) - 1;
+			pady = buffer_nlines(buffer) - 1;
 		}else
 			/* Here is what i was talking about before w.r.t. buffer_insertlistafter() */
 			buffer_insertlistbefore(buffer, cur, new);
@@ -236,7 +270,8 @@ static int colon()
 #define BUF_SIZE 128
 	char in[BUF_SIZE], *c;
 
-	(void)mvaddch(maxy, 0, ':');
+	(void)mvaddch(MAX_Y, 0, ':');
+	gfunc_onpad = 0;
 	switch(gfunc(in, BUF_SIZE)){
 		case g_CONTINUE:
 			c = strchr(in, '\n');
@@ -244,7 +279,7 @@ static int colon()
 				*c = '\0';
 
 			return command_run(in, buffer,
-					&cury, &saved,
+					&pady, &saved,
 					&wrongfunc, &pfunc,
 					&gfunc, &qfunc, &shellout);
 
@@ -266,28 +301,34 @@ static void sigh(int sig)
 
 int ncurses_main(const char *filename)
 {
-	int c, changed = 1;
+	int c, bufferchanged = 1, viewchanged = 1;
 
 	signal(SIGINT, &sigh);
 
 	nc_up();
 
   if(!(buffer = command_readfile(filename, pfunc))){
-    nc_down();
+		nc_down();
     fprintf(stderr, PROG_NAME": %s: ", filename);
     perror(NULL);
     return 1;
   }
 
+	initpad();
+
 	do{
 		int flag = 0;
 
-		if(changed){
-			view_buffer(buffer);
-			changed = 0;
+		if(bufferchanged){
+			view_drawbuffer(buffer);
+			bufferchanged = 0;
+			viewchanged = 1;
 		}
-		refresh(); /* outside (changed) in case cursor is moved */
-		view_move(CURRENT);
+		if(viewchanged){
+			view_refreshpad(pad);
+			viewchanged = 0;
+		}
+		wmove(pad, pady, padx);
 
 		switch((c = nc_getch())){
 			case 'Z':
@@ -299,7 +340,7 @@ int ncurses_main(const char *filename)
 			case ':':
 				if(!colon())
 					goto exit_while;
-				changed = 1; /* need to review() */
+				bufferchanged = 1; /* need to review() */
 				break;
 
 			case CTRL_AND('g'):
@@ -308,8 +349,8 @@ int ncurses_main(const char *filename)
 
 				status("\"%s\"%s %d/%d %.2f%%",
 						buffer->fname ? buffer->fname : "(empty file)",
-						saved ? "" : " [Modified]", 1+cury,
-						i, 100.0f * (float)(1+cury) / (float)i);
+						saved ? "" : " [Modified]", 1+pady,
+						i, 100.0f * (float)(1+pady) / (float)i);
 				break;
 			}
 
@@ -317,30 +358,28 @@ int ncurses_main(const char *filename)
 				flag = 1;
 			case 'o':
 				open(flag);
-				changed = 1;
+				bufferchanged = 1;
 				break;
 
 			case '0':
-				view_move(ABSOLUTE_LEFT);
+				viewchanged = view_move(ABSOLUTE_LEFT);
 				break;
 			case '$':
-				view_move(ABSOLUTE_RIGHT);
+				viewchanged = view_move(ABSOLUTE_RIGHT);
 				break;
 			case 'j':
-				view_move(DOWN);
+				viewchanged = view_move(DOWN);
 				break;
 			case 'k':
-				view_move(UP);
+				viewchanged = view_move(UP);
 				break;
 			case 'h':
-				view_move(LEFT);
+				viewchanged = view_move(LEFT);
 				break;
 			case 'l':
-				view_move(RIGHT);
+				viewchanged = view_move(RIGHT);
 				break;
 
-			case C_CTRL_C:
-				sigh(SIGINT);
 			case C_ESC:
 				break;
 

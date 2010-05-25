@@ -1,3 +1,8 @@
+/*
+ * view.c handles displaying the buffer,
+ * as opposed to ncurses.c, which handles
+ * user i/o and commands
+ */
 #include <ncurses.h>
 #include <math.h>
 #include <string.h>
@@ -10,35 +15,45 @@
 #include "view.h"
 #include "alloc.h"
 
-extern int maxy, maxx, curx, cury;
+#define MAX_X (COLS - 1)
+#define MAX_Y (LINES - 1)
+
+extern int padheight, padwidth, padtop, padleft, padx, pady;
 extern buffer_t *buffer;
+extern WINDOW *pad;
 
 
-void view_move(enum direction d)
+int view_move(enum direction d)
 {
-	struct list *cl = buffer_getindex(buffer, cury);
-	int xlim = maxx, ylim = buffer_nlines(buffer)-1;
+	struct list *cl = buffer_getindex(buffer, pady);
+	int xlim = MAX_X, ylim = buffer_nlines(buffer)-1, ret = 0;
 
 	if(cl && cl->data)
 		xlim = strlen(cl->data)-1;
 
 	switch(d){
 		case ABSOLUTE_LEFT:
-			curx = 0;
+			padx = 0;
+			ret = 1;
 			break;
 
 		case ABSOLUTE_RIGHT:
-			curx = xlim;
+			padx = xlim;
+			ret = 1;
 			break;
 
 		case LEFT:
-			if(curx > 0)
-				curx--;
+			if(padx > 0){
+				padx--;
+				ret = 1;
+			}
 			break;
 
 		case RIGHT:
-			if(curx < xlim)
-				curx++;
+			if(padx < xlim){
+				padx++;
+				ret = 1;
+			}
 			break;
 
 		case CURRENT:
@@ -47,51 +62,67 @@ void view_move(enum direction d)
 		case UP:
 		case DOWN:
 			if(d == UP){
-				if(cury > 0){
-					cury--;
+				if(pady > 0){
+					pady--;
 					cl = cl->prev;
 				}else
 					break;
 			}else{
-				if(cury < ylim){
-					cury++;
+				if(pady < ylim){
+					pady++;
 					cl = cl->next;
 				}else
 					break;
 			}
 
-			/* only end up here has cury changed */
+			/* only end up here has pady changed */
 			if(cl){
 				xlim = strlen(cl->data)-1;
 				if(xlim < 0)
 					xlim = 0;
-				if(curx > xlim)
-					curx = xlim;
+				if(padx > xlim)
+					padx = xlim;
+				ret = 1;
 			}
 			break;
 	}
 
-	move(cury, curx);
+	wmove(pad, pady, padx);
+
+	return ret;
 }
 
-void view_buffer(buffer_t *b)
+void view_drawbuffer(buffer_t *b)
 {
 	struct list *l = buffer_gethead(b);
 	int y = 0;
 
-	move(0, 0);
+	wclear(pad);
+	wmove(pad, 0, 0);
 	if(!l || !l->data)
 		goto tilde;
 
 	while(l){
-		addnstr(l->data, maxx);
-		addch('\n');
+		waddnstr(pad, l->data, MAX_X);
+		waddch(pad, '\n');
 		y++;
 		l = l->next;
 	}
 
 tilde:
-	y++; /* exclude the command line */
-	while(y < LINES)
-		addstr("~\n"), ++y;
+	move(y++, 0);
+	while(y++ <= MAX_Y)
+		waddstr(stdscr, "~\n");
+
+	wmove(pad, pady, padx);
+}
+
+void view_refreshpad(WINDOW *p)
+{
+	wnoutrefresh(stdscr);
+	prefresh(p,
+			padtop, padleft,   /* top left pad corner */
+			0, 0,              /* top left screen (pad positioning) */
+			MAX_Y - 1, MAX_X); /* bottom right of screen */
+	wmove(pad, pady, padx);
 }
