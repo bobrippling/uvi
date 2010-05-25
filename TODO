@@ -1,8 +1,12 @@
+on failed file read (permission denied, etc), keep running
+
 'd','a' and 'i' ncurses commands
 
 [0-9]* repetition before switch(getch()) for ncurses
 
 test/work with files whose len > LINES (CTRL_AND([eydufb]))
+
+ncurses colour
 
 marks
 
