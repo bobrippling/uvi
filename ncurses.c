@@ -56,6 +56,7 @@ static int gfunc_onpad = 0;
 static void nc_down()
 {
 	delwin(pad);
+	pad = NULL;
 	endwin();
 }
 
@@ -300,23 +301,30 @@ static int colon()
 static void sigh(int sig)
 {
 	nc_down();
+	command_dumpbuffer(buffer);
+	buffer_free(buffer);
 	bail(sig);
 }
 
 int ncurses_main(const char *filename)
 {
-	int c, bufferchanged = 1, viewchanged = 1;
-
-	signal(SIGINT, &sigh);
+	int c, bufferchanged = 1, viewchanged = 1, ret = 0;
+	void (*oldinth)(int), (*oldsegh)(int);
 
 	nc_up();
 
   if(!(buffer = command_readfile(filename, pfunc))){
+		/* TODO: leave ncurses up, with empty buffer */
 		nc_down();
     fprintf(stderr, PROG_NAME": %s: ", filename);
     perror(NULL);
-    return 1;
+		ret = 1;
+		goto fin;
   }
+
+	/* have to be after buffer's been initialised */
+	oldinth = signal(SIGINT, &sigh);
+	oldsegh = signal(SIGSEGV, &sigh);
 
 	initpad();
 
@@ -352,7 +360,7 @@ int ncurses_main(const char *filename)
 				const int i = buffer_nlines(buffer);
 
 				status("\"%s\"%s %d/%d %.2f%%",
-						buffer->fname ? buffer->fname : "(empty file)",
+						buffer_filename(buffer),
 						saved ? "" : " [Modified]", 1+pady,
 						i, 100.0f * (float)(1+pady) / (float)i);
 				break;
@@ -399,8 +407,11 @@ int ncurses_main(const char *filename)
 	}while(1);
 exit_while:
 
-	buffer_free(buffer);
-
 	nc_down();
-	return 0;
+fin:
+	buffer_free(buffer);
+	signal(SIGINT,  oldinth);
+	signal(SIGSEGV, oldsegh);
+
+	return ret;
 }
