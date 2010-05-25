@@ -25,9 +25,19 @@ void usage(const char *s)
 void bail(int sig)
 {
 	/* TODO: save open buffers */
-	const char m[] = "Bailing!\n";
+	char m[] = "Received fatal signal ";
 
-	write(STDERR_FILENO, m, strlen(m));
+	write(STDERR_FILENO, m, sizeof(m));
+
+	while(sig){
+		*m = '0' + sig % 10;
+		sig /= 10;
+		write(STDERR_FILENO, m, 1);
+	}
+
+	*m = '\n';
+	write(STDERR_FILENO, m, 1);
+
 	exit(sig);
 }
 
