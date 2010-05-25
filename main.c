@@ -59,7 +59,7 @@ int main(int argc, const char **argv)
 			usage(*argv);
 
 	if(setjmp(allocerr)){
-		fputs(PROG_NAME": malloc(): ", stderr);
+		fputs(PROG_NAME": longjmp bail: malloc(): ", stderr);
 		perror(NULL);
 		return 1;
 	}
