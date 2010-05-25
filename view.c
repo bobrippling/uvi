@@ -42,6 +42,16 @@ int view_move(enum direction d)
 			ret = 1;
 			break;
 
+		case ABSOLUTE_UP:
+			pady = 0;
+			ret = 1;
+			break;
+
+		case ABSOLUTE_DOWN:
+			pady = buffer_nlines(buffer)-1;
+			ret = 1;
+			break;
+
 		case LEFT:
 			if(padx > 0){
 				padx--;
@@ -87,7 +97,10 @@ int view_move(enum direction d)
 			break;
 	}
 
-	wmove(pad, pady, padx);
+	if(pady > MAX_Y)
+		padtop = pady - LINES;
+
+	view_updatecursor();
 
 	return ret;
 }
@@ -114,7 +127,7 @@ tilde:
 	while(y++ <= MAX_Y)
 		waddstr(stdscr, "~\n");
 
-	wmove(pad, pady, padx);
+	view_updatecursor();
 }
 
 void view_refreshpad(WINDOW *p)
@@ -124,5 +137,5 @@ void view_refreshpad(WINDOW *p)
 			padtop, padleft,   /* top left pad corner */
 			0, 0,              /* top left screen (pad positioning) */
 			MAX_Y - 1, MAX_X); /* bottom right of screen */
-	wmove(pad, pady, padx);
+	view_updatecursor();
 }

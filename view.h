@@ -10,6 +10,8 @@ enum direction
 
 	ABSOLUTE_LEFT,
 	ABSOLUTE_RIGHT,
+	ABSOLUTE_UP,
+	ABSOLUTE_DOWN,
 
 	CURRENT
 };
@@ -17,5 +19,7 @@ enum direction
 void	view_drawbuffer(buffer_t *);
 int		view_move(enum direction);
 void	view_refreshpad(WINDOW *);
+
+#define view_updatecursor() wmove(pad, pady, padx)
 
 #endif
