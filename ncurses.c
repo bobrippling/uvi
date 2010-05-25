@@ -206,7 +206,8 @@ exit:
 	move(++y, 0);
 	if(gfunc_onpad){
 		++pady;
-		wmove(pad, pady, padx = 0);
+		padx = 0;
+		view_updatecursor();
 	}
 
 	return r;
@@ -234,8 +235,11 @@ static void open(int before)
 {
 	struct list *cur, *new;
 
-	if(!before)
-		wmove(pad, ++pady, (padx = 0));
+	if(!before){
+		++pady;
+		padx = 0;
+		view_updatecursor();
+	}
 
 	cur = buffer_getindex(buffer, pady);
 	/*
@@ -328,7 +332,7 @@ int ncurses_main(const char *filename)
 			view_refreshpad(pad);
 			viewchanged = 0;
 		}
-		wmove(pad, pady, padx);
+		view_updatecursor();
 
 		switch((c = nc_getch())){
 			case 'Z':
@@ -361,6 +365,12 @@ int ncurses_main(const char *filename)
 				bufferchanged = 1;
 				break;
 
+			case 'g':
+				viewchanged = view_move(ABSOLUTE_UP);
+				break;
+			case 'G':
+				viewchanged = view_move(ABSOLUTE_DOWN);
+				break;
 			case '0':
 				viewchanged = view_move(ABSOLUTE_LEFT);
 				break;
