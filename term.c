@@ -33,7 +33,14 @@ static void wrongfunc()
 
 static enum gret gfunc(char *s, int i)
 {
-	return fgets(s, i, stdin) ? g_CONTINUE : g_EOF;
+	char *ret = fgets(s, i, stdin);
+	if(!ret)
+		return g_EOF;
+
+	if(!strcmp(s, ".\n"))
+		return g_EOF;
+
+	return g_CONTINUE;
 }
 
 static int qfunc(const char *s)
