@@ -21,11 +21,12 @@
 #include "config.h"
 
 #define CTRL_AND(c) ((c) & 037)
-#define C_ESC			 27
-#define C_EOF			 4
-#define C_DEL			 127
-#define C_BACKSPACE 263
-#define C_NEWLINE	 '\r'
+#define C_ESC				27
+#define C_EOF				4
+#define C_DEL				127
+#define C_BACKSPACE	263
+#define C_ASCIIDEL	7
+#define C_NEWLINE		'\r'
 #define C_CTRL_C		3
 
 static void nc_up(void);
@@ -152,6 +153,8 @@ static enum gret gfunc(char *s, int size)
 
 			case C_DEL:
 			case C_BACKSPACE:
+			case C_ASCIIDEL:
+			case '\b':
 				if(!count){
 					r = g_EOF;
 					goto exit;
@@ -174,6 +177,7 @@ static enum gret gfunc(char *s, int size)
 						goto exit;
 					}
 				}else{
+					status("unrecognised character %d\n", c);
 					r = g_LAST;
 					goto exit;
 				}
