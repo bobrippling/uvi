@@ -133,24 +133,55 @@ insert:
 			break;
 
 		case 'w':
-			if(HAVE_RANGE || strlen(s) > 2){
+		{
+			int bail = 0;
+			char *fname;
+			if(HAVE_RANGE){
 				wrongfunc();
 				break;
 			}
-			switch(s[1]){
-				case 'q':
-					flag = 1;
-				case '\0':
+
+			switch(strlen(s)){
+				case 2:
+					switch(s[1]){
+						case 'q':
+							flag = 1;
+							break;
+
+						case ' ':
+							fname = s + 1;
+							goto set_fname;
+							break;
+
+						default:
+							wrongfunc();
+							bail = 1;
+					}
+				case 1:
 					break;
 
 				default:
-					wrongfunc();
-					break;
+					switch(s[1]){
+						case ' ':
+							fname = s + 2;
+							goto set_fname;
+						case 'q':
+							flag = 1;
+							fname = s + 3;
+set_fname:
+							buffer_setfilename(buffer, fname);
+							break;
+
+						default:
+							wrongfunc();
+							bail = 1;
+					}
 			}
+			if(bail)
+				break;
 
-
-			if(!buffer->fname){
-				pfunc("buffer has no filename");
+			if(!buffer_hasfilename(buffer)){
+				pfunc("buffer has no filename (w[q] fname)");
 				break;
 			}else{
 				int nw = buffer_write(buffer);
@@ -165,6 +196,9 @@ insert:
 			if(!flag)
 				break;
 
+			s[1] = '\0';
+		}
+
 		case 'q':
 			if(flag)
 				return 0;
@@ -177,7 +211,7 @@ insert:
 						if(!*saved){
 							pfunc("unsaved");
 							break;
-						}else
+						}
 					case '!':
 						return 0;
 
