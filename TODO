@@ -1,6 +1,6 @@
 on failed file read (permission denied, etc), keep running
 
-'d','a' and 'i' ncurses commands
+[rcdai] ncurses commands + directions [0$wb]
 
 [0-9]* repetition before switch(getch()) for ncurses
 
