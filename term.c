@@ -84,7 +84,7 @@ int term_main(const char *filename)
 	char in[IN_SIZE];
 	int hadeof = 0, curline = 0;
 
-  if(!(buffer = command_readfile(filename, pfunc))){
+  if(!(buffer = command_readfile(filename, &saved, pfunc))){
     fprintf(stderr, PROG_NAME": %s: ", filename);
     perror(NULL);
     return 1;

@@ -22,7 +22,7 @@ int command_run(
 	void      (*)(const char *)
 	);
 
-buffer_t *command_readfile(const char *,
+buffer_t *command_readfile(const char *, int *,
     void (*)(const char *, ...));
 
 void command_dumpbuffer(buffer_t *);

@@ -305,7 +305,7 @@ set_fname:
 	return 1;
 }
 
-buffer_t *command_readfile(const char *filename, void (*pfunc)(const char *, ...))
+buffer_t *command_readfile(const char *filename, int *saved, void (*pfunc)(const char *, ...))
 {
   buffer_t *buffer;
 	if(filename){
@@ -330,6 +330,7 @@ buffer_t *command_readfile(const char *filename, void (*pfunc)(const char *, ...
 		buffer = buffer_new(s);
 		pfunc("(new file)");
 	}
+	*saved = buffer_haseol(buffer);
   return buffer;
 }
 

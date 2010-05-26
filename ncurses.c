@@ -301,7 +301,7 @@ int ncurses_main(const char *filename)
 
 	nc_up();
 
-  if(!(buffer = command_readfile(filename, pfunc))){
+  if(!(buffer = command_readfile(filename, &saved, pfunc))){
 		/* TODO: leave ncurses up, with empty buffer */
 		nc_down();
     fprintf(stderr, PROG_NAME": %s: ", filename);

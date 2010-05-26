@@ -18,6 +18,9 @@ buffer_t *buffer_new(char *p)
 	buffer_t *b = umalloc(sizeof(*b));
 	b->lines = list_new(p);
 	b->fname = NULL;
+	b->haseol = 1;
+	b->changed = 0;
+	b->nlines = 1;
 	return b;
 }
 
@@ -70,8 +73,10 @@ int buffer_read(buffer_t **buffer, const char *fname)
 	(*buffer)->fname = umalloc(1+strlen(fname));
 	strcpy((*buffer)->fname, fname);
 
-	(*buffer)->haseol  = haseol;
+	(*buffer)->haseol = haseol;
 	(*buffer)->changed = 0;
+	/* this is an internal line-change memory (not to do with saving) */
+
 	(*buffer)->nlines  = nlines;
 
 	return nread;
