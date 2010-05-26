@@ -16,6 +16,8 @@ enum direction
 	CURRENT
 };
 
+void	view_initpad(void);
+void	view_termpad(void);
 void	view_drawbuffer(buffer_t *);
 int		view_move(enum direction);
 void	view_refreshpad(WINDOW *);

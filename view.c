@@ -17,6 +17,9 @@
 
 #define MAX_X (COLS - 1)
 #define MAX_Y (LINES - 1)
+#define PAD_HEIGHT_INC 16
+
+static void resizepad(void);
 
 extern int padheight, padwidth, padtop, padleft, padx, pady;
 extern buffer_t *buffer;
@@ -108,7 +111,12 @@ int view_move(enum direction d)
 void view_drawbuffer(buffer_t *b)
 {
 	struct list *l = buffer_gethead(b);
-	int y = 0;
+	int y = 0, size = buffer_nlines(b);
+
+	if(size > padheight){
+		padheight = size + PAD_HEIGHT_INC;
+		resizepad();
+	}
 
 	wclear(pad);
 	wmove(pad, 0, 0);
@@ -123,9 +131,9 @@ void view_drawbuffer(buffer_t *b)
 	}
 
 tilde:
-	move(y++, 0);
-	while(y++ <= MAX_Y)
-		waddstr(stdscr, "~\n");
+	move(y, 0);
+	while(++y <= MAX_Y)
+		waddstr(pad, "~\n");
 
 	view_updatecursor();
 }
@@ -138,4 +146,33 @@ void view_refreshpad(WINDOW *p)
 			0, 0,              /* top left screen (pad positioning) */
 			MAX_Y - 1, MAX_X); /* bottom right of screen */
 	view_updatecursor();
+}
+
+void view_initpad()
+{
+	padheight = buffer_nlines(buffer) + PAD_HEIGHT_INC * 2;
+	padwidth = COLS;
+	pad = NULL;
+
+	resizepad();
+}
+
+void view_termpad()
+{
+	delwin(pad);
+}
+
+static void resizepad()
+{
+	if(pad)
+		delwin(pad);
+
+	if(padheight < MAX_Y)
+		padheight = MAX_Y;
+
+	pad = newpad(padheight, padwidth);
+	if(!pad){
+		endwin();
+		longjmp(allocerr, 1);
+	}
 }
