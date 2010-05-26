@@ -59,10 +59,13 @@ int main(int argc, const char **argv)
 						break;
 
 					default:
+						fprintf(stderr, "unknown option: \"%s\"\n", argv[i]);
 						usage(*argv);
 				}
-			}else
+			}else{
+				fprintf(stderr, "invalid option: \"%s\"\n", argv[i]);
 				usage(*argv);
+			}
 		}else if(!fname)
 			fname = argv[i];
 		else
