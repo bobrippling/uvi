@@ -28,7 +28,6 @@
 #define C_NEWLINE	 '\r'
 #define C_CTRL_C		3
 
-static void initpad(void);
 static void nc_up(void);
 static void nc_down(void);
 static void sigh(int);
@@ -55,7 +54,7 @@ static int gfunc_onpad = 0;
 
 static void nc_down()
 {
-	delwin(pad);
+	view_termpad();
 	pad = NULL;
 	endwin();
 }
@@ -81,21 +80,6 @@ static void nc_up()
 		init = 1;
 	}
 	refresh();
-}
-
-static void initpad()
-{
-	padheight = buffer_nlines(buffer) * 2;
-	padwidth = COLS;
-
-	if(!padheight)
-		padheight = 1;
-
-	pad = newpad(padheight, padwidth);
-	if(!pad){
-		endwin();
-		longjmp(allocerr, 1);
-	}
 }
 
 static void status(const char *s, ...)
@@ -326,7 +310,7 @@ int ncurses_main(const char *filename)
 	oldinth = signal(SIGINT, &sigh);
 	oldsegh = signal(SIGSEGV, &sigh);
 
-	initpad();
+	view_initpad();
 
 	do{
 		int flag = 0;
@@ -409,6 +393,7 @@ exit_while:
 
 	nc_down();
 fin:
+	view_termpad();
 	buffer_free(buffer);
 	signal(SIGINT,  oldinth);
 	signal(SIGSEGV, oldsegh);
