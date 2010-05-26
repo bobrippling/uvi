@@ -22,6 +22,8 @@ void			buffer_free(buffer_t *);
 int				buffer_nchars(buffer_t *);
 int				buffer_nlines(buffer_t *);
 
+void			buffer_setfilename(buffer_t *, const char *);
+
 /* these can't be macros, since the buffer list pointer needs to be adjusted */
 void					buffer_remove_range(buffer_t *, struct range *);
 struct list	*buffer_extract_range(buffer_t *, struct range *);

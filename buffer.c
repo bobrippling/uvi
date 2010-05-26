@@ -21,6 +21,16 @@ buffer_t *buffer_new(char *p)
 	return b;
 }
 
+void buffer_setfilename(buffer_t *b, const char *s)
+{
+	free(b->fname);
+	if(s){
+		b->fname = umalloc(strlen(s) + 1);
+		strcpy(b->fname, s);
+	}else
+		b->fname = NULL;
+}
+
 int buffer_read(buffer_t **buffer, const char *fname)
 {
 	FILE *f = fopen(fname, "r");
