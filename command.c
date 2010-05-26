@@ -277,9 +277,13 @@ buffer_t *command_readfile(const char *filename, void (*pfunc)(const char *, ...
 	if(filename){
 		int nread = buffer_read(&buffer, filename);
 		if(nread < 0){
-			if(errno == ENOENT)
-				goto new_file;
-			return NULL;
+			if(errno == ENOENT){
+				char *s = umalloc(sizeof(char));
+				*s = '\0';
+				buffer = buffer_new(s);
+				buffer_setfilename(buffer, filename);
+			}else
+				return NULL;
 		}else if(nread == 0)
 			pfunc("(empty file)");
 		else
@@ -287,9 +291,7 @@ buffer_t *command_readfile(const char *filename, void (*pfunc)(const char *, ...
 					buffer_nchars(buffer), buffer_nlines(buffer),
 					buffer->haseol ? "" : " (noeol)");
 	}else{
-    char *s;
-new_file:
-    s = umalloc(sizeof(char));
+    char *s = umalloc(sizeof(char));
     *s = '\0';
 		buffer = buffer_new(s);
 		pfunc("(new file)");
