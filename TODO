@@ -1,3 +1,5 @@
+changed to unicode internal strings
+
 on failed file read (permission denied, etc), keep running
 
 [rcdai] ncurses commands + directions [0$wb]
