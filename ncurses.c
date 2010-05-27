@@ -361,6 +361,14 @@ int ncurses_main(const char *filename)
 				bufferchanged = 1;
 				break;
 
+			case CTRL_AND('e'):
+				viewchanged = view_scroll(SINGLE_DOWN);
+				break;
+			case CTRL_AND('y'):
+				viewchanged = view_scroll(SINGLE_UP);
+				break;
+
+
 			case 'g':
 				viewchanged = view_move(ABSOLUTE_UP);
 				break;

@@ -25,6 +25,29 @@ extern int padheight, padwidth, padtop, padleft, padx, pady;
 extern buffer_t *buffer;
 extern WINDOW *pad;
 
+int view_scroll(enum scroll s)
+{
+	switch(s){
+		case SINGLE_DOWN:
+			if(padtop < buffer_nlines(buffer)-1){
+				padtop++;
+				if(pady < padtop)
+					pady = padtop;
+				return 1;
+			}
+			break;
+
+		case SINGLE_UP:
+			if(padtop){
+				padtop--;
+				if(pady > padtop + padheight)
+					pady = padtop + padheight;
+				return 1;
+			}
+			break;
+	}
+	return 0;
+}
 
 int view_move(enum direction d)
 {
@@ -124,7 +147,27 @@ void view_drawbuffer(buffer_t *b)
 		goto tilde;
 
 	while(l){
-		waddnstr(pad, l->data, MAX_X);
+		char *tab;
+		if((tab = strchr(l->data, '\t'))){
+			int len = 0;
+			char *pos = l->data;
+
+			do{
+				int i = tab - pos;
+				len += i;
+
+				waddnstr(pad, pos, i);
+				waddch(pad, ' '); /* Tab replacement char here */
+
+				pos = tab + 1;
+				tab = strchr(pos, '\t');
+			}while(len < MAX_X && tab);
+
+			if(*pos)
+				waddnstr(pad, pos, MAX_X - len);
+		}else
+			waddnstr(pad, l->data, MAX_X);
+
 		waddch(pad, '\n');
 		y++;
 		l = l->next;

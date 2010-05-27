@@ -16,10 +16,17 @@ enum direction
 	CURRENT
 };
 
+enum scroll
+{
+	SINGLE_DOWN,
+	SINGLE_UP
+};
+
 void	view_initpad(void);
 void	view_termpad(void);
 void	view_drawbuffer(buffer_t *);
 int		view_move(enum direction);
+int		view_scroll(enum scroll);
 void	view_refreshpad(WINDOW *);
 
 #define view_updatecursor() wmove(pad, pady, padx)
