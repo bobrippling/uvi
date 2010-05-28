@@ -19,7 +19,8 @@
 #define MAX_Y (LINES - 1)
 #define PAD_HEIGHT_INC 16
 
-static void resizepad(void);
+static void	resizepad(void);
+static void clippadx(void);
 
 extern int padheight, padwidth, padtop, padleft, padx, pady;
 extern buffer_t *buffer;
@@ -27,36 +28,47 @@ extern WINDOW *pad;
 
 int view_scroll(enum scroll s)
 {
+	int ret = 0;
+
 	switch(s){
 		case SINGLE_DOWN:
 			if(padtop < buffer_nlines(buffer)-1){
 				padtop++;
-				if(pady <= padtop)
-					pady = padtop+1;
-				return 1;
+				if(pady <= padtop){
+					pady = padtop;
+					clippadx();
+				}
+				ret = 1;
 			}
 			break;
 
 		case SINGLE_UP:
 			if(padtop){
-				/* FIXME */
 				padtop--;
-				if(pady >= padtop + MAX_Y)
+				if(pady >= padtop + MAX_Y){
 					pady = padtop + MAX_Y - 1;
-				return 1;
+					clippadx();
+				}
+				ret = 1;
 			}
 			break;
 	}
-	return 0;
+
+	view_updatecursor();
+	return ret;
 }
 
 int view_move(enum direction d)
 {
+	int ylim = buffer_nlines(buffer)-1, ret = 0;
 	struct list *cl = buffer_getindex(buffer, pady);
-	int xlim = MAX_X, ylim = buffer_nlines(buffer)-1, ret = 0;
+	int xlim = MAX_X;
 
-	if(cl && cl->data)
+	if(cl->data){
 		xlim = strlen(cl->data)-1;
+		if(xlim < 0)
+			xlim = 0;
+	}
 
 	switch(d){
 		case ABSOLUTE_LEFT:
@@ -122,14 +134,8 @@ int view_move(enum direction d)
 			}
 
 			/* only end up here has pady changed */
-			if(cl){
-				xlim = strlen(cl->data)-1;
-				if(xlim < 0)
-					xlim = 0;
-				if(padx > xlim)
-					padx = xlim;
-				ret = 1;
-			}
+			clippadx();
+			ret = 1;
 			break;
 	}
 
@@ -224,5 +230,20 @@ static void resizepad()
 	if(!pad){
 		endwin();
 		longjmp(allocerr, 1);
+	}
+}
+
+static void clippadx()
+{
+	struct list *cl = buffer_getindex(buffer, pady);
+	int xlim;
+
+	if(cl && cl->data){
+		xlim = strlen(cl->data)-1;
+		if(xlim < 0)
+			xlim = 0;
+
+		if(padx > xlim)
+			padx = xlim;
 	}
 }

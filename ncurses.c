@@ -43,6 +43,7 @@ static char nc_getch(void);
 static void open(int);
 static int	colon(void);
 static void status(const char *, ...);
+static void showpos(void);
 
 #define MAX_X (COLS - 1)
 #define MAX_Y (LINES - 1)
@@ -76,7 +77,7 @@ static void nc_up()
 		intrflush(stdscr, FALSE);
 		keypad(stdscr, TRUE);
 
-		padx = pady = padtop = padleft = 0;
+		pady = padx = padtop = padleft = 0;
 
 		init = 1;
 	}
@@ -91,6 +92,16 @@ static void status(const char *s, ...)
 	clrtoeol();
 	vwprintw(stdscr, s, l);
 	va_end(l);
+}
+
+static void showpos()
+{
+	const int i = buffer_nlines(buffer);
+
+	status("\"%s\"%s %d/%d %.2f%%",
+			buffer_filename(buffer),
+			saved ? "" : " [Modified]", 1+pady,
+			i, 100.0f * (float)(1+pady) / (float)i);
 }
 
 static int qfunc(const char *s)
@@ -326,33 +337,21 @@ int ncurses_main(const char *filename)
 		}
 		if(viewchanged){
 			view_refreshpad(pad);
+			view_updatecursor();
 			viewchanged = 0;
 		}
-		view_updatecursor();
+		/* view.c handles cursor positioning */
 
 		switch((c = nc_getch())){
-			case 'Z':
-				if(nc_getch() == 'Z')
-					/* TODO: check saved */
-					goto exit_while;
-				break;
-
 			case ':':
 				if(!colon())
 					goto exit_while;
-				bufferchanged = 1; /* need to review() */
+				bufferchanged = 1; /* need to view_refresh_or_whatever() */
 				break;
 
 			case CTRL_AND('g'):
-			{
-				const int i = buffer_nlines(buffer);
-
-				status("\"%s\"%s %d/%d %.2f%%",
-						buffer_filename(buffer),
-						saved ? "" : " [Modified]", 1+pady,
-						i, 100.0f * (float)(1+pady) / (float)i);
+				showpos();
 				break;
-			}
 
 			case 'O':
 				flag = 1;
