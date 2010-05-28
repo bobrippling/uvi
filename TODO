@@ -1,21 +1,28 @@
 changed to unicode internal strings
 
-on failed file read (permission denied, etc), keep running
+ncurses.c
+	movement:
+		CTRL_AND([dufb])
+		[0$wb]
+	edit:
+		[rcdai]
+			then:
+			[0-9]* repetition before switch(getch()) for ncurses
 
-[rcdai] ncurses commands + directions [0$wb]
 
-[0-9]* repetition before switch(getch()) for ncurses
+view.c
+	ncurses colour
 
-test/work with files whose len > LINES (CTRL_AND([eydufb]))
 
-ncurses colour
+command.c:
+	on failed file read (permission denied, etc), keep running
 
-marks
+	marks
 
-regex search
+	regex search
 
-s/ \+$// option
+	s/ \+$// option
 
-*word* = bold, _word_ = underline
+	*word* = bold, _word_ = underline
 
-special handling for \n (e.g. with 'r')
+	special handling for \n (e.g. with 'r')
