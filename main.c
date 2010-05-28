@@ -3,6 +3,7 @@
 #include <string.h>
 #include <setjmp.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include "term.h"
 #include "ncurses.h"
@@ -72,8 +73,8 @@ int main(int argc, const char **argv)
 			usage(*argv);
 
 	if(setjmp(allocerr)){
-		fputs(PROG_NAME": longjmp bail: malloc(): ", stderr);
-		perror(NULL);
+		fprintf(stderr, PROG_NAME" panic! longjmp bail: malloc(): %s\n",
+				errno ?  strerror(errno) : "(no error code)");
 		return 1;
 	}
 
