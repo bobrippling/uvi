@@ -1,8 +1,14 @@
-CC      = gcc
+include config.mk
+
 CFLAGS  = -g -pipe -W -Wall -Wcast-align -Wcast-qual -Wshadow -Wnested-externs -Waggregate-return -Wbad-function-cast -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Winline -Wredundant-decls -Wextra -pedantic -ansi
 LDFLAGS = -lncurses
 
-Q = @
+ifeq (${VERBOSE},1)
+	Q =
+else
+	Q = @
+endif
+
 
 uvi: main.o term.o ncurses.o view.o buffer.o list.o alloc.o range.o command.o
 	@echo LD $@
@@ -17,7 +23,7 @@ ncurses.o:ncurses.c
 	$Q${CC} ${CFLAGS} -c -o $@ $<
 
 clean:
-	rm -f *.o uvi
+	${Q}rm -f *.o uvi
 
 .PHONY: clean
 
