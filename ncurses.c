@@ -340,7 +340,11 @@ int ncurses_main(const char *filename)
 			view_updatecursor();
 			viewchanged = 0;
 		}
-		/* view.c handles cursor positioning */
+		/*
+		 * view.c handles cursor positioning
+		 * either way, cursor placement should be _before_
+		 * view_refreshpad
+		 */
 
 		switch((c = nc_getch())){
 			case ':':
