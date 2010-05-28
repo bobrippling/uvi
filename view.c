@@ -31,17 +31,18 @@ int view_scroll(enum scroll s)
 		case SINGLE_DOWN:
 			if(padtop < buffer_nlines(buffer)-1){
 				padtop++;
-				if(pady < padtop)
-					pady = padtop;
+				if(pady <= padtop)
+					pady = padtop+1;
 				return 1;
 			}
 			break;
 
 		case SINGLE_UP:
 			if(padtop){
+				/* FIXME */
 				padtop--;
-				if(pady > padtop + padheight)
-					pady = padtop + padheight;
+				if(pady >= padtop + MAX_Y)
+					pady = padtop + MAX_Y - 1;
 				return 1;
 			}
 			break;
@@ -69,12 +70,17 @@ int view_move(enum direction d)
 			break;
 
 		case ABSOLUTE_UP:
-			pady = 0;
+			padtop = pady = 0;
 			ret = 1;
 			break;
 
 		case ABSOLUTE_DOWN:
 			pady = buffer_nlines(buffer)-1;
+			if(pady >= padtop + MAX_Y){
+				padtop = pady - MAX_Y + 1;
+				if(padtop < 0)
+					padtop = 0;
+			}
 			ret = 1;
 			break;
 
@@ -100,12 +106,16 @@ int view_move(enum direction d)
 			if(d == UP){
 				if(pady > 0){
 					pady--;
+					if(padtop > pady)
+						padtop = pady;
 					cl = cl->prev;
 				}else
 					break;
 			}else{
 				if(pady < ylim){
 					pady++;
+					if(pady >= padtop + MAX_Y)
+						padtop = pady - MAX_Y + 1;
 					cl = cl->next;
 				}else
 					break;
@@ -122,9 +132,6 @@ int view_move(enum direction d)
 			}
 			break;
 	}
-
-	if(pady > MAX_Y)
-		padtop = pady - LINES;
 
 	view_updatecursor();
 
