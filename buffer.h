@@ -7,11 +7,13 @@ typedef struct
 		/* TODO: jump list to lines->gethead(), etc */
 
 		char *fname,
-				 haseol, changed, nlines;
+				 haseol, changed;
 		/*
 		 * chagned here, means have the lines changed,
 		 * NOT has the buffer been saved
 		 */
+
+		int nlines;
 	} buffer_t;
 
 buffer_t	*buffer_new(char *);
