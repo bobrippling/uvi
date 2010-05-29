@@ -26,3 +26,5 @@ command.c:
 	*word* = bold, _word_ = underline
 
 	special handling for \n (e.g. with 'r')
+
+	s/saved/modified/g + allow user to toggle
