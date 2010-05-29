@@ -20,14 +20,15 @@
 #include "ncurses.h"
 #include "config.h"
 
-#define CTRL_AND(c) ((c) & 037)
+#define CTRL_AND(c)	((c) & 037)
 #define C_ESC				27
 #define C_EOF				4
 #define C_DEL				127
 #define C_BACKSPACE	263
 #define C_ASCIIDEL	7
-#define C_NEWLINE		'\r'
 #define C_CTRL_C		3
+#define C_TAB				9
+#define C_NEWLINE		'\r'
 
 static void nc_up(void);
 static void nc_down(void);
@@ -162,10 +163,7 @@ static enum gret gfunc(char *s, int size)
 				r = g_CONTINUE;
 				goto exit;
 
-			case C_DEL:
-			case C_BACKSPACE:
-			case C_ASCIIDEL:
-			case '\b':
+			case '\b': /* backspace */
 				if(!count){
 					r = g_EOF;
 					goto exit;
@@ -177,9 +175,14 @@ static enum gret gfunc(char *s, int size)
 				/* TODO: CTRL_AND('v') */
 
 			default:
-				if(isprint(c)){
+				if(isprint(c) || c == '\t'){
 					s[count++] = c;
-					addch(c);
+
+					/* FIXME - use view_addch() */
+					if(c == '\t')
+						addch(' ');
+					else
+						addch(c);
 
 					x++;
 					if(count >= size-1){
@@ -220,6 +223,20 @@ static char nc_getch()
 		case C_CTRL_C:
 			sigh(SIGINT);
 			break;
+
+		case C_EOF:
+			return EOF;
+
+		case C_DEL:
+		case C_BACKSPACE:
+		case C_ASCIIDEL:
+			return '\b';
+
+		case C_NEWLINE:
+			return '\n';
+
+		case C_TAB:
+			return '\t';
 	}
 	return c;
 }
@@ -265,6 +282,8 @@ static void open(int before)
 			/* Here is what i was talking about before w.r.t. buffer_insertlistafter() */
 			buffer_insertlistbefore(buffer, cur, new);
 	}
+	if(pady > 0 && cur) /* cur is null if we added to the last line */
+		pady--; /* stay on the line(s) we just inserted */
 
 	saved = 0;
 }
@@ -383,6 +402,9 @@ int ncurses_main(const char *filename)
 				break;
 			case '$':
 				viewchanged = view_move(ABSOLUTE_RIGHT);
+				break;
+			case '^':
+				viewchanged = view_move(NO_BLANK);
 				break;
 			case 'j':
 				viewchanged = view_move(DOWN);
