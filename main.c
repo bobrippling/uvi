@@ -44,7 +44,8 @@ void bail(int sig)
 
 int main(int argc, const char **argv)
 {
-	int i, argv_options = 1, term = 0;
+	int i, argv_options = 1, readonly = 0;
+	int (*main2)(const char *, char) = &ncurses_main;
 	const char *fname = NULL;
 
 	for(i = 1; i < argc; i++)
@@ -56,7 +57,11 @@ int main(int argc, const char **argv)
 						break;
 
 					case 't':
-						term = 1;
+						main2 = &term_main;
+						break;
+
+					case 'R':
+						readonly = 1;
 						break;
 
 					default:
@@ -80,8 +85,5 @@ int main(int argc, const char **argv)
 		return 1;
 	}
 
-	if(term)
-		return term_main(fname);
-	else
-		return ncurses_main(fname);
+	return main2(fname, readonly);
 }

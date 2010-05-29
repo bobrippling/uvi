@@ -78,8 +78,9 @@ struct list *command_readlines(enum gret (*gfunc)(char *, int))
 
 int command_run(
 	char *in,
+	char *saved, char *readonly,
+	int *curline,
 	buffer_t *buffer,
-	int *curline, int *saved,
 	/* Note: curline is the index, i.e. 0 to $-1 */
 	void (*wrongfunc)(void),
 	void (*pfunc)(const char *, ...),
@@ -114,7 +115,9 @@ int command_run(
 		case 'a':
 			flag = 1;
 		case 'i':
-			if(!HAVE_RANGE && strlen(s) == 1){
+			if(*readonly)
+				pfunc("read only file");
+			else if(!HAVE_RANGE && strlen(s) == 1){
 				struct list *l;
 insert:
 				l = command_readlines(gfunc);
@@ -256,7 +259,9 @@ set_fname:
 			flag = 1;
 
 		case 'd':
-			if(strlen(s) == 1){
+			if(*readonly)
+				pfunc("read only file");
+			else if(strlen(s) == 1){
 				if(HAVE_RANGE){
 					buffer_remove_range(buffer, &rng);
 
@@ -305,7 +310,7 @@ set_fname:
 	return 1;
 }
 
-buffer_t *command_readfile(const char *filename, int *saved, void (*pfunc)(const char *, ...))
+buffer_t *command_readfile(const char *filename, char *const saved, void (*const pfunc)(const char *, ...))
 {
   buffer_t *buffer;
 	if(filename){

@@ -42,7 +42,7 @@ static void shellout(const char *);
 
 static char nc_getch(void);
 static void open(int);
-static int	colon(void);
+static int colon(char *);
 static void status(const char *, ...);
 static void showpos(void);
 
@@ -52,7 +52,8 @@ static void showpos(void);
 /* extern'd for view.c */
 buffer_t *buffer;
 WINDOW *pad;
-int saved = 1, padheight, padwidth, padtop, padleft, padx, pady;
+int padheight, padwidth, padtop, padleft, padx, pady;
+char saved = 1;
 static int gfunc_onpad = 0;
 
 static void nc_down()
@@ -293,7 +294,7 @@ static void open(int before)
 	saved = 0;
 }
 
-static int colon()
+static int colon(char *readonly)
 {
 #define BUF_SIZE 128
 	char in[BUF_SIZE], *c;
@@ -306,8 +307,8 @@ static int colon()
 			if(c)
 				*c = '\0';
 
-			return command_run(in, buffer,
-					&pady, &saved,
+			return command_run(in,
+					&saved, readonly, &pady, buffer,
 					&wrongfunc, &pfunc,
 					&gfunc, &qfunc, &shellout);
 
@@ -329,7 +330,7 @@ static void sigh(int sig)
 	bail(sig);
 }
 
-int ncurses_main(const char *filename)
+int ncurses_main(const char *filename, char readonly)
 {
 	int c, bufferchanged = 1, viewchanged = 1, ret = 0;
 	void (*oldinth)(int), (*oldsegh)(int);
@@ -372,7 +373,7 @@ int ncurses_main(const char *filename)
 
 		switch((c = nc_getch())){
 			case ':':
-				if(!colon())
+				if(!colon(&readonly))
 					goto exit_while;
 				bufferchanged = 1; /* need to view_refresh_or_whatever() */
 				break;
@@ -384,8 +385,12 @@ int ncurses_main(const char *filename)
 			case 'O':
 				flag = 1;
 			case 'o':
-				open(flag);
-				bufferchanged = 1;
+				if(readonly)
+					status("file is read-only");
+				else{
+					open(flag);
+					bufferchanged = 1;
+				}
 				break;
 
 			case CTRL_AND('e'):

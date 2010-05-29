@@ -18,7 +18,7 @@
 #define IN_SIZE 256
 
 static buffer_t *buffer;
-static int saved = 1;
+static char saved = 1;
 
 static int	qfunc(const char *);
 static void pfunc(const char *, ...);
@@ -86,10 +86,10 @@ static void shellout(const char *cmd)
 }
 
 
-int term_main(const char *filename)
+int term_main(const char *filename, char readonly)
 {
-	char in[IN_SIZE];
-	int hadeof = 0, curline = 0;
+	char in[IN_SIZE], hadeof = 0;
+	int curline = 0;
 
   if(!(buffer = command_readfile(filename, &saved, pfunc))){
     fprintf(stderr, PROG_NAME": %s: ", filename);
@@ -117,8 +117,9 @@ int term_main(const char *filename)
 		if(s)
 			*s = '\0';
 
-		if(!command_run(in, buffer,
-					&curline, &saved,
+		if(!command_run(in,
+					&saved, &readonly,
+					&curline, buffer,
 					&wrongfunc, &pfunc,
 					&gfunc, &qfunc, &shellout))
 			break;

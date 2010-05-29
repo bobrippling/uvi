@@ -11,19 +11,19 @@ enum gret
 struct list *command_readlines(enum gret (*)(char *, int));
 
 int command_run(
-	char *,
-	buffer_t *,
-	int *, int *,
-	/* wrongfunc, pfunc, gfunc, qfunc, shellout */
-	void	    (*)(void),
-	void	    (*)(const char *, ...),
-	enum gret (*)(char *, int),
-	int	      (*)(const char *),
-	void      (*)(const char *)
+	char *in,
+	char *const saved, char *const readonly,
+	int *const curline,
+	buffer_t *const buffer,
+	void      (*const wrongfunc)(void),
+	void      (*const pfunc)(const char *, ...),
+	enum gret (*const gfunc)(char *, int),
+	int	      (*const qfunc)(const char *),
+	void      (*const shellout)(const char *)
 	);
 
-buffer_t *command_readfile(const char *, int *,
-    void (*)(const char *, ...));
+buffer_t *command_readfile(const char *, char *const,
+    void (*const )(const char *, ...));
 
 void command_dumpbuffer(buffer_t *);
 

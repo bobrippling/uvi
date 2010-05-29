@@ -1,6 +1,6 @@
 #ifndef TERM_H
 #define TERM_H
 
-int term_main(const char *);
+int term_main(const char *, char);
 
 #endif
