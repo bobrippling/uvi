@@ -282,8 +282,13 @@ static void open(int before)
 			/* Here is what i was talking about before w.r.t. buffer_insertlistafter() */
 			buffer_insertlistbefore(buffer, cur, new);
 	}
-	if(pady > 0 && cur) /* cur is null if we added to the last line */
-		pady--; /* stay on the line(s) we just inserted */
+	if(pady > 0){
+		if(cur) /* cur is null if we added to the last line */
+			pady--; /* stay on the line(s) we just inserted */
+		else if(pady > MAX_Y)
+			/* last line - shift the pad up if needed */
+			padtop++;
+	}
 
 	saved = 0;
 }
