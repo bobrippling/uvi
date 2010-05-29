@@ -63,7 +63,9 @@ int main(int argc, const char **argv)
 						fprintf(stderr, "unknown option: \"%s\"\n", argv[i]);
 						usage(*argv);
 				}
-			}else{
+			}else if(!strcmp(argv[i], "--help"))
+				usage(*argv);
+			else{
 				fprintf(stderr, "invalid option: \"%s\"\n", argv[i]);
 				usage(*argv);
 			}
