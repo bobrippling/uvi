@@ -13,6 +13,8 @@ enum direction
 	ABSOLUTE_UP,
 	ABSOLUTE_DOWN,
 
+	NO_BLANK,
+
 	CURRENT
 };
 

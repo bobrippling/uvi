@@ -8,6 +8,7 @@
 #include <string.h>
 #include <setjmp.h>
 #include <stdlib.h>
+#include <ctype.h>
 
 #include "list.h"
 #include "range.h"
@@ -95,6 +96,23 @@ int view_move(enum direction d)
 			}
 			ret = 1;
 			break;
+
+		case NO_BLANK:
+		{
+			char *c = cl->data;
+			while(isspace(*c))
+				c++;
+			if(c == '\0'){
+				if(padx){
+					padx = 0;
+					ret = 1;
+				}
+			}else if(padx != c - cl->data){
+				padx = c - cl->data;
+				ret = 1;
+			}
+			break;
+		}
 
 		case LEFT:
 			if(padx > 0){
