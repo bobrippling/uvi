@@ -232,7 +232,7 @@ struct list *buffer_extract_range(buffer_t *buffer, struct range *rng)
 	if(!l->data){
 		/* just deleted everything, make empty line */
 		l->data = umalloc(sizeof(char));
-		*l->data = '\0';
+		*(char * /* smallest possible */)l->data = '\0';
 	}
 
 	buffer->changed = 1;

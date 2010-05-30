@@ -3,6 +3,7 @@
 #include <string.h>
 #include <setjmp.h>
 #include <errno.h>
+#include <ctype.h>
 
 #include "range.h"
 #include "buffer.h"
@@ -10,9 +11,12 @@
 
 #include "buffer.h"
 #include "list.h"
+#include "set.h"
 #include "alloc.h"
 
 #include "config.h"
+
+static void parse_setget(char, char *, void (*)(const char *, ...), void (*)(void));
 
 struct list *command_readlines(enum gret (*gfunc)(char *, int))
 {
@@ -69,7 +73,7 @@ struct list *command_readlines(enum gret (*gfunc)(char *, int))
 	if(!l->data){
 		/* EOF straight away */
 		l->data = umalloc(sizeof(char));
-		*l->data = '\0';
+		*(char *)l->data = '\0';
 	}
 
 	return l;
@@ -228,6 +232,8 @@ set_fname:
 			/* print current line index */
 			if(HAVE_RANGE)
 				wrongfunc();
+			else if(strlen(s) != 1)
+				goto def;
 			else
 				pfunc("%d", 1 + *curline);
 			break;
@@ -304,7 +310,14 @@ set_fname:
 			break;
 
 		default:
-			wrongfunc();
+		def:
+			/* full string cmps */
+			if(!strncmp(s, "set", 3))
+				parse_setget(1, s + 3, pfunc, wrongfunc);
+			else if(!strncmp(s, "get", 3))
+				parse_setget(0, s + 3, pfunc, wrongfunc);
+			else
+				wrongfunc();
 	}
 
 	return 1;
@@ -364,9 +377,47 @@ void command_dumpbuffer(buffer_t *b)
 	if(f){
 		struct list *head = buffer_gethead(b);
 		while(head){
-			fprintf(f, "%s\n", head->data);
+			fprintf(f, "%s\n", (char *)head->data);
 			head = head->next;
 		}
 		fclose(f);
 	}
+}
+
+static void parse_setget(char isset, char *s, void (*pfunc)(const char *, ...), void (*wrongfunc)(void))
+{
+	if(*s == ' '){
+		if(isalpha(*++s)){
+			char *wordstart = s;
+
+			while(isalpha(*++s));
+
+			switch(*s){
+				case '\0':
+					if(isset){
+						char bool;
+						if(!strncmp(wordstart, "no", 2)){
+							bool = 0;
+							wordstart += 2;
+						}else
+							bool = 1;
+
+						printf("set_set(\"%s\", %s)\n", wordstart, bool ? "true" : "false");
+						set_set(wordstart, bool);
+					}else{
+						char *v = set_get(wordstart);
+						if(v)
+							pfunc("%s: %s", wordstart, *(char *)v ? "true" : "false");
+						else
+							pfunc("%s: (not set)", wordstart);
+					}
+					break;
+
+				default:
+					wrongfunc();
+			}
+			return;
+		}
+	}
+	wrongfunc();
 }

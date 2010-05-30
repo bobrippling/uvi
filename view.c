@@ -107,8 +107,8 @@ int view_move(enum direction d)
 					padx = 0;
 					ret = 1;
 				}
-			}else if(padx != c - cl->data){
-				padx = c - cl->data;
+			}else if(padx != c - (char *)cl->data){
+				padx = c - (char *)cl->data;
 				ret = 1;
 			}
 			break;

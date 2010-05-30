@@ -7,6 +7,7 @@
 
 #include "term.h"
 #include "ncurses.h"
+#include "set.h"
 
 #include "main.h"
 #include "config.h"
@@ -44,9 +45,17 @@ void bail(int sig)
 
 int main(int argc, const char **argv)
 {
-	int i, argv_options = 1, readonly = 0;
+	int i, argv_options = 1, readonly = 0, ret;
 	int (*main2)(const char *, char) = &ncurses_main;
 	const char *fname = NULL;
+
+	if(setjmp(allocerr)){
+		fprintf(stderr, PROG_NAME" panic! longjmp bail: malloc(): %s\n",
+				errno ?  strerror(errno) : "(no error code)");
+		return 1;
+	}
+
+	set_init(); /* set ro, etc */
 
 	for(i = 1; i < argc; i++)
 		if(argv_options && *argv[i] == '-'){
@@ -62,6 +71,7 @@ int main(int argc, const char **argv)
 
 					case 'R':
 						readonly = 1;
+						set_set(SET_READONLY, 1);
 						break;
 
 					default:
@@ -79,11 +89,7 @@ int main(int argc, const char **argv)
 		else
 			usage(*argv);
 
-	if(setjmp(allocerr)){
-		fprintf(stderr, PROG_NAME" panic! longjmp bail: malloc(): %s\n",
-				errno ?  strerror(errno) : "(no error code)");
-		return 1;
-	}
-
-	return main2(fname, readonly);
+	ret = main2(fname, readonly);
+	set_term();
+	return ret;
 }

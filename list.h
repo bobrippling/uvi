@@ -3,19 +3,19 @@
 
 struct list
 {
-	char *data;
+	void *data;
 	struct list *next, *prev;
-} *list_new(char *);
+} *list_new(void *);
 
-void list_insertbefore(struct list *, char *); /* inserts char * before the list * */
-void list_insertafter(struct list *, char *);	/* inserts char * after the list * */
-void list_append(struct list *, char *); /* inserts char * at the very end of the list */
+void list_insertbefore(struct list *, void *); /* inserts char * before the list * */
+void list_insertafter(struct list *, void *);	/* inserts char * after the list * */
+void list_append(struct list *, void *); /* inserts char * at the very end of the list */
 
 void list_insertlistbefore(struct list *, struct list *);
 void list_insertlistafter(struct list *, struct list *);
 void list_appendlist(struct list *, struct list *);
 
-char				*list_extract(struct list *); /* removes the list * from its list and returns it */
+void				*list_extract(struct list *); /* removes the list * from its list and returns it */
 void				 list_remove(struct list *); /* as above, but frees the extract'd */
 struct list *list_extract_range(struct list **, int);
 void				 list_remove_range(struct list **, int);

@@ -4,7 +4,7 @@
 #include "list.h"
 #include "alloc.h"
 
-struct list *list_new(char *d)
+struct list *list_new(void *d)
 {
 	struct list *l = umalloc(sizeof(*l));
 	l->data = d;
@@ -13,7 +13,7 @@ struct list *list_new(char *d)
 }
 
 /* inserts char * before the list * */
-void list_insertbefore(struct list *l, char *d)
+void list_insertbefore(struct list *l, void *d)
 {
 	if(l->prev)
 		list_insertafter(l->prev, d);
@@ -30,7 +30,7 @@ void list_insertbefore(struct list *l, char *d)
 		l->data = d;
 }
 
-void list_insertafter(struct list *l, char *d)
+void list_insertafter(struct list *l, void *d)
 {
 	if(l->data){
 		struct list *next = l->next;
@@ -44,7 +44,7 @@ void list_insertafter(struct list *l, char *d)
 }
 
 /* inserts char * at the very end of the list */
-void list_append(struct list *l, char *d)
+void list_append(struct list *l, void *d)
 {
 	if(!l->data){
 		l->data = d;
@@ -144,9 +144,9 @@ void list_appendlist(struct list *l, struct list *new)
 
 
 /* removes the list * from its list and returns it */
-char *list_extract(struct list *l)
+void *list_extract(struct list *l)
 {
-	char *ret = l->data;
+	void *ret = l->data;
 
 	if(l->next){
 		struct list *delthis = l->next;
