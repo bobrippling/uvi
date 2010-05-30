@@ -402,8 +402,9 @@ static void parse_setget(char isset, char *s, void (*pfunc)(const char *, ...), 
 						}else
 							bool = 1;
 
-						printf("set_set(\"%s\", %s)\n", wordstart, bool ? "true" : "false");
-						set_set(wordstart, bool);
+						if(!set_set(wordstart, bool))
+							pfunc("\"%s\" is not a valid variable", wordstart);
+
 					}else{
 						char *v = set_get(wordstart);
 						if(v)

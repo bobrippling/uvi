@@ -8,14 +8,19 @@
 
 static map *variables = NULL;
 
-void set_set(const char *s, const char v)
+char set_set(const char *s, const char v)
 {
-	char *dup = umalloc(strlen(s) + 1), *vdup = umalloc(sizeof(*vdup));
+	if(!strcmp(s, SET_READONLY) || !strcmp(s, SET_MODIFIED) ||
+			!strcmp(s, SET_EOF)){
+		char *dup = umalloc(strlen(s) + 1), *vdup = umalloc(sizeof(*vdup));
 
-	strcpy(dup, s);
-	*vdup = v;
+		strcpy(dup, s);
+		*vdup = v;
 
-	map_add(variables, dup, vdup);
+		map_add(variables, dup, vdup);
+		return 1;
+	}
+	return 0;
 }
 
 char *set_get(char *s)
@@ -28,6 +33,7 @@ void set_init()
 	variables = map_new();
 	set_set(SET_READONLY, 0);
 	set_set(SET_MODIFIED, 0);
+	set_set(SET_EOF,			0);
 }
 
 void set_term()
