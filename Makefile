@@ -13,7 +13,8 @@ else
 endif
 
 
-uvi: main.o term.o ncurses.o view.o buffer.o list.o map.o set.o alloc.o range.o command.o
+uvi: main.o term.o ncurses.o view.o buffer.o range.o command.o \
+	util/list.o util/map.o set.o util/alloc.o
 	@echo LD $@
 	$Q${CC} ${CFLAGS} ${LDFLAGS} -o $@ $^
 
@@ -26,21 +27,20 @@ ncurses.o:ncurses.c
 	$Q${CC} ${CFLAGS} -c -o $@ $<
 
 clean:
-	${Q}rm -f *.o uvi
+	${Q}rm -f *.o util/*.o uvi
 
 .PHONY: clean
 
-alloc.o: alloc.c alloc.h
-buffer.o: buffer.c alloc.h range.h buffer.h list.h
-command.o: command.c range.h buffer.h command.h list.h set.h alloc.h \
- config.h
-list.o: list.c list.h alloc.h
+buffer.o: buffer.c util/alloc.h range.h buffer.h util/list.h
+command.o: command.c range.h buffer.h command.h util/list.h set.h \
+ util/alloc.h config.h
 main.o: main.c term.h ncurses.h set.h main.h config.h
-map.o: map.c list.h map.h alloc.h
-ncurses.o: ncurses.c range.h buffer.h command.h list.h main.h view.h \
- alloc.h ncurses.h config.h
+ncurses.o: ncurses.c range.h buffer.h command.h util/list.h main.h view.h \
+ util/alloc.h ncurses.h config.h
 range.o: range.c range.h
-set.o: set.c map.h
-term.o: term.c list.h range.h buffer.h term.h command.h config.h
-test.o: test.c list.h
-view.o: view.c list.h range.h buffer.h view.h alloc.h
+term.o: term.c util/list.h range.h buffer.h term.h command.h config.h
+view.o: view.c util/list.h range.h buffer.h view.h util/alloc.h
+alloc.o: util/alloc.c util/alloc.h
+list.o: util/list.c util/list.h util/alloc.h
+map.o: util/map.c util/list.h util/map.h util/alloc.h
+set.o: set.c util/map.h util/alloc.h set.h

@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <sys/wait.h>
 
-#include "list.h"
+#include "util/list.h"
 #include "range.h"
 #include "buffer.h"
 #include "term.h"

@@ -10,9 +10,9 @@
 #include "command.h"
 
 #include "buffer.h"
-#include "list.h"
+#include "util/list.h"
 #include "set.h"
-#include "alloc.h"
+#include "util/alloc.h"
 
 #include "config.h"
 

@@ -6,10 +6,10 @@
 #include <setjmp.h>
 #include <string.h>
 
-#include "alloc.h"
+#include "util/alloc.h"
 #include "range.h"
 #include "buffer.h"
-#include "list.h"
+#include "util/list.h"
 
 static int fgetline(char **, FILE *, char *);
 

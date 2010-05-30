@@ -2,8 +2,8 @@
 #include <setjmp.h>
 #include <string.h>
 
-#include "map.h"
-#include "alloc.h"
+#include "util/map.h"
+#include "util/alloc.h"
 #include "set.h"
 
 static map *variables = NULL;

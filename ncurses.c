@@ -12,10 +12,10 @@
 #include "range.h"
 #include "buffer.h"
 #include "command.h"
-#include "list.h"
+#include "util/list.h"
 #include "main.h"
 #include "view.h"
-#include "alloc.h"
+#include "util/alloc.h"
 
 #include "ncurses.h"
 #include "config.h"
