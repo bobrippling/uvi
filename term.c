@@ -12,13 +12,13 @@
 #include "buffer.h"
 #include "term.h"
 #include "command.h"
+#include "vars.h"
 
 #include "config.h"
 
 #define IN_SIZE 256
 
 static buffer_t *buffer;
-static char saved = 1;
 
 static int	qfunc(const char *);
 static void pfunc(const char *, ...);
@@ -91,7 +91,7 @@ int term_main(const char *filename, char readonly)
 	char in[IN_SIZE], hadeof = 0;
 	int curline = 0;
 
-  if(!(buffer = command_readfile(filename, &saved, pfunc))){
+  if(!(buffer = command_readfile(filename, readonly, pfunc))){
     fprintf(stderr, PROG_NAME": %s: ", filename);
     perror(NULL);
     return 1;
@@ -102,7 +102,7 @@ int term_main(const char *filename, char readonly)
 
 		if(!fgets(in, IN_SIZE, stdin)){
 			if(hadeof){
-				if(saved || hadeof >= 2)
+				if(!buffer_modified(buffer) || hadeof >= 2)
 					break;
 				else
 					puts("not saved");
@@ -118,7 +118,6 @@ int term_main(const char *filename, char readonly)
 			*s = '\0';
 
 		if(!command_run(in,
-					&saved, &readonly,
 					&curline, buffer,
 					&wrongfunc, &pfunc,
 					&gfunc, &qfunc, &shellout))

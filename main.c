@@ -7,7 +7,6 @@
 
 #include "term.h"
 #include "ncurses.h"
-#include "set.h"
 
 #include "main.h"
 #include "config.h"
@@ -19,8 +18,9 @@ jmp_buf allocerr;
 
 void usage(const char *s)
 {
-	fprintf(stderr, "Usage: %s [-t] [--] [filename]\n", s);
+	fprintf(stderr, "Usage: %s [-tR] [--] [filename]\n", s);
 	fputs("  -t: terminal mode\n", stderr);
+	fputs("  -R: open as read only\n", stderr);
 	exit(1);
 }
 
@@ -45,7 +45,7 @@ void bail(int sig)
 
 int main(int argc, const char **argv)
 {
-	int i, argv_options = 1, readonly = 0, ret;
+	int i, argv_options = 1, readonly = 0;
 	int (*main2)(const char *, char) = &ncurses_main;
 	const char *fname = NULL;
 
@@ -54,8 +54,6 @@ int main(int argc, const char **argv)
 				errno ?  strerror(errno) : "(no error code)");
 		return 1;
 	}
-
-	set_init(); /* set ro, etc */
 
 	for(i = 1; i < argc; i++)
 		if(argv_options && *argv[i] == '-'){
@@ -71,7 +69,6 @@ int main(int argc, const char **argv)
 
 					case 'R':
 						readonly = 1;
-						set_set(SET_READONLY, 1);
 						break;
 
 					default:
@@ -89,7 +86,5 @@ int main(int argc, const char **argv)
 		else
 			usage(*argv);
 
-	ret = main2(fname, readonly);
-	set_term();
-	return ret;
+	return main2(fname, readonly);
 }

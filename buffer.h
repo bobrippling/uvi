@@ -7,11 +7,8 @@ typedef struct
 		/* TODO: jump list to lines->gethead(), etc */
 
 		char *fname,
-				 haseol, changed;
-		/*
-		 * chagned here, means have the lines changed,
-		 * NOT has the buffer been saved
-		 */
+					changed /* INTERNAL bool */,
+					readonly, modified, eol;
 
 		int nlines;
 	} buffer_t;
@@ -35,8 +32,12 @@ struct list	*buffer_extract_range(buffer_t *, struct range *);
 #define b2l(b) ((b)->lines)
 
 /* helpers */
+#define buffer_modified(b)								((b)->modified)
+#define buffer_readonly(b)								((b)->readonly)
+#define buffer_eol(b)											((b)->eol)
+
 #define buffer_changed(b)									((b)->changed)
-#define buffer_haseol(b)									((b)->haseol)
+
 #define buffer_filename(b)								((b)->fname ? (b)->fname : "(empty file)")
 #define buffer_hasfilename(b)							(!!(b)->fname)
 

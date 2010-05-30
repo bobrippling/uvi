@@ -1,4 +1,4 @@
-changed to unicode internal strings
+change to unicode internal strings
 
 ncurses.c
 	movement:
@@ -27,4 +27,9 @@ command.c:
 
 	special handling for \n (e.g. with 'r')
 
-	s/saved/modified/g + allow user to toggle
+	change variables to table:
+		struct tim
+		{
+			const char *const name;
+			void (*func)(char value);
+		} tims[] = { ... };

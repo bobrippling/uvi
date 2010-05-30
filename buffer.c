@@ -5,6 +5,12 @@
 #include <sys/uio.h>
 #include <setjmp.h>
 #include <string.h>
+/* stat */
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+/* getpwuid */
+#include <pwd.h>
 
 #include "util/alloc.h"
 #include "range.h"
@@ -12,14 +18,13 @@
 #include "util/list.h"
 
 static int fgetline(char **, FILE *, char *);
+static char canwrite(mode_t, uid_t, gid_t);
 
 buffer_t *buffer_new(char *p)
 {
 	buffer_t *b = umalloc(sizeof(*b));
+	memset(b, '\0', sizeof(*b));
 	b->lines = list_new(p);
-	b->fname = NULL;
-	b->haseol = 1;
-	b->changed = 0;
 	b->nlines = 1;
 	return b;
 }
@@ -38,8 +43,9 @@ int buffer_read(buffer_t **buffer, const char *fname)
 {
 	FILE *f = fopen(fname, "r");
 	struct list *tmp;
+	struct stat st;
 	int nread = 0, nlines = 0;
-	char *s, haseol;
+	char *s, haseol = 1;
 
 	if(!f)
 		return -1;
@@ -73,13 +79,39 @@ int buffer_read(buffer_t **buffer, const char *fname)
 	(*buffer)->fname = umalloc(1+strlen(fname));
 	strcpy((*buffer)->fname, fname);
 
-	(*buffer)->haseol = haseol;
+	(*buffer)->modified = !((*buffer)->eol = haseol);
+
 	(*buffer)->changed = 0;
 	/* this is an internal line-change memory (not to do with saving) */
+
+	if(!stat(fname, &st))
+		(*buffer)->readonly = !canwrite(st.st_mode, st.st_uid, st.st_gid);
+	else
+		(*buffer)->readonly = 0;
 
 	(*buffer)->nlines  = nlines;
 
 	return nread;
+}
+
+static char canwrite(mode_t mode, uid_t uid, gid_t gid)
+{
+	struct passwd *pd;
+
+	if(mode & 02)
+		return 1;
+
+	pd = getpwuid(getuid());
+	if(!pd)
+		return 0;
+
+	if((mode & 020) && gid == pd->pw_gid)
+		return 1;
+
+	if((mode & 0200) && uid == pd->pw_uid)
+		return 1;
+
+	return 0;
 }
 
 static int fgetline(char **s, FILE *in, char *haseol)
@@ -154,6 +186,10 @@ int buffer_write(buffer_t *b)
 		return -1;
 
 	iovtmp = iov = umalloc((count = list_count(l) * 2) * sizeof(*iov));
+	/*
+	 * allocate too many if it's eol. doesn't matter, since count is dealt with
+	 * later
+	 */
 
 	while(l){
 		iovtmp->iov_len	= strlen((iovtmp->iov_base = l->data));
@@ -163,6 +199,9 @@ int buffer_write(buffer_t *b)
 		iovtmp++;
 		l = l->next;
 	}
+
+	if(!b->eol)
+		count--; /* don't write the last '\n' */
 
 	nwrite = writev(fileno(f), iov, count);
 	eno = errno;

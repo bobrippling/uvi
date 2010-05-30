@@ -11,12 +11,12 @@
 
 #include "buffer.h"
 #include "util/list.h"
-#include "set.h"
+#include "vars.h"
 #include "util/alloc.h"
 
 #include "config.h"
 
-static void parse_setget(char, char *, void (*)(const char *, ...), void (*)(void));
+static void parse_setget(buffer_t *, char, char *, void (*)(const char *, ...), void (*)(void));
 
 struct list *command_readlines(enum gret (*gfunc)(char *, int))
 {
@@ -82,7 +82,6 @@ struct list *command_readlines(enum gret (*gfunc)(char *, int))
 
 int command_run(
 	char *in,
-	char *saved, char *readonly,
 	int *curline,
 	buffer_t *buffer,
 	/* Note: curline is the index, i.e. 0 to $-1 */
@@ -119,7 +118,7 @@ int command_run(
 		case 'a':
 			flag = 1;
 		case 'i':
-			if(*readonly)
+			if(buffer_readonly(buffer))
 				pfunc("read only file");
 			else if(!HAVE_RANGE && strlen(s) == 1){
 				struct list *l;
@@ -133,7 +132,7 @@ insert:
 						buffer_insertlistafter(buffer, line, l);
 					else
 						buffer_insertlistbefore(buffer, line, l);
-					*saved = 0;
+					buffer_modified(buffer) = 1;
 				}
 			}else
 				wrongfunc();
@@ -157,7 +156,7 @@ insert:
 
 						case ' ':
 							fname = s + 1;
-							goto set_fname;
+							goto vars_fname;
 							break;
 
 						default:
@@ -171,11 +170,11 @@ insert:
 					switch(s[1]){
 						case ' ':
 							fname = s + 2;
-							goto set_fname;
+							goto vars_fname;
 						case 'q':
 							flag = 1;
 							fname = s + 3;
-set_fname:
+vars_fname:
 							buffer_setfilename(buffer, fname);
 							break;
 
@@ -193,11 +192,11 @@ set_fname:
 			}else{
 				int nw = buffer_write(buffer);
 				if(nw == -1){
-					pfunc("Couldn't save \"%s\": %s", buffer->fname, strerror(errno));
+					pfunc("Couldn't save \"%s\": %s", buffer_filename(buffer), strerror(errno));
 					break;
 				}
-				*saved = 1;
-				pfunc("\"%s\" %dL, %dC written", buffer->fname,
+				buffer_modified(buffer) = 0;
+				pfunc("\"%s\" %dL, %dC written", buffer_filename(buffer),
 						buffer_nlines(buffer), nw);
 			}
 			if(!flag)
@@ -215,7 +214,7 @@ set_fname:
 			else{
 				switch(s[1]){
 					case '\0':
-						if(!*saved){
+						if(buffer_modified(buffer)){
 							pfunc("unsaved");
 							break;
 						}
@@ -265,7 +264,7 @@ set_fname:
 			flag = 1;
 
 		case 'd':
-			if(*readonly)
+			if(buffer_readonly(buffer))
 				pfunc("read only file");
 			else if(strlen(s) == 1){
 				if(HAVE_RANGE){
@@ -287,7 +286,7 @@ set_fname:
 					}
 				}
 
-				*saved = 0;
+				buffer_modified(buffer) = 1;
 			}else{
 				wrongfunc();
 				break;
@@ -313,9 +312,9 @@ set_fname:
 		def:
 			/* full string cmps */
 			if(!strncmp(s, "set", 3))
-				parse_setget(1, s + 3, pfunc, wrongfunc);
+				parse_setget(buffer, 1, s + 3, pfunc, wrongfunc);
 			else if(!strncmp(s, "get", 3))
-				parse_setget(0, s + 3, pfunc, wrongfunc);
+				parse_setget(buffer, 0, s + 3, pfunc, wrongfunc);
 			else
 				wrongfunc();
 	}
@@ -323,11 +322,12 @@ set_fname:
 	return 1;
 }
 
-buffer_t *command_readfile(const char *filename, char *const saved, void (*const pfunc)(const char *, ...))
+buffer_t *command_readfile(const char *filename, char forcereadonly, void (*const pfunc)(const char *, ...))
 {
   buffer_t *buffer;
 	if(filename){
 		int nread = buffer_read(&buffer, filename);
+
 		if(nread < 0){
 			if(errno == ENOENT){
 				char *s = umalloc(sizeof(char));
@@ -336,19 +336,26 @@ buffer_t *command_readfile(const char *filename, char *const saved, void (*const
 				buffer_setfilename(buffer, filename);
 			}else
 				return NULL;
-		}else if(nread == 0)
-			pfunc("(empty file)");
-		else
-			pfunc("%s: %dC, %dL%s", filename,
-					buffer_nchars(buffer), buffer_nlines(buffer),
-					buffer->haseol ? "" : " (noeol)");
+		}else{
+			if(forcereadonly)
+				buffer_readonly(buffer) = 1;
+
+			if(nread == 0)
+				pfunc("(empty file)%s", buffer_readonly(buffer) ? " [read only]" : "");
+			else
+				pfunc("%s%s: %dC, %dL%s", filename,
+						buffer_readonly(buffer) ? " [read only]" : "",
+						buffer_nchars(buffer), buffer_nlines(buffer),
+						buffer_eol(buffer) ? "" : " (noeol)");
+		}
+
 	}else{
     char *s = umalloc(sizeof(char));
     *s = '\0';
 		buffer = buffer_new(s);
 		pfunc("(new file)");
 	}
-	*saved = buffer_haseol(buffer);
+	buffer_modified(buffer) = !buffer_eol(buffer);
   return buffer;
 }
 
@@ -384,7 +391,8 @@ void command_dumpbuffer(buffer_t *b)
 	}
 }
 
-static void parse_setget(char isset, char *s, void (*pfunc)(const char *, ...), void (*wrongfunc)(void))
+static void parse_setget(buffer_t *b, char isset, /* is this "set" or "get"? */
+		char *s, void (*pfunc)(const char *, ...), void (*wrongfunc)(void))
 {
 	if(*s == ' '){
 		if(isalpha(*++s)){
@@ -402,11 +410,11 @@ static void parse_setget(char isset, char *s, void (*pfunc)(const char *, ...), 
 						}else
 							bool = 1;
 
-						if(!set_set(wordstart, bool))
+						if(!vars_set(b, wordstart, bool))
 							pfunc("\"%s\" is not a valid variable", wordstart);
 
 					}else{
-						char *v = set_get(wordstart);
+						char *v = vars_get(b, wordstart);
 						if(v)
 							pfunc("%s: %s", wordstart, *(char *)v ? "true" : "false");
 						else

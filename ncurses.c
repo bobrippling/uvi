@@ -16,6 +16,7 @@
 #include "main.h"
 #include "view.h"
 #include "util/alloc.h"
+#include "vars.h"
 
 #include "ncurses.h"
 #include "config.h"
@@ -42,7 +43,7 @@ static void shellout(const char *);
 
 static char nc_getch(void);
 static void open(int);
-static int colon(char *);
+static int colon(void);
 static void status(const char *, ...);
 static void showpos(void);
 
@@ -53,7 +54,6 @@ static void showpos(void);
 buffer_t *buffer;
 WINDOW *pad;
 int padheight, padwidth, padtop, padleft, padx, pady;
-char saved = 1;
 static int gfunc_onpad = 0;
 
 static void nc_down()
@@ -102,7 +102,7 @@ static void showpos()
 
 	status("\"%s\"%s %d/%d %.2f%%",
 			buffer_filename(buffer),
-			saved ? "" : " [Modified]", 1+pady,
+			buffer_modified(buffer) ? " [Modified]" : "", 1+pady,
 			i, 100.0f * (float)(1+pady) / (float)i);
 }
 
@@ -261,8 +261,8 @@ static void open(int before)
 
 	cur = buffer_getindex(buffer, pady);
 	/*
-	 * if !before, then cury has been ++'d,
-	 * this means cury is after what we want, hence
+	 * if !before, then pady has been ++'d,
+	 * this means pady is after what we want, hence
 	 * hence why buffer_insertlistafter() isn't used below
 	 */
 
@@ -275,7 +275,7 @@ static void open(int before)
 		if(!cur){
 			/*
 			 * we are appending to the end of the file, hence
-			 * line cury doesn't exist yet
+			 * line pady doesn't exist yet
 			 */
 			buffer_appendlist(buffer, new);
 			pady = buffer_nlines(buffer) - 1;
@@ -291,10 +291,10 @@ static void open(int before)
 			padtop++;
 	}
 
-	saved = 0;
+	buffer_modified(buffer) = 1;
 }
 
-static int colon(char *readonly)
+static int colon()
 {
 #define BUF_SIZE 128
 	char in[BUF_SIZE], *c;
@@ -308,7 +308,7 @@ static int colon(char *readonly)
 				*c = '\0';
 
 			return command_run(in,
-					&saved, readonly, &pady, buffer,
+					&pady, buffer,
 					&wrongfunc, &pfunc,
 					&gfunc, &qfunc, &shellout);
 
@@ -337,7 +337,7 @@ int ncurses_main(const char *filename, char readonly)
 
 	nc_up();
 
-  if(!(buffer = command_readfile(filename, &saved, pfunc))){
+  if(!(buffer = command_readfile(filename, readonly, pfunc))){
 		/* TODO: leave ncurses up, with empty buffer */
 		nc_down();
     fprintf(stderr, PROG_NAME": %s: ", filename);
@@ -373,7 +373,7 @@ int ncurses_main(const char *filename, char readonly)
 
 		switch((c = nc_getch())){
 			case ':':
-				if(!colon(&readonly))
+				if(!colon())
 					goto exit_while;
 				bufferchanged = 1; /* need to view_refresh_or_whatever() */
 				break;
@@ -385,7 +385,7 @@ int ncurses_main(const char *filename, char readonly)
 			case 'O':
 				flag = 1;
 			case 'o':
-				if(readonly)
+				if(buffer_readonly(buffer))
 					status("file is read-only");
 				else{
 					open(flag);
