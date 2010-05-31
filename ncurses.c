@@ -315,10 +315,13 @@ static void insert(int append)
 		*linepos++ = c;
 		if(linepos - line >= size-1){
 			char *new = realloc(line, size *= 2);
+			int diff = linepos - line;
 			if(!new)
 				longjmp(allocerr, 1);
 
 			line = new;
+			linepos = line + diff;
+			linepos[1] = '\0';
 		}
 		mvaddch(pady, padx++, c);
 	}while(1);
@@ -336,8 +339,12 @@ static void insert(int append)
 	afterlen = strlen(linepos);
 
 	if(afterlen)
-		memmove(linepos + enteredlen, linepos, afterlen);
+		memmove(linepos + enteredlen, linepos, afterlen + 1); /* include the nul char */
+	else
+		linepos[enteredlen] = '\0'; /* vital as the above +1 */
+
 	memmove(linepos, line, enteredlen);
+
 	free(line);
 
 	buffer_modified(buffer) = 1;
@@ -568,8 +575,12 @@ exit_while:
 fin:
 	view_termpad();
 	buffer_free(buffer);
-	signal(SIGINT,  oldinth);
-	signal(SIGSEGV, oldsegh);
+
+	/*
+	 * apparently this uses uninitialised memory
+	 * signal(SIGINT,  oldinth);
+	 * signal(SIGSEGV, oldsegh);
+	 */
 
 	return ret;
 }
