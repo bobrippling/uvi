@@ -4,10 +4,10 @@
 #include <string.h>
 #include <signal.h>
 #include <setjmp.h>
+#include <unistd.h>
 /* system*/
 #include <stdlib.h>
 #include <sys/wait.h>
-#include <stdio.h>
 
 #include "range.h"
 #include "buffer.h"
@@ -347,6 +347,11 @@ int ncurses_main(const char *filename, char readonly)
 {
 	int c, bufferchanged = 1, viewchanged = 1, ret = 0;
 	void (*oldinth)(int), (*oldsegh)(int);
+
+	if(!isatty(STDIN_FILENO))
+		fputs(PROG_NAME": warning: input is not a terminal\n", stderr);
+	else if(!isatty(STDOUT_FILENO))
+		fputs(PROG_NAME": warning: output is not a terminal\n", stderr);
 
 	nc_up();
 
