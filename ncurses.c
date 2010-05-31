@@ -25,6 +25,7 @@
 #include "config.h"
 
 #define CTRL_AND(c)	((c) & 037)
+#define CTRL_AND_g	8
 #define C_ESC				27
 #define C_EOF				4
 #define C_DEL				127
@@ -79,7 +80,7 @@ static void nc_up()
 	if(!init){
 		initscr();
 		/*cbreak(); * use raw() to intercept ^C, ^Z */
-		raw();
+		/*raw();*/
 		noecho();
 
 		/* halfdelay() for main-loop style timeout */
@@ -246,10 +247,15 @@ get:
 			break;
 
 		case C_CTRL_Z:
+		{
+			/* FIXME */
+			int x = padx, y = pady;
 			nc_down();
 			kill(getpid(), SIGSTOP);
 			nc_up();
+			move(y, x);
 			goto get;
+		}
 
 		case C_EOF:
 			return EOF;
@@ -277,20 +283,65 @@ static void wrongfunc(void)
 
 static void insert(int append)
 {
-#define LINE_STEP 16
-	int savedx = padx += append;
-	struct list *pos = buffer_getindex(buffer, pady), *lines, *nextline;
+	int savedx = padx, size = 16, afterlen, enteredlen;
+	struct list *curline = buffer_getindex(buffer, pady);
 	/* assert(pos) */
 	char *line, *linepos;
 
 	gfunc_onpad = 1;
-	if(append)
-		view_updatecursor();
+	if(append){
+		padx++;
+		savedx++;
+	}
 
-	linepos = line = umalloc(LINE_STEP);
+	view_updatecursor();
+	view_refreshpad(pad);
+
+	linepos = line = umalloc(size);
 	do{
-		*linepos++ = nc_getch();
+		int c = nc_getch();
+		/* TODO: '\n' */
+		if(c == C_ESC || c == C_EOF || c == C_NEWLINE){
+			*linepos = '\0';
+			break;
+		}else if(c == '\b'){
+			if(linepos > line){
+				linepos--;
+				move(pady, --padx);
+			}
+			continue;
+		}
+
+		*linepos++ = c;
+		if(linepos - line >= size-1){
+			char *new = realloc(line, size *= 2);
+			if(!new)
+				longjmp(allocerr, 1);
+
+			line = new;
+		}
+		mvaddch(pady, padx++, c);
 	}while(1);
+
+	linepos = realloc(curline->data,
+			strlen(curline->data) +
+			(enteredlen = strlen(line)) + 1);
+
+	if(!linepos)
+		longjmp(allocerr, 1);
+
+	curline->data = linepos;
+	linepos += savedx;
+
+	afterlen = strlen(linepos);
+
+	if(afterlen)
+		memmove(linepos + enteredlen, linepos, afterlen);
+	memmove(linepos, line, enteredlen);
+	free(line);
+
+	buffer_modified(buffer) = 1;
+	padx--;
 }
 
 static void open(int before)
@@ -419,8 +470,12 @@ int ncurses_main(const char *filename, char readonly)
 			viewchanged = 1;
 		}
 		if(viewchanged){
-			view_refreshpad(pad);
+			/*
+			 * cursor must be updated before
+			 * the pad is refreshed
+			 */
 			view_updatecursor();
+			view_refreshpad(pad);
 			viewchanged = 0;
 		}
 		/*
@@ -436,7 +491,7 @@ int ncurses_main(const char *filename, char readonly)
 				bufferchanged = 1; /* need to view_refresh_or_whatever() */
 				break;
 
-			case CTRL_AND('g'):
+			case CTRL_AND_g:
 				showpos();
 				break;
 
@@ -458,12 +513,19 @@ int ncurses_main(const char *filename, char readonly)
 				viewchanged = view_scroll(SINGLE_UP);
 				break;
 
+			case 'A':
+				view_move(ABSOLUTE_RIGHT);
 			case 'a':
 				flag = 1;
 			case 'i':
+case_i:
 				insert(flag);
 				bufferchanged = 1;
 				break;
+			case 'I':
+				view_move(ABSOLUTE_LEFT);
+				goto case_i;
+
 
 			case 'g':
 				viewchanged = view_move(ABSOLUTE_UP);
