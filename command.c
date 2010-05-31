@@ -436,7 +436,7 @@ static void parse_setget(buffer_t *b, char isset, /* is this "set" or "get"? */
 		do{
 			const char *vs = vars_tostring(v);
 			pfunc("%s: %d\n", vs, *(char *)vars_get(b, vs));
-		}while((v = vars_next(v)) != VARS_SENTINEL);
+		}while(++v != VARS_SENTINEL);
 
 		return;
 	}

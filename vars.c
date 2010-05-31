@@ -46,10 +46,3 @@ const char *vars_tostring(enum varlist v)
 	}
 	return NULL;
 }
-
-enum varlist vars_next(enum varlist v)
-{
-	if(++v <= VARS_EOL)
-		return v;
-	return VARS_SENTINEL;
-}
