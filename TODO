@@ -3,11 +3,13 @@ change to unicode internal strings
 ncurses.c
 	movement:
 		CTRL_AND([dufb])
-		[0$wb]
+		[wb]
 	edit:
-		[rcdai]
+		[rcdx]
 			then:
 			[0-9]* repetition before switch(getch()) for ncurses
+			special handling for \n (e.g. with 'r')
+
 
 
 view.c
@@ -24,8 +26,6 @@ command.c:
 	s/ \+$// option
 
 	*word* = bold, _word_ = underline
-
-	special handling for \n (e.g. with 'r')
 
 	change variables to table:
 		struct tim
