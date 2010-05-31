@@ -371,11 +371,10 @@ int ncurses_main(const char *filename, char readonly)
 		int flag = 0;
 
 		if(pfunc_wantconfimation){
+			status("---");
 			pfunc_wantconfimation = 0;
 			status("press any key...");
-			c = nc_getch();
-			if(c == ':')
-				goto colon;
+			ungetch(nc_getch());
 		}
 
 		if(bufferchanged){
@@ -396,7 +395,6 @@ int ncurses_main(const char *filename, char readonly)
 
 		switch((c = nc_getch())){
 			case ':':
-colon:
 				if(!colon())
 					goto exit_while;
 				bufferchanged = 1; /* need to view_refresh_or_whatever() */
