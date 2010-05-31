@@ -24,8 +24,10 @@ buffer_t *buffer_new(char *p)
 {
 	buffer_t *b = umalloc(sizeof(*b));
 	memset(b, '\0', sizeof(*b));
+
 	b->lines = list_new(p);
-	b->nlines = 1;
+	b->nlines = b->eol = 1;
+
 	return b;
 }
 

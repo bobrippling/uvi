@@ -7,10 +7,9 @@
 #include "buffer.h"
 #include "vars.h"
 
-#define VARS_READONLY "ro"
-#define VARS_MODIFIED "modified"
-#define VARS_EOL      "eol"
-
+#define S_READONLY "ro"
+#define S_MODIFIED "modified"
+#define S_EOL      "eol"
 
 char vars_set(buffer_t *b, const char *s, const char v)
 {
@@ -23,12 +22,34 @@ char vars_set(buffer_t *b, const char *s, const char v)
 
 char *vars_get(buffer_t *b, const char *s)
 {
-	if(!strcmp(VARS_READONLY, s))
+	if(!strcmp(S_READONLY, s))
 		return &buffer_readonly(b);
-	else if(!strcmp(VARS_MODIFIED, s))
+	else if(!strcmp(S_MODIFIED, s))
 		return &buffer_modified(b);
-	else if(!strcmp(VARS_EOL, s))
+	else if(!strcmp(S_EOL, s))
 		return &buffer_eol(b);
 
 	return NULL;
+}
+
+const char *vars_tostring(enum varlist v)
+{
+	switch(v){
+		case VARS_READONLY:
+			return S_READONLY;
+		case VARS_MODIFIED:
+			return S_MODIFIED;
+		case VARS_EOL:
+			return S_EOL;
+		case VARS_SENTINEL:
+			break;
+	}
+	return NULL;
+}
+
+enum varlist vars_next(enum varlist v)
+{
+	if(++v <= VARS_EOL)
+		return v;
+	return VARS_SENTINEL;
 }

@@ -14,12 +14,13 @@
 static void usage(const char *);
 
 jmp_buf allocerr;
-
+int debug = 0;
 
 void usage(const char *s)
 {
-	fprintf(stderr, "Usage: %s [-tR] [--] [filename]\n", s);
+	fprintf(stderr, "Usage: %s [-tdR] [--] [filename]\n", s);
 	fputs("  -t: terminal mode\n", stderr);
+	fputs("  -d: debug mode (don't catch SEGV)\n", stderr);
 	fputs("  -R: open as read only\n", stderr);
 	exit(1);
 }
@@ -29,7 +30,7 @@ void bail(int sig)
 	/* TODO: save open buffers */
 	char m[] = "Received fatal signal ";
 
-	write(STDERR_FILENO, m, sizeof(m));
+	write(STDERR_FILENO, m, strlen(m));
 
 	while(sig){
 		*m = '0' + sig % 10;
@@ -65,6 +66,10 @@ int main(int argc, const char **argv)
 
 					case 't':
 						main2 = &term_main;
+						break;
+
+					case 'd':
+						debug = 1;
 						break;
 
 					case 'R':

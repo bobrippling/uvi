@@ -337,6 +337,7 @@ buffer_t *command_readfile(const char *filename, char forcereadonly, void (*cons
 			}else
 				return NULL;
 		}else{
+			/* end up here on successful read */
 			if(forcereadonly)
 				buffer_readonly(buffer) = 1;
 
@@ -347,6 +348,8 @@ buffer_t *command_readfile(const char *filename, char forcereadonly, void (*cons
 						buffer_readonly(buffer) ? " [read only]" : "",
 						buffer_nchars(buffer), buffer_nlines(buffer),
 						buffer_eol(buffer) ? "" : " (noeol)");
+
+			buffer_modified(buffer) = !buffer_eol(buffer);
 		}
 
 	}else{
@@ -355,7 +358,6 @@ buffer_t *command_readfile(const char *filename, char forcereadonly, void (*cons
 		buffer = buffer_new(s);
 		pfunc("(new file)");
 	}
-	buffer_modified(buffer) = !buffer_eol(buffer);
   return buffer;
 }
 
@@ -427,6 +429,16 @@ static void parse_setget(buffer_t *b, char isset, /* is this "set" or "get"? */
 			}
 			return;
 		}
+	}else if(*s == '\0' && !isset){
+		/* set dump */
+		enum varlist v = 0;
+
+		do{
+			const char *vs = vars_tostring(v);
+			pfunc("%s: %d\n", vs, *(char *)vars_get(b, vs));
+		}while((v = vars_next(v)) != VARS_SENTINEL);
+
+		return;
 	}
 	wrongfunc();
 }

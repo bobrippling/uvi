@@ -10,6 +10,15 @@ enum gret
 
 struct list *command_readlines(enum gret (*)(char *, int));
 
+/*
+ * convention for pfunc() is that if it's passed
+ * a string with no '\n' in, then it will print and
+ * be done. If there's a '\n' then (for ncurses)
+ * it will print and go to the next line and wait to
+ * be called again. It resets this after command_*
+ * returns
+ */
+
 int command_run(
 	char *in,
 	int *const curline,

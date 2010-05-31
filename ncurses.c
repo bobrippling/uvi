@@ -54,7 +54,10 @@ static void showpos(void);
 buffer_t *buffer;
 WINDOW *pad;
 int padheight, padwidth, padtop, padleft, padx, pady;
-static int gfunc_onpad = 0;
+static int gfunc_onpad = 0, pfunc_wantconfimation = 0;
+
+extern int debug;
+
 
 static void nc_down()
 {
@@ -89,9 +92,19 @@ static void nc_up()
 static void status(const char *s, ...)
 {
 	va_list l;
-	va_start(l, s);
+
 	move(MAX_Y, 0);
+
+	if(strchr(s, '\n') || pfunc_wantconfimation){
+		/*
+		 * print a bunch of lines,
+		 * and tell main() to wait for input from the user
+		 */
+		move(pfunc_wantconfimation++, 0);
+	}
+
 	clrtoeol();
+	va_start(l, s);
 	vwprintw(stdscr, s, l);
 	va_end(l);
 }
@@ -347,13 +360,23 @@ int ncurses_main(const char *filename, char readonly)
   }
 
 	/* have to be after buffer's been initialised */
-	oldinth = signal(SIGINT, &sigh);
-	oldsegh = signal(SIGSEGV, &sigh);
+	if(!debug){
+		oldinth = signal(SIGINT, &sigh);
+		oldsegh = signal(SIGSEGV, &sigh);
+	}
 
 	view_initpad();
 
 	do{
 		int flag = 0;
+
+		if(pfunc_wantconfimation){
+			pfunc_wantconfimation = 0;
+			status("press any key...");
+			c = nc_getch();
+			if(c == ':')
+				goto colon;
+		}
 
 		if(bufferchanged){
 			view_drawbuffer(buffer);
@@ -373,6 +396,7 @@ int ncurses_main(const char *filename, char readonly)
 
 		switch((c = nc_getch())){
 			case ':':
+colon:
 				if(!colon())
 					goto exit_while;
 				bufferchanged = 1; /* need to view_refresh_or_whatever() */
