@@ -17,6 +17,9 @@ view.c
 
 
 command.c:
+	URGENT: check FIXME in buffer_write() - if iov_len:s are too big (> sizeof ssize_t),
+		it fails with EINVAL
+
 	on failed file read (permission denied, etc), keep running
 
 	marks
