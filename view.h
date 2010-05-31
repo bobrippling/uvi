@@ -29,8 +29,8 @@ void	view_termpad(void);
 void	view_drawbuffer(buffer_t *);
 int		view_move(enum direction);
 int		view_scroll(enum scroll);
-void	view_refreshpad(WINDOW *);
+void	view_refreshpad(void);
 
-#define view_updatecursor() wmove(pad, pady, padx)
+#define view_updatecursor() do { wmove(pad, pady, padx); view_refreshpad(); } while(0)
 
 #endif

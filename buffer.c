@@ -202,6 +202,8 @@ int buffer_write(buffer_t *b)
 		l = l->next;
 	}
 
+	/* FIXME: EINVAL is returned if the sum of iov_len values overflows ssize_t */
+
 	if(!b->eol)
 		count--; /* don't write the last '\n' */
 

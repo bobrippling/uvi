@@ -8,7 +8,7 @@
 #include <signal.h>
 #include <setjmp.h>
 #include <unistd.h>
-/* system*/
+/* system */
 #include <stdlib.h>
 #include <sys/wait.h>
 
@@ -49,13 +49,13 @@ static void shellout(const char *);
 static char nc_getch(void);
 static void insert(int);
 static void open(int);
-static int colon(void);
+static int  colon(void);
 
 static void status(const char *, ...);
 static void showpos(void);
 
-#define MAX_X (COLS - 1)
-#define MAX_Y (LINES - 1)
+#define MAX_X	(COLS - 1)
+#define MAX_Y	(LINES - 1)
 
 /* extern'd for view.c */
 buffer_t *buffer;
@@ -93,6 +93,7 @@ static void nc_up()
 
 		init = 1;
 	}
+
 	refresh();
 }
 
@@ -122,8 +123,8 @@ static void showpos()
 
 	status("\"%s\"%s %d/%d %.2f%%",
 			buffer_filename(buffer),
-			buffer_modified(buffer) ? " [Modified]" : "", 1+pady,
-			i, 100.0f * (float)(1+pady) / (float)i);
+			buffer_modified(buffer) ? " [Modified]" : "", 1 + pady,
+			i, 100.0f * (float)(1 + pady) /(float)i);
 }
 
 static int qfunc(const char *s)
@@ -139,8 +140,8 @@ static void shellout(const char *cmd)
 	int ret;
 
 	endwin();
-
 	ret = system(cmd);
+
 	if(ret == -1)
 		perror("system()");
 	else
@@ -149,6 +150,7 @@ static void shellout(const char *cmd)
 	fputs("Press enter to continue...", stdout);
 	fflush(stdout);
 	ret = getchar();
+
 	if(ret != '\n' && ret != EOF)
 		while((ret = getchar()) != '\n' && ret != EOF);
 
@@ -157,7 +159,7 @@ static void shellout(const char *cmd)
 
 static enum gret gfunc(char *s, int size)
 {
-	/*return getnstr(s, len) == OK ? s : NULL;*/
+	/*return getnstr(s, len) == OK ? s : NULL; */
 	int x, y, c, count = 0;
 	enum gret r;
 
@@ -200,13 +202,13 @@ static enum gret gfunc(char *s, int size)
 					s[count++] = c;
 
 					/* FIXME - use view_addch() */
-					if(c == '\t')
+					if(c == '\t') /* FIXME tab to space */
 						addch(' ');
 					else
 						addch(c);
-
 					x++;
-					if(count >= size-1){
+
+					if(count >= size - 1){
 						s[count] = '\0';
 						r = g_CONTINUE;
 						goto exit;
@@ -220,7 +222,7 @@ static enum gret gfunc(char *s, int size)
 	while(1);
 
 exit:
-	if(count < size-1){
+	if(count < size - 1){
 		s[count]   = '\n';
 		s[count+1] = '\0';
 	}else
@@ -228,6 +230,7 @@ exit:
 
 	addch('\n');
 	move(++y, 0);
+
 	if(gfunc_onpad){
 		++pady;
 		padx = 0;
@@ -246,8 +249,7 @@ get:
 			sigh(SIGINT);
 			break;
 
-		case C_CTRL_Z:
-		{
+		case C_CTRL_Z:{
 			/* FIXME */
 			int x = padx, y = pady;
 			nc_down();
@@ -271,6 +273,7 @@ get:
 		case C_TAB:
 			return '\t';
 	}
+
 	return c;
 }
 
@@ -289,17 +292,19 @@ static void insert(int append)
 	char *line, *linepos;
 
 	gfunc_onpad = 1;
+
 	if(append){
 		padx++;
 		savedx++;
 	}
 
 	view_updatecursor();
-	view_refreshpad(pad);
 
 	linepos = line = umalloc(size);
+
 	do{
 		int c = nc_getch();
+
 		/* TODO: '\n' */
 		if(c == C_ESC || c == C_EOF || c == C_NEWLINE){
 			*linepos = '\0';
@@ -309,13 +314,16 @@ static void insert(int append)
 				linepos--;
 				move(pady, --padx);
 			}
+
 			continue;
 		}
 
 		*linepos++ = c;
-		if(linepos - line >= size-1){
+
+		if(linepos - line >= size - 1){
 			char *new = realloc(line, size *= 2);
 			int diff = linepos - line;
+
 			if(!new)
 				longjmp(allocerr, 1);
 
@@ -323,12 +331,16 @@ static void insert(int append)
 			linepos = line + diff;
 			linepos[1] = '\0';
 		}
+
+		if(c == '\t')
+			c = ' '; /* FIXME tab to space */
+
 		mvaddch(pady, padx++, c);
 	}while(1);
 
 	linepos = realloc(curline->data,
-			strlen(curline->data) +
-			(enteredlen = strlen(line)) + 1);
+	                  strlen(curline->data) +
+	                 (enteredlen = strlen(line)) + 1);
 
 	if(!linepos)
 		longjmp(allocerr, 1);
@@ -355,11 +367,10 @@ static void open(int before)
 {
 	struct list *cur, *new;
 
-	if(!before){
+	if(!before)
 		++pady;
-		padx = 0;
-		view_updatecursor();
-	}
+	padx = 0;
+	view_updatecursor();
 
 	cur = buffer_getindex(buffer, pady);
 	/*
@@ -385,6 +396,7 @@ static void open(int before)
 			/* Here is what i was talking about before w.r.t. buffer_insertlistafter() */
 			buffer_insertlistbefore(buffer, cur, new);
 	}
+
 	if(pady > 0){
 		if(cur) /* cur is null if we added to the last line */
 			pady--; /* stay on the line(s) we just inserted */
@@ -403,16 +415,18 @@ static int colon()
 
 	(void)mvaddch(MAX_Y, 0, ':');
 	gfunc_onpad = 0;
+
 	switch(gfunc(in, BUF_SIZE)){
 		case g_CONTINUE:
 			c = strchr(in, '\n');
+
 			if(c)
 				*c = '\0';
 
 			return command_run(in,
-					&pady, buffer,
-					&wrongfunc, &pfunc,
-					&gfunc, &qfunc, &shellout);
+			                   &pady, buffer,
+			                   &wrongfunc, &pfunc,
+			                   &gfunc, &qfunc, &shellout);
 
 
 		case g_LAST: /* esc means cancel in this sense */
@@ -435,7 +449,7 @@ static void sigh(int sig)
 int ncurses_main(const char *filename, char readonly)
 {
 	int c, bufferchanged = 1, viewchanged = 1, ret = 0;
-	void (*oldinth)(int), (*oldsegh)(int);
+	void(*oldinth)(int),(*oldsegh)(int);
 
 	if(!isatty(STDIN_FILENO))
 		fputs(PROG_NAME": warning: input is not a terminal\n", stderr);
@@ -444,21 +458,20 @@ int ncurses_main(const char *filename, char readonly)
 
 	nc_up();
 
-  if(!(buffer = command_readfile(filename, readonly, pfunc))){
+	if(!(buffer = command_readfile(filename, readonly, pfunc))){
 		/* TODO: leave ncurses up, with empty buffer */
 		nc_down();
-    fprintf(stderr, PROG_NAME": %s: ", filename);
-    perror(NULL);
+		fprintf(stderr, PROG_NAME": %s: ", filename);
+		perror(NULL);
 		ret = 1;
 		goto fin;
-  }
+	}
 
 	/* have to be after buffer's been initialised */
 	if(!debug){
 		oldinth = signal(SIGINT, &sigh);
 		oldsegh = signal(SIGSEGV, &sigh);
 	}
-
 	view_initpad();
 
 	do{
@@ -470,7 +483,6 @@ int ncurses_main(const char *filename, char readonly)
 			status("press any key...");
 			ungetch(nc_getch());
 		}
-
 		if(bufferchanged){
 			view_drawbuffer(buffer);
 			bufferchanged = 0;
@@ -482,7 +494,7 @@ int ncurses_main(const char *filename, char readonly)
 			 * the pad is refreshed
 			 */
 			view_updatecursor();
-			view_refreshpad(pad);
+			/*view_refreshpad();*/
 			viewchanged = 0;
 		}
 		/*
@@ -566,9 +578,10 @@ case_i:
 				break;
 
 			default:
-				status("unknown: %c (%d)", c, c);
+				status("unknown: %c(%d)", c, c);
 		}
 	}while(1);
+
 exit_while:
 
 	nc_down();

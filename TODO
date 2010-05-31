@@ -33,3 +33,5 @@ command.c:
 			const char *const name;
 			void (*func)(char value);
 		} tims[] = { ... };
+
+	check fclose() and writev() return values

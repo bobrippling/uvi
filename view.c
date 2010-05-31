@@ -191,7 +191,7 @@ void view_drawbuffer(buffer_t *b)
 				waddch(pad, ' '); /* Tab replacement char here */
 
 				pos = tab + 1;
-				tab = strchr(pos, '\t');
+				tab = strchr(pos, '\t'); /* FIXME tab to space */
 			}while(len < MAX_X && tab);
 
 			if(*pos)
@@ -212,14 +212,13 @@ tilde:
 	view_updatecursor();
 }
 
-void view_refreshpad(WINDOW *p)
+void view_refreshpad()
 {
 	wnoutrefresh(stdscr);
-	prefresh(p,
+	prefresh(pad,
 			padtop, padleft,   /* top left pad corner */
 			0, 0,              /* top left screen (pad positioning) */
 			MAX_Y - 1, MAX_X); /* bottom right of screen */
-	view_updatecursor();
 }
 
 void view_initpad()
