@@ -1,7 +1,10 @@
+/* kill */
+#define _POSIX_SOURCE
 #include <ncurses.h>
 #include <errno.h>
 #include <ctype.h>
 #include <string.h>
+#include <sys/types.h>
 #include <signal.h>
 #include <setjmp.h>
 #include <unistd.h>
@@ -28,6 +31,7 @@
 #define C_BACKSPACE	263
 #define C_ASCIIDEL	7
 #define C_CTRL_C		3
+#define C_CTRL_Z		26
 #define C_TAB				9
 #define C_NEWLINE		'\r'
 
@@ -37,13 +41,15 @@ static void sigh(int);
 
 #define pfunc status
 static void wrongfunc(void);
-static int	qfunc(const char *);
+static int  qfunc(const char *);
 static enum gret gfunc(char *, int);
 static void shellout(const char *);
 
 static char nc_getch(void);
+static void insert(int);
 static void open(int);
 static int colon(void);
+
 static void status(const char *, ...);
 static void showpos(void);
 
@@ -232,11 +238,18 @@ exit:
 
 static char nc_getch()
 {
-	int c = getch();
-	switch(c){
+	int c;
+get:
+	switch((c = getch())){
 		case C_CTRL_C:
 			sigh(SIGINT);
 			break;
+
+		case C_CTRL_Z:
+			nc_down();
+			kill(getpid(), SIGSTOP);
+			nc_up();
+			goto get;
 
 		case C_EOF:
 			return EOF;
@@ -260,6 +273,24 @@ static void wrongfunc(void)
 	move(MAX_Y, 0);
 	clrtoeol();
 	addch('?');
+}
+
+static void insert(int append)
+{
+#define LINE_STEP 16
+	int savedx = padx += append;
+	struct list *pos = buffer_getindex(buffer, pady), *lines, *nextline;
+	/* assert(pos) */
+	char *line, *linepos;
+
+	gfunc_onpad = 1;
+	if(append)
+		view_updatecursor();
+
+	linepos = line = umalloc(LINE_STEP);
+	do{
+		*linepos++ = nc_getch();
+	}while(1);
 }
 
 static void open(int before)
@@ -427,6 +458,12 @@ int ncurses_main(const char *filename, char readonly)
 				viewchanged = view_scroll(SINGLE_UP);
 				break;
 
+			case 'a':
+				flag = 1;
+			case 'i':
+				insert(flag);
+				bufferchanged = 1;
+				break;
 
 			case 'g':
 				viewchanged = view_move(ABSOLUTE_UP);
