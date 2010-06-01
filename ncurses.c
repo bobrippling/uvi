@@ -288,7 +288,7 @@ static void insert(int append)
 {
 	int savedx = padx, size = 16, afterlen, enteredlen;
 	struct list *curline = buffer_getindex(buffer, pady);
-	/* assert(pos) */
+	/* assert(curline) - handled by buffer */
 	char *line, *linepos;
 
 	gfunc_onpad = 1;

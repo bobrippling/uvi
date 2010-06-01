@@ -43,6 +43,7 @@ void buffer_setfilename(buffer_t *b, const char *s)
 
 int buffer_read(buffer_t **buffer, const char *fname)
 {
+#define b (*buffer)
 	FILE *f = fopen(fname, "r");
 	struct list *tmp;
 	struct stat st;
@@ -52,15 +53,15 @@ int buffer_read(buffer_t **buffer, const char *fname)
 	if(!f)
 		return -1;
 
-	*buffer = buffer_new(NULL);
-	tmp = (*buffer)->lines;
+	b = buffer_new(NULL);
+	tmp = b->lines;
 
 	do{
 		int thisread;
 
 		if((thisread = fgetline(&s, f, &haseol)) < 0){
 			int eno = errno;
-			buffer_free(*buffer);
+			buffer_free(b);
 			fclose(f);
 			errno = eno;
 			return -1;
@@ -78,22 +79,31 @@ int buffer_read(buffer_t **buffer, const char *fname)
 	}while(1);
 
 
-	(*buffer)->fname = umalloc(1+strlen(fname));
-	strcpy((*buffer)->fname, fname);
+	b->fname = umalloc(1+strlen(fname));
+	strcpy(b->fname, fname);
 
-	(*buffer)->modified = !((*buffer)->eol = haseol);
+	b->modified = !(b->eol = haseol);
 
-	(*buffer)->changed = 0;
+	b->changed = 1;
 	/* this is an internal line-change memory (not to do with saving) */
 
-	if(!stat(fname, &st))
-		(*buffer)->readonly = !canwrite(st.st_mode, st.st_uid, st.st_gid);
-	else
-		(*buffer)->readonly = 0;
+	if(nread == 0){
+		/* create a line + set modified */
+		b->modified = 0;
+		s = umalloc(sizeof(char));
+		*s = '\0';
+		list_append(b->lines, s);
+	}
 
-	(*buffer)->nlines  = nlines;
+	if(!stat(fname, &st))
+		b->readonly = !canwrite(st.st_mode, st.st_uid, st.st_gid);
+	else
+		b->readonly = 0;
+
+	b->nlines  = nlines;
 
 	return nread;
+#undef b
 }
 
 static char canwrite(mode_t mode, uid_t uid, gid_t gid)
