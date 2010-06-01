@@ -293,7 +293,7 @@ static void insert(int append)
 
 	gfunc_onpad = 1;
 
-	if(append){
+	if(append && padx < (signed)strlen(curline->data)){
 		padx++;
 		savedx++;
 	}
