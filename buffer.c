@@ -89,7 +89,7 @@ int buffer_read(buffer_t **buffer, const char *fname)
 
 	if(nread == 0){
 		/* create a line + set modified */
-		b->modified = 0;
+		b->modified = 1;
 		s = umalloc(sizeof(char));
 		*s = '\0';
 		list_append(b->lines, s);

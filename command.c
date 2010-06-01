@@ -348,8 +348,6 @@ buffer_t *command_readfile(const char *filename, char forcereadonly, void (*cons
 						buffer_readonly(buffer) ? " [read only]" : "",
 						buffer_nchars(buffer), buffer_nlines(buffer),
 						buffer_eol(buffer) ? "" : " (noeol)");
-
-			buffer_modified(buffer) = !buffer_eol(buffer);
 		}
 
 	}else{
