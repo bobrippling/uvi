@@ -188,42 +188,70 @@ static int fgetline(char **s, FILE *in, char *haseol)
 /* returns bytes written */
 int buffer_write(buffer_t *b)
 {
+#define MAX_BYTES 128 /* 2 ^ (sizeof(ssize_t)-1) */
 	FILE *f = fopen(b->fname, "w");
 	struct iovec *iov, *iovtmp;
 	struct list *l = list_gethead(b->lines);
-	int count, nwrite, eno;
+	int count, nwrite = 0, eno, totalsize = 0, fno;
 	/*can't be const*/char nl = '\n';
 
 	if(!f)
 		return -1;
 
-	iovtmp = iov = umalloc((count = list_count(l) * 2) * sizeof(*iov));
+	count = list_count(l) * 2;
+	iovtmp = iov = umalloc(count * sizeof(*iov));
 	/*
 	 * allocate too many if it's eol. doesn't matter, since count is dealt with
 	 * later
 	 */
 
 	while(l){
-		iovtmp->iov_len	= strlen((iovtmp->iov_base = l->data));
+		iovtmp->iov_len = strlen((iovtmp->iov_base = l->data));
 		iovtmp++;
+
 		iovtmp->iov_base = &nl;
-		iovtmp->iov_len	= 1;
 		iovtmp++;
+
+		totalsize += iov[-2].iov_len + (iovtmp[-1].iov_len  = sizeof(char));
+
 		l = l->next;
 	}
-
-	/* FIXME: EINVAL is returned if the sum of iov_len values overflows ssize_t */
 
 	if(!b->eol)
 		count--; /* don't write the last '\n' */
 
-	nwrite = writev(fileno(f), iov, count);
+
+	/*
+	 * writev is limited by MAX_BYTES
+	 * so do it in blocks of that size
+	 */
+	nwrite = totalsize / MAX_BYTES;
+	fno = fileno(f);
+	errno = 0;
+	fprintf(stderr, "need to do at least %d writes for %d bytes (MAX_BYTES = %d)\n",
+			nwrite, totalsize, MAX_BYTES);
+
+	while(nwrite){
+		nwrite += writev(fno, iov, count);
+		if(errno)
+			goto bail;
+		iov += nwrite;
+	}
+	if(totalsize % MAX_BYTES){
+		fprintf(stderr, "doing an extra write of size %d\n", totalsize % MAX_BYTES);
+		nwrite += writev(fno, iov, count - totalsize % MAX_BYTES);
+		if(errno)
+			goto bail;
+	}
+
+bail:
 	eno = errno;
 	free(iov);
 	fclose(f);
 	errno = eno;
 
 	return nwrite;
+#undef MAX_BYTES
 }
 
 void buffer_free(buffer_t *b)

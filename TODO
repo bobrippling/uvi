@@ -11,7 +11,6 @@ ncurses.c
 			special handling for \n (e.g. with 'r')
 
 
-
 view.c
 	ncurses colour
 
