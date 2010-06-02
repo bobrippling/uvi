@@ -1,6 +1,5 @@
 include config.mk
 
-LD      = gcc
 LDFLAGS = -lncurses
 
 ifeq (${VERBOSE},1)

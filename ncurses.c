@@ -25,6 +25,8 @@
 #include "ncurses.h"
 #include "config.h"
 
+#define iswordboundary(c) (!(isalnum(c) || (c) == '_'))
+
 #define CTRL_AND(c)	((c) & 037)
 #define CTRL_AND_g	8
 #define C_ESC				27
@@ -36,6 +38,11 @@
 #define C_CTRL_Z		26
 #define C_TAB				9
 #define C_NEWLINE		'\r'
+
+enum motion
+{
+	MOTION_LETTER, MOTION_WORD, MOTION_LINE, MOTION_UNKNOWN
+};
 
 static void nc_up(void);
 static void nc_down(void);
@@ -51,6 +58,8 @@ static char nc_getch(void);
 static void insert(int);
 static void open(int);
 static int  colon(void);
+static void delete(enum motion, int, int);
+static enum motion readmotion(int);
 
 static void status(const char *, ...);
 static void showpos(void);
@@ -409,6 +418,60 @@ static void open(int before)
 	buffer_modified(buffer) = 1;
 }
 
+static enum motion readmotion(int linechar)
+{
+	int ch;
+	switch((ch = nc_getch())){
+		case 'l':
+			return MOTION_LETTER;
+		case 'w':
+			return MOTION_WORD;
+
+		default:
+			if(ch == linechar)
+				return MOTION_LINE;
+			return MOTION_UNKNOWN;
+	}
+}
+
+static void delete(enum motion m, int multiple, int linechar)
+{
+	struct list *listpos = buffer_getindex(buffer, pady);
+	char *curline = listpos->data,
+			 *pos     = curline + padx;
+	/* assert(curline) */
+
+	if(m == MOTION_UNKNOWN){
+		m = readmotion(linechar);
+		if(m == MOTION_UNKNOWN)
+			return;
+	}
+
+	switch(m){
+		case MOTION_LETTER:
+			memmove(pos, pos + 1, strlen(pos));
+			break;
+
+		case MOTION_WORD:
+		{
+			char *wordend = pos+1;
+			while(!iswordboundary(*wordend))
+				wordend++;
+
+			/* delete from pos to wordend */
+			memmove(pos, wordend, strlen(wordend) + 1); /* include '\0' */
+			break;
+		}
+
+		case MOTION_LINE:
+			buffer_remove(buffer, listpos);
+			break;
+
+		case MOTION_UNKNOWN:
+			break;
+	}
+}
+
 static int colon()
 {
 #define BUF_SIZE 128
@@ -536,11 +599,23 @@ int ncurses_main(const char *filename, char readonly)
 				}
 				break;
 
-			case CTRL_AND('e'):
-				viewchanged = view_scroll(SINGLE_DOWN);
+			case 'X':
+				if(padx == 0)
+					break;
+				flag = 1;
+			case 'x':
+				padx -= flag;
+				delete(MOTION_LETTER, multiple, 0);
+				bufferchanged = 1;
 				break;
-			case CTRL_AND('y'):
-				viewchanged = view_scroll(SINGLE_UP);
+
+			case 'c':
+				flag = 1;
+			case 'd':
+				delete(MOTION_UNKNOWN, multiple, flag ? 'c' : 'd');
+				if(flag)
+					insert(0);
+				bufferchanged = 1;
 				break;
 
 			case 'A':
@@ -572,6 +647,14 @@ case_i:
 				}else
 					viewchanged = view_move(flag ? ABSOLUTE_UP : ABSOLUTE_DOWN);
 				break;
+
+			case CTRL_AND('e'):
+				viewchanged = view_scroll(SINGLE_DOWN);
+				break;
+			case CTRL_AND('y'):
+				viewchanged = view_scroll(SINGLE_UP);
+				break;
+
 			case '0':
 				if(multiple)
 					incmultiple();
