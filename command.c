@@ -16,8 +16,6 @@
 
 #include "config.h"
 
-#define READ_ONLY_ERR "read only file"
-
 static void parse_setget(buffer_t *, char, char *, void (*)(const char *, ...), void (*)(void));
 static buffer_t *newemptybuffer(void);
 

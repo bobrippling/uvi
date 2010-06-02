@@ -529,7 +529,7 @@ int ncurses_main(const char *filename, char readonly)
 				flag = 1;
 			case 'o':
 				if(buffer_readonly(buffer))
-					status("file is read-only");
+					status(READ_ONLY_ERR);
 				else{
 					open(flag);
 					bufferchanged = 1;
@@ -595,6 +595,15 @@ case_i:
 				break;
 			case 'l':
 				viewchanged = view_move(RIGHT);
+				break;
+			case 'H':
+				viewchanged = view_move(SCREEN_TOP);
+				break;
+			case 'M':
+				viewchanged = view_move(SCREEN_MIDDLE);
+				break;
+			case 'L':
+				viewchanged = view_move(SCREEN_BOTTOM);
 				break;
 
 			case C_ESC:

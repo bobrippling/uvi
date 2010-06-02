@@ -15,6 +15,10 @@ enum direction
 
 	NO_BLANK,
 
+	SCREEN_TOP,
+	SCREEN_MIDDLE,
+	SCREEN_BOTTOM,
+
 	CURRENT
 };
 

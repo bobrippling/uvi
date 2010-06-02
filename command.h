@@ -35,4 +35,6 @@ buffer_t *command_readfile(const char *filename,
 
 void command_dumpbuffer(buffer_t *);
 
+#define READ_ONLY_ERR "read only file"
+
 #endif

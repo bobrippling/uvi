@@ -22,6 +22,9 @@
 
 static void	resizepad(void);
 static void clippadx(void);
+static void clippady(void);
+#define clippad() do { clippady(); clippadx(); } while(0)
+										/* do y first */
 
 extern int padheight, padwidth, padtop, padleft, padx, pady;
 extern buffer_t *buffer;
@@ -129,12 +132,8 @@ int view_move(enum direction d)
 			break;
 
 		case CURRENT:
-			clippadx();
-			/* check pady is in range */
-			if(pady < padtop)
-				padtop = pady;
-			else if(pady > padtop + MAX_Y)
-				padtop = pady - MAX_Y + 1;
+			clippad();
+			clippad();
 			break;
 
 		case UP:
@@ -159,6 +158,21 @@ int view_move(enum direction d)
 
 			/* only end up here has pady changed */
 			clippadx();
+			ret = 1;
+			break;
+
+		case SCREEN_MIDDLE:
+			pady = padtop + MAX_Y / 2;
+			clippad();
+			ret = 1;
+			break;
+		case SCREEN_BOTTOM:
+			pady = padtop + MAX_Y - 1;
+			clippad();
+			ret = 1;
+			break;
+		case SCREEN_TOP:
+			pady = padtop;
 			ret = 1;
 			break;
 	}
@@ -269,4 +283,12 @@ static void clippadx()
 		if(padx > xlim)
 			padx = xlim;
 	}
+}
+
+static void clippady()
+{
+	if(pady < padtop)
+		padtop = pady;
+	else if(pady > padtop + MAX_Y)
+		padtop = pady - MAX_Y + 1;
 }
