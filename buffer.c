@@ -312,9 +312,11 @@ bail:
 
 void buffer_free(buffer_t *b)
 {
-	list_free(b->lines);
-	free(b->fname);
-	free(b);
+	if(b){
+		list_free(b->lines);
+		free(b->fname);
+		free(b);
+	}
 }
 
 int buffer_nchars(buffer_t *b)

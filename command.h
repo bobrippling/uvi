@@ -22,7 +22,7 @@ struct list *command_readlines(enum gret (*)(char *, int));
 int command_run(
 	char *in,
 	int *const curline,
-	buffer_t *const buffer,
+	buffer_t **buffer,
 	void      (*const wrongfunc)(void),
 	void      (*const pfunc)(const char *, ...),
 	enum gret (*const gfunc)(char *, int),

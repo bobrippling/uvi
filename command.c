@@ -18,6 +18,8 @@
 
 static void parse_setget(buffer_t *, char, char *, void (*)(const char *, ...), void (*)(void));
 static buffer_t *newemptybuffer(void);
+static void command_e(char *, buffer_t **,
+		void (*const)(const char *, ...), void (*const)(void));
 
 struct list *command_readlines(enum gret (*gfunc)(char *, int))
 {
@@ -84,7 +86,7 @@ struct list *command_readlines(enum gret (*gfunc)(char *, int))
 int command_run(
 	char *in,
 	int *curline,
-	buffer_t *buffer,
+	buffer_t **b,
 	/* Note: curline is the index, i.e. 0 to $-1 */
 	void (*wrongfunc)(void),
 	void (*pfunc)(const char *, ...),
@@ -93,6 +95,7 @@ int command_run(
 	void (*shellout)(const char *)
 	)
 {
+#define buffer (*b)
 #define HAVE_RANGE (s > in)
 	struct range lim, rng;
 	int flag = 0;
@@ -141,8 +144,7 @@ insert:
 
 		case 'w':
 		{
-			int bail = 0;
-			char *fname;
+			char bail = 0, *fname;
 			if(HAVE_RANGE){
 				wrongfunc();
 				break;
@@ -312,6 +314,14 @@ vars_fname:
 			}
 			break;
 
+		case 'e':
+			if(HAVE_RANGE){
+				wrongfunc();
+			}else
+				command_e(s, b, pfunc, wrongfunc);
+			break;
+
+
 		default:
 		def:
 			/* full string cmps */
@@ -324,6 +334,37 @@ vars_fname:
 	}
 
 	return 1;
+#undef HAVE_RANGE
+}
+
+static void command_e(char *s, buffer_t **b,
+		void (*const pfunc)(const char *, ...),
+		void (*const wrongfunc)(void))
+{
+	char force = 0, *fname;
+
+	switch(s[1]){
+		case ' ':
+			fname = s + 2;
+			break;
+
+		case '!':
+			force = 1;
+			fname = s + 3;
+			break;
+
+		default:
+			wrongfunc();
+			return;
+	}
+
+	if(!force && buffer_modified(buffer))
+		pfunc("unsaved");
+	else{
+		buffer_free(buffer);
+		buffer = command_readfile(fname, 0, pfunc);
+	}
+#undef buffer
 }
 
 buffer_t *command_readfile(const char *filename, char forcereadonly, void (*const pfunc)(const char *, ...))

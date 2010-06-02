@@ -476,9 +476,9 @@ static int colon()
 				*c = '\0';
 
 			return command_run(in,
-			                   &pady, buffer,
-			                   &wrongfunc, &pfunc,
-			                   &gfunc, &qfunc, &shellout);
+					&pady, &buffer,
+					&wrongfunc, &pfunc,
+					&gfunc, &qfunc, &shellout);
 
 
 		case g_LAST: /* esc means cancel in this sense */
