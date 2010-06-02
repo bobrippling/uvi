@@ -1,9 +1,6 @@
 include config.mk
 
-CFLAGS  = -g -pipe -W -Wall -Wcast-align -Wcast-qual -Wshadow -Wnested-externs \
-	-Waggregate-return -Wbad-function-cast -Wpointer-arith -Wcast-align \
-	-Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Winline \
-	-Wredundant-decls -Wextra -pedantic -ansi
+LD      = gcc
 LDFLAGS = -lncurses
 
 ifeq (${VERBOSE},1)
@@ -16,11 +13,12 @@ endif
 uvi: main.o term.o ncurses.o view.o buffer.o range.o command.o \
 	util/list.o vars.o util/alloc.o
 	@echo LD $@
-	$Q${CC} ${CFLAGS} ${LDFLAGS} -o $@ $^
+	$Q${LD} ${LDFLAGS} -o $@ $^
 
-ncurses.o:ncurses.c
-	@echo CC $@
-	$Q${CC} ${CFLAGS} -I/usr/include/ncurses -c -o $@ $<
+options:
+	@echo CC: ${CC}
+	@echo CFLAGS: ${CFLAGS}
+	@echo LDFLAGS: ${LDFLAGS}
 
 %.o:%.c
 	@echo CC $@
