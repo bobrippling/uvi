@@ -1,7 +1,6 @@
 change to unicode internal strings
 
 ncurses.c
-	check range - incorrect line no when editing command.c for last line
 	movement:
 		CTRL_AND([dufb])
 		[wb]
@@ -17,8 +16,6 @@ view.c
 
 
 command.c:
-	on failed file read (permission denied, etc), keep running
-
 	marks
 
 	regex search

@@ -19,6 +19,7 @@
 #define READ_ONLY_ERR "read only file"
 
 static void parse_setget(buffer_t *, char, char *, void (*)(const char *, ...), void (*)(void));
+static buffer_t *newemptybuffer(void);
 
 struct list *command_readlines(enum gret (*gfunc)(char *, int))
 {
@@ -334,13 +335,18 @@ buffer_t *command_readfile(const char *filename, char forcereadonly, void (*cons
 		int nread = buffer_read(&buffer, filename);
 
 		if(nread < 0){
-			if(errno == ENOENT){
-				char *s = umalloc(sizeof(char));
-				*s = '\0';
-				buffer = buffer_new(s);
-				buffer_setfilename(buffer, filename);
-			}else
-				return NULL;
+			buffer = newemptybuffer();
+			buffer_setfilename(buffer, filename);
+
+			if(errno != ENOENT){
+				/*
+				 * end up here on failed read:
+				 * open empty file and continue
+				 */
+				pfunc("\"%s\" [%s]", filename, strerror(errno));
+				buffer_readonly(buffer) = 1;
+			}/* else something like "./uvi file_that_doesn\'t_exist */
+
 		}else{
 			/* end up here on successful read */
 			if(forcereadonly)
@@ -356,12 +362,19 @@ buffer_t *command_readfile(const char *filename, char forcereadonly, void (*cons
 		}
 
 	}else{
-    char *s = umalloc(sizeof(char));
-    *s = '\0';
-		buffer = buffer_new(s);
+		/* new file */
+		buffer = newemptybuffer();
 		pfunc("(new file)");
 	}
   return buffer;
+}
+
+static buffer_t *newemptybuffer()
+{
+	char *s = umalloc(sizeof(char));
+	*s = '\0';
+
+	return buffer_new(s);
 }
 
 void command_dumpbuffer(buffer_t *b)
