@@ -24,11 +24,4 @@ command.c:
 
 	*word* = bold, _word_ = underline
 
-	change variables to table:
-		struct tim
-		{
-			const char *const name;
-			void (*func)(char value);
-		} tims[] = { ... };
-
 	check fclose() and writev() return values

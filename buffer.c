@@ -61,13 +61,27 @@ int buffer_read(buffer_t **buffer, const char *fname)
 
 		if((thisread = fgetline(&s, f, &haseol)) < 0){
 			int eno = errno;
+
 			buffer_free(b);
-			fclose(f);
+			b = NULL;
+
+			if(fclose(f) /* error */ && !eno)
+				eno = errno;
+
 			errno = eno;
 			return -1;
 		}else if(thisread == 0){
 			/* assert(feof()) */
-			fclose(f);
+			if(fclose(f)){
+				int eno = errno;
+
+				buffer_free(b);
+				b = NULL;
+
+				errno = eno;
+				return -1;
+			}
+
 			break;
 		}
 
@@ -188,6 +202,7 @@ static int fgetline(char **s, FILE *in, char *haseol)
 /* returns bytes written */
 int buffer_write(buffer_t *b)
 {
+#define BUFFER_USE_WRITEV 0 /* XXX */
 #if BUFFER_USE_WRITEV
 # define MAX_BYTES 128 /* 2 ^ (sizeof(ssize_t)-1) */
 	FILE *f = fopen(b->fname, "w");
@@ -248,8 +263,10 @@ int buffer_write(buffer_t *b)
 bail:
 	eno = errno;
 	free(iov);
-	fclose(f);
-	errno = eno;
+	if(!fclose(f))
+		nwrite = -1;
+	else
+		errno = eno;
 
 	return nwrite;
 #undef MAX_BYTES
@@ -284,8 +301,10 @@ bail:
 
 bail:
 	eno = errno;
-	fclose(f);
-	errno = eno;
+	if(fclose(f))
+		nwrite = -1;
+	else
+		errno = eno;
 
 	return nwrite;
 #endif
