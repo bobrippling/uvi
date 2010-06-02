@@ -188,7 +188,8 @@ static int fgetline(char **s, FILE *in, char *haseol)
 /* returns bytes written */
 int buffer_write(buffer_t *b)
 {
-#define MAX_BYTES 128 /* 2 ^ (sizeof(ssize_t)-1) */
+#if BUFFER_USE_WRITEV
+# define MAX_BYTES 128 /* 2 ^ (sizeof(ssize_t)-1) */
 	FILE *f = fopen(b->fname, "w");
 	struct iovec *iov, *iovtmp;
 	struct list *l = list_gethead(b->lines);
@@ -252,6 +253,42 @@ bail:
 
 	return nwrite;
 #undef MAX_BYTES
+#else
+	FILE *f = fopen(b->fname, "w");
+	struct list *l = list_gethead(b->lines);
+	int eno;
+	long nwrite = 0, w;
+
+	if(!f)
+		return -1;
+
+	while(l->next){
+		if((w = fprintf(f, "%s\n", (char *)l->data)) < 0){
+			nwrite = -1;
+			goto bail;
+		}
+		nwrite += w;
+		l = l->next;
+	}
+
+	/*
+	 * l is now the last item in the list
+	 * (possibly the first)
+	 */
+
+	w = fprintf(f, "%s%s", (char *)l->data, b->eol ? "\n" : "");
+	if(w < 0)
+		nwrite = -1;
+	else
+		nwrite += w;
+
+bail:
+	eno = errno;
+	fclose(f);
+	errno = eno;
+
+	return nwrite;
+#endif
 }
 
 void buffer_free(buffer_t *b)
