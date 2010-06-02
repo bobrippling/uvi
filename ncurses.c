@@ -448,7 +448,7 @@ static void sigh(int sig)
 
 int ncurses_main(const char *filename, char readonly)
 {
-	int c, bufferchanged = 1, viewchanged = 1, ret = 0;
+	int c, bufferchanged = 1, viewchanged = 1, ret = 0, multiple = 0;
 	void(*oldinth)(int),(*oldsegh)(int);
 
 	if(!isatty(STDIN_FILENO))
@@ -475,7 +475,7 @@ int ncurses_main(const char *filename, char readonly)
 	view_initpad();
 
 	do{
-		int flag = 0;
+		int flag = 0, resetmultiple = 1;
 
 		if(pfunc_wantconfimation){
 			status("---");
@@ -547,13 +547,26 @@ case_i:
 
 
 			case 'g':
-				viewchanged = view_move(ABSOLUTE_UP);
-				break;
+				flag = 1;
 			case 'G':
-				viewchanged = view_move(ABSOLUTE_DOWN);
+				if(multiple){
+					if(0 <= multiple && multiple <= buffer_nlines(buffer)){
+						pady = multiple - 1;
+						if(pady < 0)
+							pady = 0;
+						viewchanged = view_move(CURRENT);
+						/* change to NO_BLANK to do vim-style */
+					}else
+						pfunc("%d out of range", multiple);
+				}else
+					viewchanged = view_move(flag ? ABSOLUTE_UP : ABSOLUTE_DOWN);
 				break;
 			case '0':
-				viewchanged = view_move(ABSOLUTE_LEFT);
+				if(multiple){
+					multiple *= 10;
+					resetmultiple = 0;
+				}else
+					viewchanged = view_move(ABSOLUTE_LEFT);
 				break;
 			case '$':
 				viewchanged = view_move(ABSOLUTE_RIGHT);
@@ -578,8 +591,15 @@ case_i:
 				break;
 
 			default:
-				status("unknown: %c(%d)", c, c);
+				if(isdigit(c)){
+					multiple = multiple * 10 + c - '0';
+					resetmultiple = 0;
+				}else
+					status("unknown: %c(%d)", c, c);
 		}
+
+		if(resetmultiple)
+			multiple = 0;
 	}while(1);
 
 exit_while:

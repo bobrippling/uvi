@@ -129,6 +129,12 @@ int view_move(enum direction d)
 			break;
 
 		case CURRENT:
+			clippadx();
+			/* check pady is in range */
+			if(pady < padtop)
+				padtop = pady;
+			else if(pady > padtop + MAX_Y)
+				padtop = pady - MAX_Y + 1;
 			break;
 
 		case UP:
