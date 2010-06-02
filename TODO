@@ -3,7 +3,6 @@ change to unicode internal strings
 ncurses.c
 	movement:
 		CTRL_AND([dufb])
-		[wb]
 	edit:
 		[rcdx]
 			then:

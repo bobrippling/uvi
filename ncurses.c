@@ -21,11 +21,11 @@
 #include "view.h"
 #include "util/alloc.h"
 #include "vars.h"
+#include "motion.h"
 
 #include "ncurses.h"
 #include "config.h"
 
-#define iswordboundary(c) (!(isalnum(c) || (c) == '_'))
 
 #define CTRL_AND(c)	((c) & 037)
 #define CTRL_AND_g	8
@@ -38,11 +38,6 @@
 #define C_CTRL_Z		26
 #define C_TAB				9
 #define C_NEWLINE		'\r'
-
-enum motion
-{
-	MOTION_LETTER, MOTION_WORD, MOTION_LINE, MOTION_UNKNOWN
-};
 
 static void nc_up(void);
 static void nc_down(void);
@@ -58,8 +53,7 @@ static char nc_getch(void);
 static void insert(int);
 static void open(int);
 static int  colon(void);
-static void delete(enum motion, int, int);
-static enum motion readmotion(int);
+static void delete(enum motion, unsigned int, int);
 
 static void status(const char *, ...);
 static void showpos(void);
@@ -418,58 +412,55 @@ static void open(int before)
 	buffer_modified(buffer) = 1;
 }
 
-static enum motion readmotion(int linechar)
-{
-	int ch;
-	switch((ch = nc_getch())){
-		case 'l':
-			return MOTION_LETTER;
-		case 'w':
-			return MOTION_WORD;
-
-		default:
-			if(ch == linechar)
-				return MOTION_LINE;
-			return MOTION_UNKNOWN;
-	}
-}
-
-static void delete(enum motion m, int multiple, int linechar)
+static void delete(enum motion m, unsigned int repeat, int linechar)
 {
 	struct list *listpos = buffer_getindex(buffer, pady);
-	char *curline = listpos->data,
-			 *pos     = curline + padx;
-	/* assert(curline) */
+	/* assert(listpos) */
+	char *line = listpos->data, *applied;
 
 	if(m == MOTION_UNKNOWN){
-		m = readmotion(linechar);
+		m = getmotion(nc_getch(), linechar);
 		if(m == MOTION_UNKNOWN)
 			return;
 	}
 
-	switch(m){
-		case MOTION_LETTER:
-			memmove(pos, pos + 1, strlen(pos));
-			break;
+	if(m == MOTION_EOL){
+		line[padx] = '\0';
+		return;
+	}
 
-		case MOTION_WORD:
-		{
-			char *wordend = pos+1;
-			while(!iswordboundary(*wordend))
-				wordend++;
-
-			/* delete from pos to wordend */
-			memmove(pos, wordend, strlen(wordend) + 1); /* include '\0' */
-			break;
-		}
-
-		case MOTION_LINE:
+	applied = applymotion(m, listpos->data, padx, repeat);
+	if(!applied){
+		/* MOTION_LINE || MOTION_UNKNOWN */
+		if(m == MOTION_LINE)
 			buffer_remove(buffer, listpos);
+
+		return;
+	}
+
+	switch(m){
+		case MOTION_BACKWARD_LETTER:
+			if(padx > 0)
+				padx--;
+			else
+				break;
+		case MOTION_BACKWARD_WORD:
+			memmove(applied, line + padx, strlen(line + padx) + 1);
 			break;
 
+		case MOTION_FORWARD_WORD:
+		case MOTION_FORWARD_LETTER:
+			memmove(line + padx, applied, strlen(applied) + 1);
+			break;
+
+		case MOTION_EOL:
+		case MOTION_LINE:
 		case MOTION_UNKNOWN:
+			/* unreachable */
 			break;
 	}
+
+	view_move(CURRENT); /* clip x */
 }
 
 static int colon()
@@ -523,11 +514,11 @@ int ncurses_main(const char *filename, char readonly)
 				while(0)
 
 	int c, bufferchanged = 1, viewchanged = 1, ret = 0, multiple = 0;
-	void(*oldinth)(int),(*oldsegh)(int);
+	void (*oldinth)(int), (*oldsegh)(int);
 
 	if(!isatty(STDIN_FILENO))
 		fputs(PROG_NAME": warning: input is not a terminal\n", stderr);
-	else if(!isatty(STDOUT_FILENO))
+	if(!isatty(STDOUT_FILENO))
 		fputs(PROG_NAME": warning: output is not a terminal\n", stderr);
 
 	nc_up();
@@ -600,12 +591,20 @@ int ncurses_main(const char *filename, char readonly)
 				break;
 
 			case 'X':
-				if(padx == 0)
-					break;
-				flag = 1;
+				delete(MOTION_BACKWARD_LETTER, multiple, 0);
+				bufferchanged = 1;
+				break;
 			case 'x':
-				padx -= flag;
-				delete(MOTION_LETTER, multiple, 0);
+				delete(MOTION_FORWARD_LETTER, multiple, 0);
+				bufferchanged = 1;
+				break;
+
+			case 'C':
+				flag = 1;
+			case 'D':
+				delete(MOTION_EOL, 0, 0);
+				if(flag)
+					insert(0);
 				bufferchanged = 1;
 				break;
 
@@ -614,7 +613,7 @@ int ncurses_main(const char *filename, char readonly)
 			case 'd':
 				delete(MOTION_UNKNOWN, multiple, flag ? 'c' : 'd');
 				if(flag)
-					insert(0);
+					insert(1);
 				bufferchanged = 1;
 				break;
 
@@ -641,7 +640,7 @@ case_i:
 						if(pady < 0)
 							pady = 0;
 						viewchanged = view_move(CURRENT);
-						/* change to NO_BLANK to do vim-style */
+						/* change to NO_BLANK to do vim-style ^ thingy */
 					}else
 						pfunc("%d out of range", multiple);
 				}else
@@ -695,8 +694,17 @@ case_i:
 			default:
 				if(isdigit(c))
 					incmultiple();
-				else
-					status("unknown: %c(%d)", c, c);
+				else{
+					enum motion m = getmotion(c, 0);
+					if(m == MOTION_UNKNOWN)
+						status("unknown: %c(%d)", c, c);
+					else{
+						char *pos = buffer_getindex(buffer, pady)->data,
+								 *s = applymotion(m, pos, padx, 1);
+						padx = s - pos;
+						viewchanged = view_move(CURRENT);
+					}
+				}
 		}
 
 		if(resetmultiple)
