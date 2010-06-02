@@ -68,7 +68,7 @@ int view_move(enum direction d)
 	struct list *cl = buffer_getindex(buffer, pady);
 	int xlim = MAX_X;
 
-	if(cl->data){
+	if(cl && cl->data){
 		xlim = strlen(cl->data)-1;
 		if(xlim < 0)
 			xlim = 0;
@@ -132,7 +132,6 @@ int view_move(enum direction d)
 			break;
 
 		case CURRENT:
-			clippad();
 			clippad();
 			break;
 

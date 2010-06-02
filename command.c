@@ -18,7 +18,7 @@
 
 static void parse_setget(buffer_t *, char, char *, void (*)(const char *, ...), void (*)(void));
 static buffer_t *newemptybuffer(void);
-static void command_e(char *, buffer_t **,
+static void command_e(char *, buffer_t **, int *,
 		void (*const)(const char *, ...), void (*const)(void));
 
 struct list *command_readlines(enum gret (*gfunc)(char *, int))
@@ -144,7 +144,7 @@ insert:
 
 		case 'w':
 		{
-			char bail = 0, *fname;
+			char bail = 0, edit = 0, *fname;
 			if(HAVE_RANGE){
 				wrongfunc();
 				break;
@@ -180,9 +180,26 @@ insert:
 						case 'q':
 							flag = 1;
 							fname = s + 3;
+							/*
+							 * 3 because there should be a space
+							 * tough crabs/RTFSource-Code if there isn't
+							 */
 vars_fname:
 							buffer_setfilename(buffer, fname);
 							break;
+
+						case 'e':
+							/*
+							 * :we fname
+							 * what we do is set a flag,
+							 * write the file, then
+							 * do the :e bit (pass it
+							 * s + 1)
+							 */
+							edit = 1;
+							/* fname is for :e, later */
+							break;
+
 
 						default:
 							wrongfunc();
@@ -205,7 +222,11 @@ vars_fname:
 				pfunc("\"%s\" %dL, %dC written", buffer_filename(buffer),
 						buffer_nlines(buffer) - !buffer_eol(buffer), nw);
 			}
-			if(!flag)
+			if(edit){
+				command_e(s + 1, b, curline, pfunc, wrongfunc);
+				break;
+			}else if(!flag)
+				/* i.e. 'q' hasn't been passed */
 				break;
 
 			s[1] = '\0';
@@ -318,7 +339,7 @@ vars_fname:
 			if(HAVE_RANGE){
 				wrongfunc();
 			}else
-				command_e(s, b, pfunc, wrongfunc);
+				command_e(s, b, curline, pfunc, wrongfunc);
 			break;
 
 
@@ -337,7 +358,7 @@ vars_fname:
 #undef HAVE_RANGE
 }
 
-static void command_e(char *s, buffer_t **b,
+static void command_e(char *s, buffer_t **b, int *y,
 		void (*const pfunc)(const char *, ...),
 		void (*const wrongfunc)(void))
 {
@@ -361,8 +382,13 @@ static void command_e(char *s, buffer_t **b,
 	if(!force && buffer_modified(buffer))
 		pfunc("unsaved");
 	else{
+		int nlines;
+
 		buffer_free(buffer);
 		buffer = command_readfile(fname, 0, pfunc);
+
+		if(*y >= (nlines = buffer_nlines(buffer)))
+			*y = nlines - 1;
 	}
 #undef buffer
 }

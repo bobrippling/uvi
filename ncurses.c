@@ -464,6 +464,7 @@ static int colon()
 {
 #define BUF_SIZE 128
 	char in[BUF_SIZE], *c;
+	int ret;
 
 	(void)mvaddch(MAX_Y, 0, ':');
 	gfunc_onpad = 0;
@@ -475,11 +476,12 @@ static int colon()
 			if(c)
 				*c = '\0';
 
-			return command_run(in,
+			ret = command_run(in,
 					&pady, &buffer,
 					&wrongfunc, &pfunc,
 					&gfunc, &qfunc, &shellout);
 
+			return ret;
 
 		case g_LAST: /* esc means cancel in this sense */
 		case g_EOF:
