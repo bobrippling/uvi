@@ -16,7 +16,12 @@ char vars_set(buffer_t *b, const char *s, const char v)
 	char *p = vars_get(b, s);
 	if(!p)
 		return 0;
+
 	*p = v;
+
+	if(!strcmp(S_EOL, s))
+		buffer_modified(b) = 1;
+
 	return 1;
 }
 
