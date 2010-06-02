@@ -2,6 +2,8 @@ include config.mk
 
 LDFLAGS = -lncurses
 
+VERBOSE ?= 0
+
 ifeq (${VERBOSE},1)
 	Q =
 else
