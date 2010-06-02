@@ -8,6 +8,7 @@
 #include <signal.h>
 #include <setjmp.h>
 #include <unistd.h>
+#include <limits.h>
 /* system */
 #include <stdlib.h>
 #include <sys/wait.h>
@@ -448,6 +449,16 @@ static void sigh(int sig)
 
 int ncurses_main(const char *filename, char readonly)
 {
+#define incmultiple() \
+				do \
+					if(multiple < INT_MAX/10){ \
+						multiple = multiple * 10 + c - '0'; \
+						resetmultiple = 0; \
+					}else \
+						pfunc("range too large"); \
+						/*resetmultiple = 1;*/ \
+				while(0)
+
 	int c, bufferchanged = 1, viewchanged = 1, ret = 0, multiple = 0;
 	void(*oldinth)(int),(*oldsegh)(int);
 
@@ -562,10 +573,9 @@ case_i:
 					viewchanged = view_move(flag ? ABSOLUTE_UP : ABSOLUTE_DOWN);
 				break;
 			case '0':
-				if(multiple){
-					multiple *= 10;
-					resetmultiple = 0;
-				}else
+				if(multiple)
+					incmultiple();
+				else
 					viewchanged = view_move(ABSOLUTE_LEFT);
 				break;
 			case '$':
@@ -591,10 +601,9 @@ case_i:
 				break;
 
 			default:
-				if(isdigit(c)){
-					multiple = multiple * 10 + c - '0';
-					resetmultiple = 0;
-				}else
+				if(isdigit(c))
+					incmultiple();
+				else
 					status("unknown: %c(%d)", c, c);
 		}
 
@@ -616,4 +625,5 @@ fin:
 	 */
 
 	return ret;
+#undef incmultiple
 }
