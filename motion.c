@@ -1,26 +1,33 @@
 #include <stdlib.h>
+#include <limits.h>
 #include <ctype.h>
 
 #include "motion.h"
 #define iswordpart(c) (isalnum(c) || (c) == '_')
 
-enum motion getmotion(int ch, int linechar)
+enum motion getmotion(int c, int *repeat)
 {
-	switch(ch){
-		case 'l':
-			return MOTION_FORWARD_LETTER;
-		case 'h':
-			return MOTION_BACKWARD_LETTER;
-		case 'w':
-			return MOTION_FORWARD_WORD;
-		case 'b':
-			return MOTION_BACKWARD_WORD;
-
-		default:
-			if(ch == linechar)
+	do
+		switch(c){
+			case 'l':
+				return MOTION_FORWARD_LETTER;
+			case 'h':
+				return MOTION_BACKWARD_LETTER;
+			case 'w':
+				return MOTION_FORWARD_WORD;
+			case 'b':
+				return MOTION_BACKWARD_WORD;
+			case 'c':
+			case 'd':
 				return MOTION_LINE;
-			return MOTION_UNKNOWN;
-	}
+
+			default:
+				if('0' <= c && c <= '9' && *repeat < INT_MAX/10)
+					*repeat = *repeat * 10 + c - '0';
+				else
+					return MOTION_UNKNOWN;
+		}
+	while(1);
 }
 
 char *applymotion(enum motion m, char *s, int pos, int repeat)

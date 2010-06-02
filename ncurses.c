@@ -26,6 +26,8 @@
 #include "ncurses.h"
 #include "config.h"
 
+/* broken */
+#define NCURSES_VIM_CC 0
 
 #define CTRL_AND(c)	((c) & 037)
 #define CTRL_AND_g	8
@@ -53,7 +55,7 @@ static char nc_getch(void);
 static void insert(int);
 static void open(int);
 static int  colon(void);
-static void delete(enum motion, unsigned int, int);
+static void delete(enum motion, int);
 
 static void status(const char *, ...);
 static void showpos(void);
@@ -412,14 +414,14 @@ static void open(int before)
 	buffer_modified(buffer) = 1;
 }
 
-static void delete(enum motion m, unsigned int repeat, int linechar)
+static void delete(enum motion m, int repeat)
 {
 	struct list *listpos = buffer_getindex(buffer, pady);
 	/* assert(listpos) */
 	char *line = listpos->data, *applied;
 
 	if(m == MOTION_UNKNOWN){
-		m = getmotion(nc_getch(), linechar);
+		m = getmotion(nc_getch(), &repeat);
 		if(m == MOTION_UNKNOWN)
 			return;
 	}
@@ -430,14 +432,6 @@ static void delete(enum motion m, unsigned int repeat, int linechar)
 	}
 
 	applied = applymotion(m, listpos->data, padx, repeat);
-	if(!applied){
-		/* MOTION_LINE || MOTION_UNKNOWN */
-		if(m == MOTION_LINE)
-			buffer_remove(buffer, listpos);
-
-		return;
-	}
-
 	switch(m){
 		case MOTION_BACKWARD_LETTER:
 			if(padx > 0)
@@ -453,10 +447,13 @@ static void delete(enum motion m, unsigned int repeat, int linechar)
 			memmove(line + padx, applied, strlen(applied) + 1);
 			break;
 
-		case MOTION_EOL:
 		case MOTION_LINE:
-		case MOTION_UNKNOWN:
+			buffer_remove(buffer, listpos);
+			break;
+
+		case MOTION_EOL:
 			/* unreachable */
+		case MOTION_UNKNOWN:
 			break;
 	}
 
@@ -591,29 +588,48 @@ int ncurses_main(const char *filename, char readonly)
 				break;
 
 			case 'X':
-				delete(MOTION_BACKWARD_LETTER, multiple, 0);
+				delete(MOTION_BACKWARD_LETTER, multiple);
 				bufferchanged = 1;
 				break;
 			case 'x':
-				delete(MOTION_FORWARD_LETTER, multiple, 0);
+				delete(MOTION_FORWARD_LETTER, multiple);
 				bufferchanged = 1;
 				break;
 
 			case 'C':
 				flag = 1;
 			case 'D':
-				delete(MOTION_EOL, 0, 0);
+				delete(MOTION_EOL, 0);
 				if(flag)
 					insert(0);
 				bufferchanged = 1;
 				break;
 
 			case 'c':
-				flag = 1;
+#if NCURSES_VIM_CC
+			{
+				c = nc_getch();
+				if(c == 'c'){
+					/* special case - cc means replace line */
+					delete(MOTION_LINE, multiple);
+					open(1);
+					bufferchanged = 1;
+					break;
+				}else{
+					ungetch(c);
+					flag = 1;
+					/* fall */
+				}
+			}
+#else
+			flag = 1;
+#endif
+
 			case 'd':
-				delete(MOTION_UNKNOWN, multiple, flag ? 'c' : 'd');
+				delete(MOTION_UNKNOWN, multiple);
+				view_drawbuffer(buffer);
 				if(flag)
-					insert(1);
+					insert(0);
 				bufferchanged = 1;
 				break;
 
