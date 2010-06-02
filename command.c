@@ -16,6 +16,8 @@
 
 #include "config.h"
 
+#define READ_ONLY_ERR "read only file"
+
 static void parse_setget(buffer_t *, char, char *, void (*)(const char *, ...), void (*)(void));
 
 struct list *command_readlines(enum gret (*gfunc)(char *, int))
@@ -119,7 +121,7 @@ int command_run(
 			flag = 1;
 		case 'i':
 			if(buffer_readonly(buffer))
-				pfunc("read only file");
+				pfunc(READ_ONLY_ERR);
 			else if(!HAVE_RANGE && strlen(s) == 1){
 				struct list *l;
 insert:
@@ -144,6 +146,9 @@ insert:
 			char *fname;
 			if(HAVE_RANGE){
 				wrongfunc();
+				break;
+			}else if(buffer_readonly(buffer)){
+				pfunc(READ_ONLY_ERR);
 				break;
 			}
 
@@ -197,7 +202,7 @@ vars_fname:
 				}
 				buffer_modified(buffer) = 0;
 				pfunc("\"%s\" %dL, %dC written", buffer_filename(buffer),
-						buffer_nlines(buffer), nw);
+						buffer_nlines(buffer) - !buffer_eol(buffer), nw);
 			}
 			if(!flag)
 				break;
@@ -265,7 +270,7 @@ vars_fname:
 
 		case 'd':
 			if(buffer_readonly(buffer))
-				pfunc("read only file");
+				pfunc(READ_ONLY_ERR);
 			else if(strlen(s) == 1){
 				if(HAVE_RANGE){
 					buffer_remove_range(buffer, &rng);
