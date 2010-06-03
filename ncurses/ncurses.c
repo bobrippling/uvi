@@ -75,6 +75,7 @@ static void showpos(void);
 buffer_t *buffer;
 WINDOW *pad;
 int padheight, padwidth, padtop, padleft, padx, pady;
+
 static int gfunc_onpad = 0, pfunc_wantconfimation = 0;
 
 extern int debug;
@@ -220,11 +221,7 @@ static enum gret gfunc(char *s, int size)
 				if(isprint(c) || c == '\t'){
 					s[count++] = c;
 
-					/* FIXME - use view_addch() */
-					if(c == '\t') /* FIXME tab to space */
-						addch(' ');
-					else
-						addch(c);
+					view_waddch(stdscr, c);
 					x++;
 
 					if(count >= size - 1){
@@ -362,10 +359,7 @@ static void insert(int append)
 			linepos[1] = '\0';
 		}
 
-		if(c == '\t')
-			c = ' '; /* FIXME tab to space */
-
-		mvaddch(pady, padx++, c);
+		view_padaddch(pady, padx++, c);
 	}while(1);
 
 	linepos = realloc(curline->data,
@@ -638,7 +632,9 @@ int ncurses_main(const char *filename, char readonly)
 			case ':':
 				if(!colon())
 					goto exit_while;
-				bufferchanged = 1; /* need to view_refresh_or_whatever() */
+
+				/* need to view_refresh_or_whatever() */
+				bufferchanged = 1;
 				break;
 
 			case 'm':

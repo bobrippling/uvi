@@ -16,6 +16,10 @@
 #include "view.h"
 #include "../util/alloc.h"
 
+#include "../config.h"
+
+extern struct settings global_settings;
+
 #define MAX_X (COLS - 1)
 #define MAX_Y (LINES - 1)
 #define PAD_HEIGHT_INC 16
@@ -27,7 +31,9 @@ static void padyinrange(void);
 #define clippad() do { clippady(); clippadx(); } while(0)
 										/* do y first */
 
-extern int padheight, padwidth, padtop, padleft, padx, pady;
+extern int padheight, padwidth, padtop, padleft,
+						padx, pady;
+
 extern buffer_t *buffer;
 extern WINDOW *pad;
 
@@ -265,10 +271,7 @@ void view_drawbuffer(buffer_t *b)
 			int len = 0;
 			char *pos = l->data;
 			while(len++ < MAX_X && *pos){
-				if(*pos == '\t')
-					waddch(pad, ' ');
-				else
-					waddch(pad, *pos);
+				view_waddch(pad, *pos);
 				pos++;
 			}
 		}else
@@ -346,4 +349,24 @@ static void clippady()
 		padtop = pady;
 	else if(pady > padtop + MAX_Y)
 		padtop = pady - MAX_Y + 1;
+}
+
+void	view_waddch(WINDOW *w, int c)
+{
+	if(c == '\t'){
+		c = global_settings.tabstop;
+		while(c--)
+			waddch(w, ' ');
+	}else
+		waddch(w, c);
+}
+
+void	view_padaddch(int y, int x, int c)
+{
+	if(c == '\t'){
+		c = global_settings.tabstop;
+		while(c--)
+			mvwaddch(pad, y, x, ' ');
+	}else
+		mvwaddch(pad, y, x, c);
 }

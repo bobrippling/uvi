@@ -1,14 +1,25 @@
 #ifndef VARS_H
 #define VARS_H
 
-char	vars_set(buffer_t *, const char *, const char);
-char *vars_get(buffer_t *, const char *);
-
-enum varlist
+enum vartype
 {
-	VARS_READONLY, VARS_MODIFIED, VARS_EOL, VARS_SENTINEL
-};
+	VARS_READONLY,
+	VARS_MODIFIED,
+	VARS_EOL,
+	VARS_TABSTOP,
+	VARS_UNKNOWN
+} vars_gettype(const char *);
 
-const char *vars_tostring(enum varlist);
+char vars_set(enum vartype, buffer_t *, const char);
+
+char vars_isbuffervar(enum vartype);
+char vars_isbool(enum vartype);
+
+char *vars_bufferget(enum vartype, buffer_t *);
+char *vars_settingget(enum vartype);
+char *vars_get(enum vartype, buffer_t *);
+
+
+const char *vars_tostring(enum vartype);
 
 #endif

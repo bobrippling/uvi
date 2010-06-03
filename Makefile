@@ -38,7 +38,7 @@ main.o: main.c term.h ncurses/ncurses.h main.h config.h
 range.o: range.c range.h
 term.o: term.c util/list.h range.h buffer.h term.h command.h vars.h \
   util/alloc.h config.h
-vars.o: vars.c util/alloc.h range.h buffer.h vars.h
+vars.o: vars.c util/alloc.h range.h buffer.h vars.h config.h
 alloc.o: util/alloc.c util/alloc.h
 list.o: util/list.c util/list.h util/alloc.h
 marks.o: ncurses/marks.c ncurses/marks.h

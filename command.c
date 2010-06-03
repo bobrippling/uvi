@@ -482,29 +482,53 @@ static void parse_setget(buffer_t *b, char isset, /* is this "set" or "get"? */
 {
 	if(*s == ' '){
 		if(isalpha(*++s)){
-			char *wordstart = s;
+			char *wordstart = s, bool, tmp;
+			enum vartype type;
+
+			if(!strncmp(wordstart, "no", 2)){
+				bool = 0;
+				wordstart += 2;
+			}else
+				bool = 1;
 
 			while(isalpha(*++s));
 
-			switch(*s){
+			tmp = *s;
+			*s = '\0';
+
+			if((type = vars_gettype(wordstart)) == VARS_UNKNOWN){
+				pfunc("unknown variable");
+				return;
+			}
+
+			switch(tmp){
 				case '\0':
 					if(isset){
-						char bool;
-						if(!strncmp(wordstart, "no", 2)){
-							bool = 0;
-							wordstart += 2;
-						}else
-							bool = 1;
-
-						if(!vars_set(b, wordstart, bool))
-							pfunc("\"%s\" is not a valid variable", wordstart);
-
-					}else{
-						char *v = vars_get(b, wordstart);
-						if(v)
-							pfunc("%s: %s", wordstart, *(char *)v ? "true" : "false");
+						if(vars_isbool(type))
+							vars_set(type, b, bool);
 						else
-							pfunc("%s: (not set)", wordstart);
+							pfunc("\"%s\" needs an integer value", wordstart);
+					}else{
+						char *val = vars_get(type, b);
+						if(val)
+							pfunc("%s: %d", wordstart, *val);
+					}
+					break;
+
+				case ' ':
+					if(isset){
+						char val = atoi(++s);
+
+						if(!val)
+							pfunc("\"%s\" must be a number > 0", s);
+						else
+							vars_set(type, b, val);
+					}else{
+						char *p = vars_get(type, b);
+						if(p)
+							pfunc("%s: %d");
+						else
+							pfunc("%s: (not set)");
 					}
 					break;
 
@@ -515,12 +539,18 @@ static void parse_setget(buffer_t *b, char isset, /* is this "set" or "get"? */
 		}
 	}else if(*s == '\0' && !isset){
 		/* set dump */
-		enum varlist v = 0;
+		enum vartype t = 0;
 
 		do{
-			const char *vs = vars_tostring(v);
-			pfunc("%s: %d\n", vs, *(char *)vars_get(b, vs));
-		}while(++v != VARS_SENTINEL);
+			char *val;
+			const char *const vs = vars_tostring(t);
+			val = vars_get(t, b);
+
+			if(val)
+				pfunc("%s: %d\n", vs, *val);
+			else
+				pfunc("%s: (not set)\n", vs);
+		}while(++t != VARS_UNKNOWN);
 
 		return;
 	}

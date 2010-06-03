@@ -14,6 +14,7 @@
 static void usage(const char *);
 
 jmp_buf allocerr;
+struct settings global_settings;
 int debug = 0;
 
 void usage(const char *s)
@@ -49,6 +50,8 @@ int main(int argc, const char **argv)
 	int i, argv_options = 1, readonly = 0;
 	int (*main2)(const char *, char) = &ncurses_main;
 	const char *fname = NULL;
+
+	global_settings.tabstop = DEFAULT_TAB_STOP;
 
 	if(setjmp(allocerr)){
 		fprintf(stderr, PROG_NAME" panic! longjmp bail: malloc(): %s\n",

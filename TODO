@@ -8,8 +8,6 @@ ncurses.c:
 	'K'
 
 command.c:
-	marks
-
 	regex search
 
 	s/ \+$// option
