@@ -441,7 +441,7 @@ static void replace(int n)
 
 	if(*s == '\0')
 		return;
-	else if(n > strlen(s + padx))
+	else if(n > (signed)strlen(s + padx))
 		return;
 
 
@@ -452,12 +452,12 @@ static void replace(int n)
 	}else if(c == '\n'){
 		/* delete n chars, and insert 1 line */
 		char *off = s + padx + n-1;
-		char *dup = umalloc(strlen(off));
+		char *cpy = umalloc(strlen(off));
 
 		memset(off - n + 1, '\0', n);
-		strcpy(dup, off + 1);
+		strcpy(cpy, off + 1);
 
-		buffer_insertafter(buffer, cur, dup);
+		buffer_insertafter(buffer, cur, cpy);
 
 		pady++;
 		padx = 0;
