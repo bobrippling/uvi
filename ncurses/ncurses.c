@@ -222,6 +222,7 @@ static enum gret gfunc(char *s, int size)
 					s[count++] = c;
 
 					view_waddch(stdscr, c);
+					wrefresh(stdscr);
 					x++;
 
 					if(count >= size - 1){
@@ -360,6 +361,7 @@ static void insert(int append)
 		}
 
 		view_padaddch(pady, padx++, c);
+		view_refreshpad();
 	}while(1);
 
 	linepos = realloc(curline->data,
