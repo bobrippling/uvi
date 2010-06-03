@@ -27,7 +27,9 @@ enum scroll
 	SINGLE_DOWN,
 	SINGLE_UP,
 	HALF_DOWN,
-	HALF_UP
+	HALF_UP,
+	PAGE_DOWN,
+	PAGE_UP
 };
 
 void	view_initpad(void);

@@ -58,6 +58,32 @@ int view_scroll(enum scroll s)
 			}
 			break;
 
+		case PAGE_UP:
+			padtop -= MAX_Y;
+			if(padtop < 0)
+				padtop = 0;
+			padyinrange();
+			ret = 1;
+			break;
+
+		case PAGE_DOWN:
+			padtop += MAX_Y;
+			ret = buffer_nlines(buffer)-1;
+
+			if(padtop + MAX_Y > ret)
+				clear();
+				/*
+				 * remove the left over drawn bits
+				 * now uncovered by the pad
+				 */
+
+			if(padtop > ret)
+				padtop = ret;
+
+			padyinrange();
+			ret = 1;
+			break;
+
 		case HALF_UP:
 			padtop -= MAX_Y / 2;
 			if(padtop < 0)
@@ -69,8 +95,13 @@ int view_scroll(enum scroll s)
 		case HALF_DOWN:
 			padtop += MAX_Y / 2;
 			ret = buffer_nlines(buffer)-1;
+
+			if(padtop + MAX_Y > ret)
+				clear();
+
 			if(padtop > ret)
 				padtop = ret;
+
 			padyinrange();
 			ret = 1;
 			break;
@@ -229,24 +260,16 @@ void view_drawbuffer(buffer_t *b)
 		goto tilde;
 
 	while(l){
-		char *tab;
-		if((tab = strchr(l->data, '\t'))){
+		if(strchr(l->data, '\t')){
 			int len = 0;
 			char *pos = l->data;
-
-			do{
-				int i = tab - pos;
-				len += i - 1; /* FIXME TIMMEH */
-
-				waddnstr(pad, pos, i);
-				waddch(pad, ' '); /* Tab replacement char here */
-
-				pos = tab + 1;
-				tab = strchr(pos, '\t'); /* FIXME tab to space */
-			}while(len < MAX_X && tab);
-
-			if(*pos)
-				waddnstr(pad, pos, MAX_X - len);
+			while(len++ < MAX_X && *pos){
+				if(*pos == '\t')
+					waddch(pad, ' ');
+				else
+					waddch(pad, *pos);
+				pos++;
+			}
 		}else
 			waddnstr(pad, l->data, MAX_X);
 

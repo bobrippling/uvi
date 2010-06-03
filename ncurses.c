@@ -726,6 +726,12 @@ case_i:
 					viewchanged = view_move(flag ? ABSOLUTE_UP : ABSOLUTE_DOWN);
 				break;
 
+			case CTRL_AND('f'):
+				viewchanged = view_scroll(PAGE_DOWN);
+				break;
+			case CTRL_AND('b'):
+				viewchanged = view_scroll(PAGE_UP);
+				break;
 			case CTRL_AND('d'):
 				viewchanged = view_scroll(HALF_DOWN);
 				break;
