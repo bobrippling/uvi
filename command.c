@@ -410,7 +410,9 @@ buffer_t *command_readfile(const char *filename, char forcereadonly, void (*cons
 				 */
 				pfunc("\"%s\" [%s]", filename, strerror(errno));
 				buffer_readonly(buffer) = 1;
-			}/* else something like "./uvi file_that_doesn\'t_exist */
+			}else
+				/* something like "./uvi file_that_doesn\'t_exist */
+				goto newfile;
 
 		}else{
 			/* end up here on successful read */
@@ -429,6 +431,7 @@ buffer_t *command_readfile(const char *filename, char forcereadonly, void (*cons
 	}else{
 		/* new file */
 		buffer = newemptybuffer();
+newfile:
 		pfunc("(new file)");
 	}
   return buffer;
