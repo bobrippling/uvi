@@ -4,10 +4,7 @@ ncurses.c
 	movement:
 		CTRL_AND([dufb])
 	edit:
-		r[eplace]
-			then:
-			[0-9]* repetition before switch(getch()) for ncurses
-			special handling for \n (e.g. with 'r')
+		[0-9]* repetition before switch(getch()) for ncurses
 
 
 view.c

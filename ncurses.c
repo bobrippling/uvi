@@ -56,7 +56,7 @@ static void insert(int);
 static void open(int);
 static int  colon(void);
 static void delete(enum motion, int);
-static void replace(void);
+static void replace(int);
 static void unknownchar(int);
 
 
@@ -423,28 +423,39 @@ static void open(int before)
 	buffer_modified(buffer) = 1;
 }
 
-static void replace()
+static void replace(int n)
 {
 	int c;
 	struct list *cur = buffer_getindex(buffer, pady);
 	char *s = cur->data;
 
-	if(*s == '\0')
-		return;
+	if(n <= 0)
+		n = 1;
 
 	c = nc_getch();
-	if(isprint(c))
-		s[padx] = c;
-	else if(c == '\n'){
-		char *off = s + padx;
+
+	if(*s == '\0')
+		return;
+	else if(n > strlen(s + padx))
+		return;
+
+
+	if(isprint(c)){
+		while(n--)
+			s[padx + n] = c;
+
+	}else if(c == '\n'){
+		/* delete n chars, and insert 1 line */
+		char *off = s + padx + n-1;
 		char *dup = umalloc(strlen(off));
 
-		*off = '\0';
+		memset(off - n + 1, '\0', n);
 		strcpy(dup, off + 1);
 
 		buffer_insertafter(buffer, cur, dup);
-		padx--;
+
 		pady++;
+		padx = 0;
 	}else
 		unknownchar(c);
 }
@@ -684,7 +695,7 @@ case_i:
 				goto case_i;
 
 			case 'r':
-				replace();
+				replace(multiple);
 				bufferchanged = 1;
 				break;
 
