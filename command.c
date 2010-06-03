@@ -425,7 +425,7 @@ buffer_t *command_readfile(const char *filename, char forcereadonly, void (*cons
 				pfunc("%s%s: %dC, %dL%s", filename,
 						buffer_readonly(buffer) ? " [read only]" : "",
 						buffer_nchars(buffer), buffer_nlines(buffer),
-						buffer_eol(buffer) ? "" : " (noeol)");
+						buffer_eol(buffer) ? "" : " [noeol]");
 		}
 
 	}else{
