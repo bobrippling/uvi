@@ -23,6 +23,7 @@
 static void	resizepad(void);
 static void clippadx(void);
 static void clippady(void);
+static void padyinrange(void);
 #define clippad() do { clippady(); clippadx(); } while(0)
 										/* do y first */
 
@@ -56,10 +57,36 @@ int view_scroll(enum scroll s)
 				ret = 1;
 			}
 			break;
+
+		case HALF_UP:
+			padtop -= MAX_Y / 2;
+			if(padtop < 0)
+				padtop = 0;
+			padyinrange();
+			ret = 1;
+			break;
+
+		case HALF_DOWN:
+			padtop += MAX_Y / 2;
+			ret = buffer_nlines(buffer)-1;
+			if(padtop > ret)
+				padtop = ret;
+			padyinrange();
+			ret = 1;
+			break;
 	}
 
 	view_updatecursor();
 	return ret;
+}
+
+static void padyinrange()
+{
+	if(pady < padtop)
+		pady = padtop;
+	else if(pady > padtop + MAX_Y)
+		pady = padtop + MAX_Y - 1;
+	clippadx();
 }
 
 int view_move(enum direction d)
@@ -209,7 +236,7 @@ void view_drawbuffer(buffer_t *b)
 
 			do{
 				int i = tab - pos;
-				len += i;
+				len += i - 1; /* FIXME TIMMEH */
 
 				waddnstr(pad, pos, i);
 				waddch(pad, ' '); /* Tab replacement char here */

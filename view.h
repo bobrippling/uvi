@@ -25,7 +25,9 @@ enum direction
 enum scroll
 {
 	SINGLE_DOWN,
-	SINGLE_UP
+	SINGLE_UP,
+	HALF_DOWN,
+	HALF_UP
 };
 
 void	view_initpad(void);

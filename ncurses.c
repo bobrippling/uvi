@@ -28,6 +28,7 @@
 
 /* broken */
 #define NCURSES_VIM_CC 0
+#define NCURSES_SHOW_UNKNOWN 0
 
 #define CTRL_AND(c)	((c) & 037)
 #define CTRL_AND_g	8
@@ -51,7 +52,7 @@ static int  qfunc(const char *);
 static enum gret gfunc(char *, int);
 static void shellout(const char *);
 
-static char nc_getch(void);
+static int  nc_getch(void);
 static void insert(int);
 static void open(int);
 static int  colon(void);
@@ -88,8 +89,8 @@ static void nc_up()
 
 	if(!init){
 		initscr();
-		/*cbreak(); * use raw() to intercept ^C, ^Z */
-		/*raw();*/
+		cbreak();
+		raw(); /* use raw() to intercept ^C, ^Z */
 		noecho();
 
 		/* halfdelay() for main-loop style timeout */
@@ -254,16 +255,19 @@ exit:
 	return r;
 }
 
-static char nc_getch()
+static int nc_getch()
 {
 	int c;
+
 get:
-	switch((c = getch())){
+	c = getch();
+	switch(c){
 		case C_CTRL_C:
 			sigh(SIGINT);
 			break;
 
-		case C_CTRL_Z:{
+		case C_CTRL_Z:
+		{
 			/* FIXME */
 			int x = padx, y = pady;
 			nc_down();
@@ -273,8 +277,10 @@ get:
 			goto get;
 		}
 
+		case 0:
+		case -1:
 		case C_EOF:
-			return EOF;
+			return CTRL_AND('d');
 
 		case C_DEL:
 		case C_BACKSPACE:
@@ -720,6 +726,12 @@ case_i:
 					viewchanged = view_move(flag ? ABSOLUTE_UP : ABSOLUTE_DOWN);
 				break;
 
+			case CTRL_AND('d'):
+				viewchanged = view_scroll(HALF_DOWN);
+				break;
+			case CTRL_AND('u'):
+				viewchanged = view_scroll(HALF_UP);
+				break;
 			case CTRL_AND('e'):
 				viewchanged = view_scroll(SINGLE_DOWN);
 				break;
@@ -769,15 +781,18 @@ case_i:
 					incmultiple();
 				else{
 					enum motion m = getmotion(c, 0);
-					if(m == MOTION_UNKNOWN)
-						status("unknown: %c(%d)", c, c);
-					else{
+					if(m != MOTION_UNKNOWN){
 						char *pos = buffer_getindex(buffer, pady)->data,
 								 *s = applymotion(m, pos, padx, multiple);
 						status("applymotion(m, \"%s\", %d, %d)", pos, padx, multiple);
 						padx = s - pos;
 						viewchanged = view_move(CURRENT);
 					}
+#if NCURSES_SHOW_UNKNOWN
+					else{
+						status("unknown: %c(%d)", c, c);
+					}
+#endif
 				}
 		}
 
