@@ -22,6 +22,7 @@
 #include "../util/alloc.h"
 #include "../vars.h"
 #include "motion.h"
+#include "marks.h"
 
 #include "ncurses.h"
 #include "../config.h"
@@ -29,6 +30,7 @@
 /* broken */
 #define NCURSES_VIM_CC 0
 #define NCURSES_SHOW_UNKNOWN 0
+#define INVALID_MARK "invalid mark"
 
 #define CTRL_AND(c)	((c) & 037)
 #define CTRL_AND_g	8
@@ -41,6 +43,8 @@
 #define C_CTRL_Z		26
 #define C_TAB				9
 #define C_NEWLINE		'\r'
+
+#define validmark(c) ('a' <= (c) && (c) <= 'z')
 
 static void nc_up(void);
 static void nc_down(void);
@@ -635,6 +639,32 @@ int ncurses_main(const char *filename, char readonly)
 				if(!colon())
 					goto exit_while;
 				bufferchanged = 1; /* need to view_refresh_or_whatever() */
+				break;
+
+			case 'm':
+				c = nc_getch();
+				if(validmark(c))
+					mark_set(c, pady, padx);
+				else
+					status(INVALID_MARK);
+				break;
+
+			case '\'':
+				c = nc_getch();
+				if(validmark(c)){
+					int y, x;
+					if(mark_get(c, &y, &x)){
+						pady = y;
+						padx = x;
+
+						if(pady >= buffer_nlines(buffer))
+							pady = buffer_nlines(buffer)-1;
+
+						viewchanged = view_move(CURRENT);
+					}else
+						status("mark not set");
+				}else
+					status(INVALID_MARK);
 				break;
 
 			case CTRL_AND_g:
