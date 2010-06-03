@@ -1,12 +1,11 @@
 change to unicode internal strings
 
-ncurses.c
-	movement:
-		CTRL_AND([dufb])
-
 view.c
 	ncurses colour
 
+ncurses.c:
+	'J'
+	'K'
 
 command.c:
 	marks
@@ -16,5 +15,3 @@ command.c:
 	s/ \+$// option
 
 	*word* = bold, _word_ = underline
-
-	check fclose() and writev() return values

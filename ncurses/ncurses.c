@@ -13,18 +13,18 @@
 #include <stdlib.h>
 #include <sys/wait.h>
 
-#include "range.h"
-#include "buffer.h"
-#include "command.h"
-#include "util/list.h"
-#include "main.h"
+#include "../range.h"
+#include "../buffer.h"
+#include "../command.h"
+#include "../util/list.h"
+#include "../main.h"
 #include "view.h"
-#include "util/alloc.h"
-#include "vars.h"
+#include "../util/alloc.h"
+#include "../vars.h"
 #include "motion.h"
 
 #include "ncurses.h"
-#include "config.h"
+#include "../config.h"
 
 /* broken */
 #define NCURSES_VIM_CC 0
@@ -516,6 +516,9 @@ static void delete(enum motion m, int repeat)
 				break;
 		}
 	while(--repeat > 0);
+
+	if(pady >= buffer_nlines(buffer))
+		pady = buffer_nlines(buffer) - 1;
 
 	view_move(CURRENT); /* clip x */
 }

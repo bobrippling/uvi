@@ -10,11 +10,11 @@
 #include <stdlib.h>
 #include <ctype.h>
 
-#include "util/list.h"
-#include "range.h"
-#include "buffer.h"
+#include "../util/list.h"
+#include "../range.h"
+#include "../buffer.h"
 #include "view.h"
-#include "util/alloc.h"
+#include "../util/alloc.h"
 
 #define MAX_X (COLS - 1)
 #define MAX_Y (LINES - 1)

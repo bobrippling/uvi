@@ -6,7 +6,7 @@
 #include <errno.h>
 
 #include "term.h"
-#include "ncurses.h"
+#include "ncurses/ncurses.h"
 
 #include "main.h"
 #include "config.h"
