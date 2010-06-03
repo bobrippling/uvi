@@ -153,8 +153,13 @@ static void shellout(const char *cmd)
 
 	if(ret == -1)
 		perror("system()");
-	else
-		printf("\"%s\" returned %d\n", cmd, WEXITSTATUS(ret));
+	else{
+		char *s = strchr(cmd, ' ');
+		if(s)
+			*s = '\0';
+
+		printf("%s returned %d\n", cmd, WEXITSTATUS(ret));
+	}
 
 	fputs("Press enter to continue...", stdout);
 	fflush(stdout);
@@ -295,7 +300,7 @@ static void wrongfunc(void)
 
 static void unknownchar(int c)
 {
-	status("unrecognised character #%d\n", c);
+	status("unrecognised character #%d", c);
 }
 
 
@@ -768,7 +773,8 @@ case_i:
 						status("unknown: %c(%d)", c, c);
 					else{
 						char *pos = buffer_getindex(buffer, pady)->data,
-								 *s = applymotion(m, pos, padx, 1);
+								 *s = applymotion(m, pos, padx, multiple);
+						status("applymotion(m, \"%s\", %d, %d)", pos, padx, multiple);
 						padx = s - pos;
 						viewchanged = view_move(CURRENT);
 					}

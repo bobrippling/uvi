@@ -3,9 +3,6 @@ change to unicode internal strings
 ncurses.c
 	movement:
 		CTRL_AND([dufb])
-	edit:
-		[0-9]* repetition before switch(getch()) for ncurses
-
 
 view.c
 	ncurses colour

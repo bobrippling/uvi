@@ -39,12 +39,12 @@ char *applymotion(enum motion m, char *s, int pos, int repeat)
 	 *
 	 * and by char i mean iswordpart()
 	 */
-	const char cmp = iswordpart(s[pos]);
-
 	if(!s[pos])
 		return s + pos;
 
 	do{
+		const char cmp = iswordpart(s[pos]);
+
 		switch(m){
 			case MOTION_FORWARD_WORD:
 				while(iswordpart(s[pos]) == cmp)
@@ -73,7 +73,7 @@ char *applymotion(enum motion m, char *s, int pos, int repeat)
 			case MOTION_UNKNOWN:
 				return NULL;
 		}
-	}while(--repeat >= 0);
+	}while(--repeat > 0);
 
 	return s + pos;
 }
