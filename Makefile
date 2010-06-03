@@ -14,7 +14,7 @@ endif
 uvi: main.o term.o ncurses.o view.o buffer.o motion.o range.o command.o \
 	util/list.o vars.o util/alloc.o
 	@echo LD $@
-	$Q${LD} ${LDFLAGS} -o $@ $^
+	$Q${LD} -o $@ $^ ${LDFLAGS}
 
 options:
 	@echo CC: ${CC}

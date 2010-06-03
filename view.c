@@ -64,9 +64,12 @@ int view_scroll(enum scroll s)
 
 int view_move(enum direction d)
 {
-	int ylim = buffer_nlines(buffer)-1, ret = 0;
+	int ylim = buffer_nlines(buffer)-1, ret = 0,
+			xlim = MAX_X, screenbottom = padtop + MAX_Y - 1;
 	struct list *cl = buffer_getindex(buffer, pady);
-	int xlim = MAX_X;
+
+	if(screenbottom > ylim)
+		screenbottom = ylim;
 
 	if(cl && cl->data){
 		xlim = strlen(cl->data)-1;
@@ -161,12 +164,14 @@ int view_move(enum direction d)
 			break;
 
 		case SCREEN_MIDDLE:
-			pady = padtop + MAX_Y / 2;
+			pady = padtop + (screenbottom - padtop) / 2;
+			if(pady < 0)
+				pady = 0;
 			clippad();
 			ret = 1;
 			break;
 		case SCREEN_BOTTOM:
-			pady = padtop + MAX_Y - 1;
+			pady = screenbottom;
 			clippad();
 			ret = 1;
 			break;
