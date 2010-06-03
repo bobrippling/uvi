@@ -56,6 +56,9 @@ static void insert(int);
 static void open(int);
 static int  colon(void);
 static void delete(enum motion, int);
+static void replace(void);
+static void unknownchar(int);
+
 
 static void status(const char *, ...);
 static void showpos(void);
@@ -220,7 +223,7 @@ static enum gret gfunc(char *s, int size)
 						goto exit;
 					}
 				}else{
-					status("unrecognised character %d\n", c);
+					unknownchar(c);
 					r = g_LAST;
 					goto exit;
 				}
@@ -289,6 +292,12 @@ static void wrongfunc(void)
 	clrtoeol();
 	addch('?');
 }
+
+static void unknownchar(int c)
+{
+	status("unrecognised character #%d\n", c);
+}
+
 
 static void insert(int append)
 {
@@ -412,6 +421,32 @@ static void open(int before)
 	}
 
 	buffer_modified(buffer) = 1;
+}
+
+static void replace()
+{
+	int c;
+	struct list *cur = buffer_getindex(buffer, pady);
+	char *s = cur->data;
+
+	if(*s == '\0')
+		return;
+
+	c = nc_getch();
+	if(isprint(c))
+		s[padx] = c;
+	else if(c == '\n'){
+		char *off = s + padx;
+		char *dup = umalloc(strlen(off));
+
+		*off = '\0';
+		strcpy(dup, off + 1);
+
+		buffer_insertafter(buffer, cur, dup);
+		padx--;
+		pady++;
+	}else
+		unknownchar(c);
 }
 
 static void delete(enum motion m, int repeat)
@@ -648,6 +683,10 @@ case_i:
 				view_move(ABSOLUTE_LEFT);
 				goto case_i;
 
+			case 'r':
+				replace();
+				bufferchanged = 1;
+				break;
 
 			case 'g':
 				flag = 1;
