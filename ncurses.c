@@ -476,9 +476,10 @@ static void delete(enum motion m, int repeat)
 	struct list *listpos = buffer_getindex(buffer, pady);
 	/* assert(listpos) */
 	char *line = listpos->data, *applied;
+	int internalrepeat = 1;
 
 	if(m == MOTION_UNKNOWN){
-		m = getmotion(nc_getch(), &repeat);
+		m = getmotion(&nc_getch, &internalrepeat);
 		if(m == MOTION_UNKNOWN)
 			return;
 	}
@@ -488,31 +489,33 @@ static void delete(enum motion m, int repeat)
 		return;
 	}
 
-	applied = applymotion(m, listpos->data, padx, repeat);
-	switch(m){
-		case MOTION_BACKWARD_LETTER:
-			if(padx > 0)
-				padx--;
-			else
+	applied = applymotion(m, listpos->data, padx, internalrepeat);
+	do
+		switch(m){
+			case MOTION_BACKWARD_LETTER:
+				if(padx > 0)
+					padx--;
+				else
+					break;
+			case MOTION_BACKWARD_WORD:
+				memmove(applied, line + padx, strlen(line + padx) + 1);
 				break;
-		case MOTION_BACKWARD_WORD:
-			memmove(applied, line + padx, strlen(line + padx) + 1);
-			break;
 
-		case MOTION_FORWARD_WORD:
-		case MOTION_FORWARD_LETTER:
-			memmove(line + padx, applied, strlen(applied) + 1);
-			break;
+			case MOTION_FORWARD_WORD:
+			case MOTION_FORWARD_LETTER:
+				memmove(line + padx, applied, strlen(applied) + 1);
+				break;
 
-		case MOTION_LINE:
-			buffer_remove(buffer, listpos);
-			break;
+			case MOTION_LINE:
+				buffer_remove(buffer, listpos);
+				break;
 
-		case MOTION_EOL:
-			/* unreachable */
-		case MOTION_UNKNOWN:
-			break;
-	}
+			case MOTION_EOL:
+				/* unreachable */
+			case MOTION_UNKNOWN:
+				break;
+		}
+	while(--repeat > 0);
 
 	view_move(CURRENT); /* clip x */
 }
@@ -758,17 +761,24 @@ case_i:
 				viewchanged = view_move(NO_BLANK);
 				break;
 			case 'j':
-				viewchanged = view_move(DOWN);
+				do
+					viewchanged = view_move(DOWN);
+				while(--multiple > 0);
 				break;
 			case 'k':
-				viewchanged = view_move(UP);
+				do
+					viewchanged = view_move(UP);
+				while(--multiple > 0);
 				break;
+				/*
+				 * these are now motions
 			case 'h':
 				viewchanged = view_move(LEFT);
 				break;
 			case 'l':
 				viewchanged = view_move(RIGHT);
 				break;
+				 */
 			case 'H':
 				viewchanged = view_move(SCREEN_TOP);
 				break;
@@ -786,11 +796,14 @@ case_i:
 				if(isdigit(c))
 					incmultiple();
 				else{
-					enum motion m = getmotion(c, 0);
+					enum motion m;
+					ungetch(c);
+					m = getmotion(&nc_getch, 0);
 					if(m != MOTION_UNKNOWN){
 						char *pos = buffer_getindex(buffer, pady)->data,
 								 *s = applymotion(m, pos, padx, multiple);
-						status("applymotion(m, \"%s\", %d, %d)", pos, padx, multiple);
+
+						/*status("applymotion(m, \"%s\", %d, %d)", pos, padx, multiple);*/
 						padx = s - pos;
 						viewchanged = view_move(CURRENT);
 					}

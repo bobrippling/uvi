@@ -11,7 +11,7 @@ enum motion
 	MOTION_LINE,
 	MOTION_EOL,
 	MOTION_UNKNOWN
-} getmotion(int ch, int *repeat);
+} getmotion(int (*)(void), int *repeat);
 
 char *applymotion(enum motion, char *, int, int);
 

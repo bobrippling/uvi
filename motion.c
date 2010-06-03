@@ -5,10 +5,11 @@
 #include "motion.h"
 #define iswordpart(c) (isalnum(c) || (c) == '_')
 
-enum motion getmotion(int c, int *repeat)
+enum motion getmotion(int (*gfunc)(void), int *repeat)
 {
+	int c;
 	do
-		switch(c){
+		switch((c = gfunc())){
 			case 'l':
 				return MOTION_FORWARD_LETTER;
 			case 'h':

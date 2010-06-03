@@ -158,6 +158,7 @@ int view_move(enum direction d)
 				if(padtop < 0)
 					padtop = 0;
 			}
+			clippadx();
 			ret = 1;
 			break;
 
