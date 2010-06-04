@@ -27,6 +27,8 @@
 #include "ncurses.h"
 #include "../config.h"
 
+extern struct settings global_settings;
+
 /* broken */
 #define NCURSES_VIM_CC 0
 #define NCURSES_SHOW_UNKNOWN 0
@@ -321,7 +323,7 @@ static void insert(int append)
 
 	gfunc_onpad = 1;
 
-	if(append && padx < (signed)strlen(curline->data)){
+	if(append && padx < (signed)buffer_strlen(curline->data)){
 		padx++;
 		savedx++;
 	}
@@ -360,7 +362,12 @@ static void insert(int append)
 			linepos[1] = '\0';
 		}
 
-		view_padaddch(pady, padx++, c);
+		if(c == '\t')
+			padx += global_settings.tabstop;
+		else
+			padx++;
+
+		view_padaddch(pady, padx, c);
 		view_refreshpad();
 	}while(1);
 
@@ -832,10 +839,11 @@ case_i:
 					m = getmotion(&nc_getch, 0);
 					if(m != MOTION_UNKNOWN){
 						char *pos = buffer_getindex(buffer, pady)->data,
-								 *s = applymotion(m, pos, padx, multiple);
+								 *s = applymotion(m, pos, padx, multiple),
+								 inc;
 
-						/*status("applymotion(m, \"%s\", %d, %d)", pos, padx, multiple);*/
 						padx = s - pos;
+
 						viewchanged = view_move(CURRENT);
 					}
 #if NCURSES_SHOW_UNKNOWN

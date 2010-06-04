@@ -20,6 +20,7 @@ void			buffer_free(buffer_t *);
 
 int				buffer_nchars(buffer_t *);
 int				buffer_nlines(buffer_t *);
+int				buffer_strlen(const char *);
 
 void			buffer_setfilename(buffer_t *, const char *);
 

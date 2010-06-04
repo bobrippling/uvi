@@ -136,7 +136,7 @@ int view_move(enum direction d)
 		screenbottom = ylim;
 
 	if(cl && cl->data){
-		xlim = strlen(cl->data)-1;
+		xlim = buffer_strlen(cl->data)-1;
 		if(xlim < 0)
 			xlim = 0;
 	}
@@ -334,7 +334,7 @@ static void clippadx()
 	int xlim;
 
 	if(cl && cl->data){
-		xlim = strlen(cl->data)-1;
+		xlim = buffer_strlen(cl->data)-1;
 		if(xlim < 0)
 			xlim = 0;
 

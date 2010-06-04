@@ -17,6 +17,10 @@
 #include "buffer.h"
 #include "util/list.h"
 
+#include "config.h"
+
+extern struct settings global_settings;
+
 static int fgetline(char **, FILE *, char *);
 static char canwrite(mode_t, uid_t, gid_t);
 
@@ -333,6 +337,19 @@ int buffer_nchars(buffer_t *b)
 	}
 
 	return chars;
+}
+
+int buffer_strlen(const char *s)
+{
+	int len = 0;
+
+	while(*s)
+		if(*s++ == '\t')
+			len += global_settings.tabstop;
+		else
+			len++;
+
+	return len;
 }
 
 int buffer_nlines(buffer_t *b)
