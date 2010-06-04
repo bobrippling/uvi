@@ -35,13 +35,15 @@ enum scroll
 void	view_initpad(void);
 void	view_termpad(void);
 void	view_drawbuffer(buffer_t *);
+
 int		view_move(enum direction);
+
 int		view_scroll(enum scroll);
 void	view_refreshpad(void);
 
 void	view_waddch(WINDOW *, int);
 void	view_padaddch(int, int, int);
 
-#define view_updatecursor() do { wmove(pad, pady, padx); view_refreshpad(); } while(0)
+void view_updatecursor(void);
 
 #endif

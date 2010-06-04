@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <ctype.h>
+#include <string.h>
 
 #include "motion.h"
 #define iswordpart(c) (isalnum(c) || (c) == '_')
@@ -18,6 +19,8 @@ enum motion getmotion(int (*gfunc)(void), int *repeat)
 				return MOTION_FORWARD_WORD;
 			case 'b':
 				return MOTION_BACKWARD_WORD;
+			case '$':
+				return MOTION_EOL;
 			case 'c':
 			case 'd':
 				return MOTION_LINE;
@@ -40,35 +43,47 @@ char *applymotion(enum motion m, char *s, int pos, int repeat)
 	 *
 	 * and by char i mean iswordpart()
 	 */
-	if(!s[pos])
-		return s + pos;
-
 	do{
 		const char cmp = iswordpart(s[pos]);
 
 		switch(m){
 			case MOTION_FORWARD_WORD:
-				while(iswordpart(s[pos]) == cmp)
+				while(iswordpart(s[pos]) == cmp && s[pos] != '\0')
 					pos++;
+				if(s[pos] == '\0'){
+					pos--;
+					goto fin;
+				}
 				break;
 
 			case MOTION_BACKWARD_WORD:
-				while(pos > 0 && iswordpart(s[pos]) == cmp)
+				while(pos > 0 && iswordpart(s[pos]) == cmp && pos > 0)
 					pos--;
+				if(pos == 0)
+					goto fin;
 				break;
 
 			case MOTION_FORWARD_LETTER:
-				pos++;
+				if(s[pos] == '\0')
+					goto fin;
+				else if(s[++pos] == '\0'){
+					pos--;
+					goto fin;
+				}
 				break;
+
 			case MOTION_BACKWARD_LETTER:
-				pos--;
+				if(pos > 0)
+					pos--;
+				else
+					goto fin;
 				break;
 
 			case MOTION_EOL:
 				while(s[pos] != '\0')
 					pos++;
-				repeat = 0;
-				break;
+				pos--;
+				goto fin;
 
 			case MOTION_LINE:
 			case MOTION_UNKNOWN:
@@ -76,5 +91,6 @@ char *applymotion(enum motion m, char *s, int pos, int repeat)
 		}
 	}while(--repeat > 0);
 
+fin:
 	return s + pos;
 }

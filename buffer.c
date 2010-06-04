@@ -339,19 +339,6 @@ int buffer_nchars(buffer_t *b)
 	return chars;
 }
 
-int buffer_strlen(const char *s)
-{
-	int len = 0;
-
-	while(*s)
-		if(*s++ == '\t')
-			len += global_settings.tabstop;
-		else
-			len++;
-
-	return len;
-}
-
 int buffer_nlines(buffer_t *b)
 {
 	if(buffer_changed(b)){

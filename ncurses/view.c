@@ -28,6 +28,8 @@ static void	resizepad(void);
 static void clippadx(void);
 static void clippady(void);
 static void padyinrange(void);
+static int view_actualx(int, int);
+
 #define clippad() do { clippady(); clippadx(); } while(0)
 										/* do y first */
 
@@ -129,17 +131,15 @@ static void padyinrange()
 int view_move(enum direction d)
 {
 	int ylim = buffer_nlines(buffer)-1, ret = 0,
-			xlim = MAX_X, screenbottom = padtop + MAX_Y - 1;
+			xlim, screenbottom = padtop + MAX_Y - 1;
 	struct list *cl = buffer_getindex(buffer, pady);
 
 	if(screenbottom > ylim)
 		screenbottom = ylim;
 
-	if(cl && cl->data){
-		xlim = buffer_strlen(cl->data)-1;
-		if(xlim < 0)
-			xlim = 0;
-	}
+	xlim = view_actualx(pady, MAX_X);
+	if(xlim < 0)
+		xlim = 0;
 
 	switch(d){
 		case ABSOLUTE_LEFT:
@@ -251,6 +251,27 @@ int view_move(enum direction d)
 	return ret;
 }
 
+static int view_actualx(int y, int x)
+{
+	char *data = buffer_getindex(buffer, y)->data;
+	int actualx = 0;
+
+	while(*data && x-- > 0)
+		if(*data++ == '\t')
+			actualx += global_settings.tabstop;
+		else
+			actualx++;
+
+	return actualx;
+}
+
+void view_updatecursor()
+{
+	move(pady - padtop, view_actualx(pady, padx) - padleft);
+
+	view_refreshpad();
+}
+
 void view_drawbuffer(buffer_t *b)
 {
 	struct list *l = buffer_gethead(b);
@@ -334,7 +355,7 @@ static void clippadx()
 	int xlim;
 
 	if(cl && cl->data){
-		xlim = buffer_strlen(cl->data)-1;
+		xlim = view_actualx(pady, MAX_X);
 		if(xlim < 0)
 			xlim = 0;
 

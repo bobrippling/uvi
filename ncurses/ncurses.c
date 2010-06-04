@@ -29,9 +29,9 @@
 
 extern struct settings global_settings;
 
-/* broken */
-#define NCURSES_VIM_CC 0
-#define NCURSES_SHOW_UNKNOWN 0
+#define NCURSES_DEBUG_SHOW_UNKNOWN	0
+#define NCURSES_DEBUG_SHOWXY				1
+
 #define INVALID_MARK "invalid mark"
 
 #define CTRL_AND(c)	((c) & 037)
@@ -277,7 +277,9 @@ get:
 			nc_down();
 			kill(getpid(), SIGSTOP);
 			nc_up();
-			move(y, x);
+			padx = x;
+			pady = y;
+			view_updatecursor();
 			goto get;
 		}
 
@@ -323,7 +325,7 @@ static void insert(int append)
 
 	gfunc_onpad = 1;
 
-	if(append && padx < (signed)buffer_strlen(curline->data)){
+	if(append && padx < (signed)strlen(curline->data)){
 		padx++;
 		savedx++;
 	}
@@ -342,7 +344,8 @@ static void insert(int append)
 		}else if(c == '\b'){
 			if(linepos > line){
 				linepos--;
-				move(pady, --padx);
+				padx--;
+				view_updatecursor();
 			}
 
 			continue;
@@ -362,10 +365,7 @@ static void insert(int append)
 			linepos[1] = '\0';
 		}
 
-		if(c == '\t')
-			padx += global_settings.tabstop;
-		else
-			padx++;
+		padx++;
 
 		view_padaddch(pady, padx, c);
 		view_refreshpad();
@@ -500,10 +500,9 @@ static void delete(enum motion m, int repeat)
 	do
 		switch(m){
 			case MOTION_BACKWARD_LETTER:
-				if(padx > 0)
-					padx--;
-				else
+				if(padx <= 0)
 					break;
+				padx--;
 			case MOTION_BACKWARD_WORD:
 				memmove(applied, line + padx, strlen(line + padx) + 1);
 				break;
@@ -611,6 +610,10 @@ int ncurses_main(const char *filename, char readonly)
 	do{
 		int flag = 0, resetmultiple = 1;
 
+#if NCURSES_DEBUG_SHOWXY
+		status("at (%d, %d): %c", padx, pady, ((char *)buffer_getindex(buffer, pady)->data)[padx]);
+		view_updatecursor();
+#endif
 		if(pfunc_wantconfimation){
 			status("---");
 			pfunc_wantconfimation = 0;
@@ -706,24 +709,7 @@ int ncurses_main(const char *filename, char readonly)
 				break;
 
 			case 'c':
-#if NCURSES_VIM_CC
-			{
-				c = nc_getch();
-				if(c == 'c'){
-					/* special case - cc means replace line */
-					delete(MOTION_LINE, multiple);
-					open(1);
-					bufferchanged = 1;
-					break;
-				}else{
-					ungetch(c);
-					flag = 1;
-					/* fall */
-				}
-			}
-#else
-			flag = 1;
-#endif
+				flag = 1;
 
 			case 'd':
 				delete(MOTION_UNKNOWN, multiple);
@@ -792,9 +778,12 @@ case_i:
 				else
 					viewchanged = view_move(ABSOLUTE_LEFT);
 				break;
+				/*
+				 * now a motion
 			case '$':
 				viewchanged = view_move(ABSOLUTE_RIGHT);
 				break;
+				 */
 			case '^':
 				viewchanged = view_move(NO_BLANK);
 				break;
@@ -841,11 +830,15 @@ case_i:
 						char *pos = buffer_getindex(buffer, pady)->data,
 								 *s = applymotion(m, pos, padx, multiple);
 
-						padx = s - pos;
+						if(s > pos)
+							padx = s - pos;
+						else
+							padx = pos - s;
 
-						viewchanged = view_move(CURRENT);
+						view_updatecursor();
+						/*viewchanged = view_move(CURRENT);*/
 					}
-#if NCURSES_SHOW_UNKNOWN
+#if NCURSES_DEBUG_SHOW_UNKNOWN
 					else{
 						status("unknown: %c(%d)", c, c);
 					}
