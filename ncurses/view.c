@@ -268,14 +268,14 @@ void view_drawbuffer(buffer_t *b)
 
 	while(l){
 		if(strchr(l->data, '\t')){
+			/* write at most MAX_X-1 chars */
 			int len = 0;
 			char *pos = l->data;
-			while(len++ < MAX_X && *pos){
-				view_waddch(pad, *pos);
-				pos++;
-			}
+
+			while(++len < MAX_X - 2 && *pos)
+				view_waddch(pad, *pos++);
 		}else
-			waddnstr(pad, l->data, MAX_X);
+			waddnstr(pad, l->data, MAX_X - 1);
 
 		waddch(pad, '\n');
 		y++;

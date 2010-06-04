@@ -839,8 +839,7 @@ case_i:
 					m = getmotion(&nc_getch, 0);
 					if(m != MOTION_UNKNOWN){
 						char *pos = buffer_getindex(buffer, pady)->data,
-								 *s = applymotion(m, pos, padx, multiple),
-								 inc;
+								 *s = applymotion(m, pos, padx, multiple);
 
 						padx = s - pos;
 
