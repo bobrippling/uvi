@@ -24,6 +24,10 @@ char vars_set(enum vartype t, buffer_t *b, const char v)
 			return 0;
 	}
 
+	if(t == VARS_TABSTOP)
+		if(v > VARS_MAX_TABSTOP)
+			return 0;
+
 	*p = v;
 
 	if(t == VARS_EOL)
