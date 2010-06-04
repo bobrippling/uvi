@@ -267,7 +267,7 @@ static int view_actualx(int y, int x)
 
 void view_updatecursor()
 {
-	move(pady - padtop, view_actualx(pady, padx) - padleft);
+	wmove(pad, pady, view_actualx(pady, padx));
 
 	view_refreshpad();
 }
