@@ -1,7 +1,5 @@
 change to unicode internal strings
 
-sort out tabs - check nano/use gnu tabstop thing
-
 view.c
 	ncurses colour
 
