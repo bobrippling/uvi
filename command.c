@@ -408,7 +408,7 @@ buffer_t *command_readfile(const char *filename, char forcereadonly, void (*cons
 				 * end up here on failed read:
 				 * open empty file and continue
 				 */
-				pfunc("\"%s\" [%s]", filename, strerror(errno));
+				pfunc("\"%s\" [%s]", filename, errno ? strerror(errno) : "unknown error - binary file?");
 				buffer_readonly(buffer) = 1;
 			}else
 				/* something like "./uvi file_that_doesn\'t_exist */

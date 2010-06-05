@@ -8,6 +8,8 @@ ncurses.c:
 	'K'
 
 command.c:
+	investigate binary (command.o) file read
+
 	regex search
 
 	s/ \+$// option
