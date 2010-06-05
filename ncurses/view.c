@@ -31,6 +31,10 @@ static void padyinrange(void);
 static int view_actualx(int, int);
 static int view_getactualx(int, int);
 
+
+#define wcoloron(i)   (wattron( pad, COLOR_PAIR(i)))
+#define wcoloroff(i)  (wattroff(pad, COLOR_PAIR(i)))
+
 #define clippad() do { clippady(); clippadx(); } while(0)
 										/* do y first */
 
@@ -303,6 +307,32 @@ static int view_getactualx(int y, int x)
 	return actualx + x;
 }
 
+/*
+ * valid colours:
+ *  COLOR_BLACK
+ *  COLOR_GREEN
+ *  COLOR_WHITE
+ *  COLOR_RED
+ *  COLOR_CYAN
+ *  COLOR_MAGENTA
+ *  COLOR_BLUE
+ *  COLOR_YELLOW
+ *
+ *  COLOR_PAIR(COLOR_NAME)
+ *
+ * Attributes:
+ *  A_NORMAL
+ *  A_STANDOUT
+ *  A_UNDERLINE
+ *  A_REVERSE
+ *  A_BLINK
+ *  A_DIM
+ *  A_BOLD
+ *  A_PROTECT
+ *  A_INVIS
+ *  A_ALTCHARSET
+ *  A_CHARTEXT
+ */
 void view_drawbuffer(buffer_t *b)
 {
 	struct list *l = buffer_gethead(b);
@@ -336,8 +366,16 @@ void view_drawbuffer(buffer_t *b)
 
 tilde:
 	move(y, 0);
+#if VIEW_COLOUR
+	wcoloron(COLOR_BLUE);
+	wattron(pad, A_BOLD);
+#endif
 	while(++y <= MAX_Y)
 		waddstr(pad, "~\n");
+#if VIEW_COLOUR
+	wattroff(pad, A_BOLD);
+	wcoloroff(COLOR_BLUE);
+#endif
 
 	view_updatecursor();
 }
@@ -358,6 +396,21 @@ void view_initpad()
 	pad = NULL;
 
 	resizepad();
+
+	if(has_colors()){
+		start_color();
+		use_default_colors();
+		/* tells (n)curses that -1 means the default colour, so it can be used below in init_pair() */
+		/* init_color(COLOR_RED, 700, 0, 0); RGB are out of 1000                  */
+		init_pair(COLOR_BLACK,   -1,            -1);
+		init_pair(COLOR_GREEN,   COLOR_GREEN,   -1);
+		init_pair(COLOR_WHITE,   COLOR_WHITE,   -1);
+		init_pair(COLOR_RED,     COLOR_RED,     -1);
+		init_pair(COLOR_CYAN,    COLOR_CYAN,    -1);
+		init_pair(COLOR_MAGENTA, COLOR_MAGENTA, -1);
+		init_pair(COLOR_BLUE,    COLOR_BLUE,    -1);
+		init_pair(COLOR_YELLOW,  COLOR_YELLOW,  -1);
+	}
 }
 
 void view_termpad()

@@ -46,6 +46,8 @@ extern struct settings global_settings;
 #define C_TAB				9
 #define C_NEWLINE		'\r'
 
+#define coloron(i)   (attron(COLOR_PAIR(i)))
+#define coloroff(i)  (attroff(COLOR_PAIR(i)))
 #define validmark(c) ('a' <= (c) && (c) <= 'z')
 
 static void nc_up(void);
@@ -118,19 +120,21 @@ static void status(const char *s, ...)
 {
 	va_list l;
 
-	move(MAX_Y, 0);
-
-	if(strchr(s, '\n') || pfunc_wantconfimation){
+	if(strchr(s, '\n') || pfunc_wantconfimation)
 		/*
 		 * print a bunch of lines,
 		 * and tell main() to wait for input from the user
 		 */
 		move(pfunc_wantconfimation++, 0);
-	}
+	else
+		move(MAX_Y, 0);
+
 
 	clrtoeol();
 	va_start(l, s);
+	coloron(COLOR_RED);
 	vwprintw(stdscr, s, l);
+	coloroff(COLOR_RED);
 	va_end(l);
 }
 
