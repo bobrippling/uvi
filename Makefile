@@ -10,12 +10,14 @@ else
 	Q = @
 endif
 
-
-uvi: main.o term.o buffer.o range.o command.o vars.o \
+OBJS = main.o term.o buffer.o range.o command.o vars.o \
 	util/list.o util/alloc.o \
 	ncurses/view.o ncurses/ncurses.o ncurses/motion.o ncurses/marks.o
+
+
+uvi: ${OBJS} config.mk
 	@echo LD $@
-	$Q${LD} -o $@ $^ ${LDFLAGS}
+	$Q${LD} -o $@ ${OBJS} ${LDFLAGS}
 
 options:
 	@echo "CC      = ${CC}"
