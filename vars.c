@@ -12,6 +12,7 @@
 #define S_MODIFIED "modified"
 #define S_EOL      "eol"
 #define S_TABSTOP  "ts"
+#define S_COLOUR   "colour"
 
 extern struct settings global_settings;
 
@@ -42,6 +43,7 @@ char vars_isbool(enum vartype v)
 		case VARS_READONLY:
 		case VARS_MODIFIED:
 		case VARS_EOL:
+		case VARS_COLOUR:
 			return 1;
 		case VARS_TABSTOP:
 			return 0;
@@ -60,6 +62,7 @@ char vars_isbuffervar(enum vartype t)
 			return 1;
 		case VARS_UNKNOWN:
 		case VARS_TABSTOP:
+		case VARS_COLOUR:
 			break;
 	}
 	return 0;
@@ -75,6 +78,7 @@ char *vars_bufferget(enum vartype t, buffer_t *b)
 		case VARS_EOL:
 			return &buffer_eol(b);
 		case VARS_TABSTOP:
+		case VARS_COLOUR:
 		case VARS_UNKNOWN:
 			break;
 	}
@@ -86,6 +90,9 @@ char *vars_settingget(enum vartype t)
 	switch(t){
 		case VARS_TABSTOP:
 			return &global_settings.tabstop;
+
+		case VARS_COLOUR:
+			return &global_settings.colour;
 
 		case VARS_READONLY:
 		case VARS_MODIFIED:
@@ -115,6 +122,8 @@ const char *vars_tostring(enum vartype v)
 			return S_EOL;
 		case VARS_TABSTOP:
 			return S_TABSTOP;
+		case VARS_COLOUR:
+			return S_COLOUR;
 		case VARS_UNKNOWN:
 			break;
 	}
@@ -131,5 +140,8 @@ enum vartype vars_gettype(const char *s)
 		return VARS_EOL;
 	else if(!strcmp(S_TABSTOP, s))
 		return VARS_TABSTOP;
+	else if(!strcmp(S_COLOUR, s))
+		return VARS_COLOUR;
+
 	return VARS_UNKNOWN;
 }

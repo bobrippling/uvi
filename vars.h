@@ -7,6 +7,7 @@ enum vartype
 	VARS_MODIFIED,
 	VARS_EOL,
 	VARS_TABSTOP,
+	VARS_COLOUR,
 	VARS_UNKNOWN
 } vars_gettype(const char *);
 

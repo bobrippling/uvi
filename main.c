@@ -52,6 +52,7 @@ int main(int argc, const char **argv)
 	const char *fname = NULL;
 
 	global_settings.tabstop = DEFAULT_TAB_STOP;
+	global_settings.colour  = 1;
 
 	if(setjmp(allocerr)){
 		fprintf(stderr, PROG_NAME" panic! longjmp bail: malloc(): %s\n",

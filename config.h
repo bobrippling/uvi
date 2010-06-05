@@ -8,7 +8,7 @@
 
 struct settings
 {
-	char tabstop;
+	char tabstop, colour;
 };
 
 #endif

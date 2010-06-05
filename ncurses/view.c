@@ -337,6 +337,17 @@ void view_drawbuffer(buffer_t *b)
 {
 	struct list *l = buffer_gethead(b);
 	int y = 0, size = buffer_nlines(b);
+#if VIEW_COLOUR
+	struct
+	{
+		const char *const start, *const end;
+		const short colour;
+	} const syntax[] = {
+		{ "/*", "(", COLOR_WHITE },
+		{ "#", "\n", COLOR_BLUE  }
+	};
+	int colour_pos = -1, colour_on = 1, colour_index = -1;
+#endif
 
 	if(size > padheight){
 		padheight = size + PAD_HEIGHT_INC;
@@ -349,6 +360,30 @@ void view_drawbuffer(buffer_t *b)
 		goto tilde;
 
 	while(l){
+#if VIEW_COLOUR
+		if(global_settings.colour){
+			if(colour_on){
+				/* search for a new colour */
+				unsigned int i;
+				for(i = 0; i < sizeof(syntax)/sizeof(syntax[0]); i++){
+					char *pos = strstr(l->data, syntax[i].start);
+					if(pos){
+						colour_pos = pos - (char *)l->data;
+						colour_index = i;
+						colour_on = 1;
+						break;
+					}
+				}
+			}else{
+				/* colour is on, see if we can turn it off */
+				char *pos = strstr(l->data, syntax[colour_index].end);
+				if(pos){
+					colour_pos = (char *)l->data - pos;
+					colour_on = 0;
+				}
+			}
+		}
+#endif
 		if(strchr(l->data, '\t')){
 			/* write at most MAX_X-1 chars */
 			int len = 0;
@@ -356,13 +391,36 @@ void view_drawbuffer(buffer_t *b)
 
 			while(++len < MAX_X - 2 && *pos)
 				view_waddch(pad, *pos++);
-		}else
-			waddnstr(pad, l->data, MAX_X - 1);
+		}else{
+#if VIEW_COLOUR
+			if(colour_pos > -1){
+				if(colour_pos > 0)
+					waddnstr(pad, l->data, colour_pos);
 
+				if(colour_on)
+					wcoloron(syntax[colour_index].colour);
+				else
+					wcoloroff(syntax[colour_index].colour);
+
+				waddnstr(pad, (char *)l->data + colour_pos, MAX_X - 1 - colour_pos);
+
+				if(colour_on)
+					wcoloroff(syntax[colour_index].colour);
+			}else
+#endif
+				waddnstr(pad, l->data, MAX_X - 1);
+		}
 		waddch(pad, '\n');
+
 		y++;
 		l = l->next;
 	}
+
+#if VIEW_COLOUR
+	if(global_settings.colour){
+
+	}
+#endif
 
 tilde:
 	move(y, 0);
