@@ -259,20 +259,24 @@ static int view_actualx(int y, int x)
 	 * translate the x-coord in the buffer to the screen
 	 * coord, i.e. take \t into account
 	 */
-	char *data = buffer_getindex(buffer, y)->data;
-	int actualx = 0;
+	struct list *l = buffer_getindex(buffer, y);
+	if(l){
+		char *data = l->data;
+		int actualx = 0;
 
-	while(*data && x-- > 0)
-		if(*data++ == '\t')
-			actualx += global_settings.tabstop;
-		else
-			actualx++;
+		while(*data && x-- > 0)
+			if(*data++ == '\t')
+				actualx += global_settings.tabstop;
+			else
+				actualx++;
 
-	if(*data == '\0')
-		if(--actualx < 0)
-			actualx = 0;
+		if(*data == '\0')
+			if(--actualx < 0)
+				actualx = 0;
 
-	return actualx;
+		return actualx;
+	}else
+		return x;
 }
 
 void view_updatecursor()

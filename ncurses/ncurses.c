@@ -397,8 +397,9 @@ static void open(int before)
 
 	if(!before)
 		++pady;
-	padx = 0;
-	view_updatecursor();
+
+	wmove(pad, pady, padx = 0);
+	clrtoeol();
 
 	cur = buffer_getindex(buffer, pady);
 	/*
