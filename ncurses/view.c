@@ -24,11 +24,12 @@ extern struct settings global_settings;
 #define MAX_Y (LINES - 1)
 #define PAD_HEIGHT_INC 16
 
-static void	resizepad(void);
+static void resizepad(void);
 static void clippadx(void);
 static void clippady(void);
 static void padyinrange(void);
 static int view_actualx(int, int);
+static int view_getactualx(int, int);
 
 #define clippad() do { clippady(); clippadx(); } while(0)
 										/* do y first */
@@ -130,16 +131,17 @@ static void padyinrange()
 
 int view_move(enum direction d)
 {
-	int ylim = buffer_nlines(buffer)-1, ret = 0,
+	int ylim, ret = 0,
 			xlim, screenbottom = padtop + MAX_Y - 1;
 	struct list *cl = buffer_getindex(buffer, pady);
 
-	if(screenbottom > ylim)
-		screenbottom = ylim;
-
-	xlim = view_actualx(pady, MAX_X);
+	xlim = strlen(cl->data) - 1;
 	if(xlim < 0)
 		xlim = 0;
+
+	ylim = buffer_nlines(buffer)-1;
+	if(screenbottom > ylim)
+		screenbottom = ylim;
 
 	switch(d){
 		case ABSOLUTE_LEFT:
@@ -253,6 +255,10 @@ int view_move(enum direction d)
 
 static int view_actualx(int y, int x)
 {
+	/*
+	 * translate the x-coord in the buffer to the screen
+	 * coord, i.e. take \t into account
+	 */
 	char *data = buffer_getindex(buffer, y)->data;
 	int actualx = 0;
 
@@ -262,14 +268,35 @@ static int view_actualx(int y, int x)
 		else
 			actualx++;
 
+	if(*data == '\0')
+		if(--actualx < 0)
+			actualx = 0;
+
 	return actualx;
 }
 
 void view_updatecursor()
 {
+	/* wmove takes care of pad{top,left} */
 	wmove(pad, pady, view_actualx(pady, padx));
 
 	view_refreshpad();
+}
+
+static int view_getactualx(int y, int x)
+{
+	char *data = buffer_getindex(buffer, y)->data;
+	int actualx = 0;
+
+	while(*data && x > 0){
+		if(*data++ == '\t')
+			actualx += global_settings.tabstop;
+		else
+			actualx++;
+		--x;
+	}
+
+	return actualx + x;
 }
 
 void view_drawbuffer(buffer_t *b)
@@ -351,17 +378,13 @@ static void resizepad()
 
 static void clippadx()
 {
-	struct list *cl = buffer_getindex(buffer, pady);
-	int xlim;
+	/* padx, as in the position in the buffer */
+	int xlim = strlen(buffer_getindex(buffer, pady)->data) - 1;
+	if(xlim < 0)
+		xlim = 0;
 
-	if(cl && cl->data){
-		xlim = view_actualx(pady, MAX_X);
-		if(xlim < 0)
-			xlim = 0;
-
-		if(padx > xlim)
-			padx = xlim;
-	}
+	if(padx > xlim)
+		padx = xlim;
 }
 
 static void clippady()
@@ -372,7 +395,9 @@ static void clippady()
 		padtop = pady - MAX_Y + 1;
 }
 
-void	view_waddch(WINDOW *w, int c)
+/* cursor/character adding positioning code */
+
+void view_waddch(WINDOW *w, int c)/*, int offset)*/
 {
 	if(c == '\t'){
 		c = global_settings.tabstop;
@@ -382,12 +407,10 @@ void	view_waddch(WINDOW *w, int c)
 		waddch(w, c);
 }
 
-void	view_padaddch(int y, int x, int c)
+void view_putcursor(int y, int x, int offset, int tabcount)
 {
-	if(c == '\t'){
-		c = global_settings.tabstop;
-		while(c--)
-			mvwaddch(pad, y, x, ' ');
-	}else
-		mvwaddch(pad, y, x, c);
+	move(y - padtop, view_getactualx(y, x)
+		+ offset
+		+ tabcount * (global_settings.tabstop - 1)
+		- padleft);
 }

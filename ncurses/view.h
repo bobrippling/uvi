@@ -41,9 +41,9 @@ int		view_move(enum direction);
 int		view_scroll(enum scroll);
 void	view_refreshpad(void);
 
-void	view_waddch(WINDOW *, int);
-void	view_padaddch(int, int, int);
+void	view_updatecursor(void);
 
-void view_updatecursor(void);
+void	view_waddch(WINDOW *, int);
+void	view_putcursor(int, int, int, int);
 
 #endif

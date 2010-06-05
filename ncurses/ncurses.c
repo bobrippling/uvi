@@ -30,7 +30,7 @@
 extern struct settings global_settings;
 
 #define NCURSES_DEBUG_SHOW_UNKNOWN	0
-#define NCURSES_DEBUG_SHOWXY				1
+#define NCURSES_DEBUG_SHOWXY				0
 
 #define INVALID_MARK "invalid mark"
 
@@ -273,12 +273,9 @@ get:
 		case C_CTRL_Z:
 		{
 			/* FIXME */
-			int x = padx, y = pady;
 			nc_down();
 			kill(getpid(), SIGSTOP);
 			nc_up();
-			padx = x;
-			pady = y;
 			view_updatecursor();
 			goto get;
 		}
@@ -318,21 +315,18 @@ static void unknownchar(int c)
 
 static void insert(int append)
 {
-	int savedx = padx, size = 16, afterlen, enteredlen;
+	int startx = padx, size = 16, afterlen, enteredlen, tabcount = 0;
 	struct list *curline = buffer_getindex(buffer, pady);
-	/* assert(curline) - handled by buffer */
 	char *line, *linepos;
 
 	gfunc_onpad = 1;
-
-	if(append && padx < (signed)strlen(curline->data)){
-		padx++;
-		savedx++;
-	}
-
-	view_updatecursor();
-
 	linepos = line = umalloc(size);
+
+	if(append && *(char *)curline->data != '\0')
+		startx++;
+
+	view_putcursor(pady, startx, 0, 0);
+	refresh();
 
 	do{
 		int c = nc_getch();
@@ -343,13 +337,13 @@ static void insert(int append)
 			break;
 		}else if(c == '\b'){
 			if(linepos > line){
-				linepos--;
-				padx--;
-				view_updatecursor();
+				if(*linepos == '\t')
+					tabcount--;
+				view_putcursor(pady, startx, --linepos - line, tabcount);
 			}
-
 			continue;
-		}
+		}else if(c == '\t')
+			tabcount++;
 
 		*linepos++ = c;
 
@@ -365,22 +359,21 @@ static void insert(int append)
 			linepos[1] = '\0';
 		}
 
-		padx++;
-
-		view_padaddch(pady, padx, c);
-		view_refreshpad();
+		view_waddch(stdscr, c);
+		refresh();
 	}while(1);
+
+	enteredlen = linepos - line;
 
 	linepos = realloc(curline->data,
 	                  strlen(curline->data) +
-	                 (enteredlen = strlen(line)) + 1);
-
+	                  enteredlen + 1);
 	if(!linepos)
 		longjmp(allocerr, 1);
 
 	curline->data = linepos;
-	linepos += savedx;
 
+	linepos += startx; /* linepos is now the insertion point */
 	afterlen = strlen(linepos);
 
 	if(afterlen)
@@ -393,7 +386,9 @@ static void insert(int append)
 	free(line);
 
 	buffer_modified(buffer) = 1;
-	padx--;
+	padx = startx + enteredlen - 1;
+	if(padx < 0)
+		padx = 0;
 }
 
 static void open(int before)
@@ -729,7 +724,7 @@ case_i:
 				bufferchanged = 1;
 				break;
 			case 'I':
-				view_move(ABSOLUTE_LEFT);
+				view_move(NO_BLANK);
 				goto case_i;
 
 			case 'r':
