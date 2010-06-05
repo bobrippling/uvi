@@ -18,9 +18,10 @@ uvi: main.o term.o buffer.o range.o command.o vars.o \
 	$Q${LD} -o $@ $^ ${LDFLAGS}
 
 options:
-	@echo CC: ${CC}
-	@echo CFLAGS: ${CFLAGS}
-	@echo LDFLAGS: ${LDFLAGS}
+	@echo "CC      = ${CC}"
+	@echo "CFLAGS  = ${CFLAGS}"
+	@echo "LDFLAGS = ${LDFLAGS}"
+	@echo "PREFIX  = ${PREFIX}"
 
 %.o:%.c
 	@echo CC $@
@@ -29,7 +30,7 @@ options:
 clean:
 	${Q}rm -f *.o util/*.o ncurses/*.o uvi
 
-.PHONY: clean
+.PHONY: clean options
 
 buffer.o: buffer.c util/alloc.h range.h buffer.h util/list.h
 command.o: command.c range.h buffer.h command.h util/list.h vars.h \
