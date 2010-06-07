@@ -46,8 +46,10 @@ extern struct settings global_settings;
 #define C_TAB				9
 #define C_NEWLINE		'\r'
 
+#if VIEW_COLOUR
 #define coloron(i)   (attron(COLOR_PAIR(i)))
 #define coloroff(i)  (attroff(COLOR_PAIR(i)))
+#endif
 #define validmark(c) ('a' <= (c) && (c) <= 'z')
 
 static void nc_up(void);
@@ -132,9 +134,13 @@ static void status(const char *s, ...)
 
 	clrtoeol();
 	va_start(l, s);
+#if VIEW_COLOUR
 	coloron(COLOR_RED);
+#endif
 	vwprintw(stdscr, s, l);
+#if VIEW_COLOUR
 	coloroff(COLOR_RED);
+#endif
 	va_end(l);
 }
 
