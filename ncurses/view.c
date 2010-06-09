@@ -31,9 +31,10 @@ static void padyinrange(void);
 static int view_actualx(int, int);
 static int view_getactualx(int, int);
 
-
+#if VIEW_COLOUR
 #define wcoloron(i)   (wattron( pad, COLOR_PAIR(i)))
 #define wcoloroff(i)  (wattroff(pad, COLOR_PAIR(i)))
+#endif
 
 #define clippad() do { clippady(); clippadx(); } while(0)
 										/* do y first */
@@ -414,11 +415,16 @@ void view_drawbuffer(buffer_t *b)
 	if(global_settings.colour){
 		while(l){
 			char *c = l->data;
-			int lim = MAX_X - 2; /* -2 for '\n' */
+			int lim = MAX_X - 1;
 
-			while(*c && --lim > 0){
+			while(*c && lim > 0){
 				checkcolour(c, &waitlen, &colour_on,
 						&current_syntax, &needcolouroff);
+
+				if(*c == '\t')
+					lim -= global_settings.tabstop;
+				else
+					lim--;
 				view_waddch(pad, *c++);
 			}
 
@@ -441,8 +447,14 @@ void view_drawbuffer(buffer_t *b)
 			int len = 0;
 			char *pos = l->data;
 
-			while(++len < MAX_X - 2 && *pos)
+			while(len < MAX_X && *pos){
+				if(*pos == '\t')
+					len += global_settings.tabstop;
+				else
+					len++;
+
 				view_waddch(pad, *pos++);
+			}
 		}else
 			waddnstr(pad, l->data, MAX_X - 1);
 

@@ -2,17 +2,20 @@
 #include <setjmp.h>
 #include <string.h>
 
+#include "config.h"
+
 #include "util/alloc.h"
 #include "range.h"
 #include "buffer.h"
 #include "vars.h"
-#include "config.h"
 
 #define S_READONLY "ro"
 #define S_MODIFIED "modified"
 #define S_EOL      "eol"
 #define S_TABSTOP  "ts"
+#if VIEW_COLOUR
 #define S_COLOUR   "colour"
+#endif
 
 extern struct settings global_settings;
 
@@ -43,8 +46,10 @@ char vars_isbool(enum vartype v)
 		case VARS_READONLY:
 		case VARS_MODIFIED:
 		case VARS_EOL:
+#if VIEW_COLOUR
 		case VARS_COLOUR:
 			return 1;
+#endif
 		case VARS_TABSTOP:
 			return 0;
 		case VARS_UNKNOWN:
@@ -62,7 +67,9 @@ char vars_isbuffervar(enum vartype t)
 			return 1;
 		case VARS_UNKNOWN:
 		case VARS_TABSTOP:
+#if VIEW_COLOUR
 		case VARS_COLOUR:
+#endif
 			break;
 	}
 	return 0;
@@ -78,7 +85,9 @@ char *vars_bufferget(enum vartype t, buffer_t *b)
 		case VARS_EOL:
 			return &buffer_eol(b);
 		case VARS_TABSTOP:
+#if VIEW_COLOUR
 		case VARS_COLOUR:
+#endif
 		case VARS_UNKNOWN:
 			break;
 	}
@@ -91,8 +100,10 @@ char *vars_settingget(enum vartype t)
 		case VARS_TABSTOP:
 			return &global_settings.tabstop;
 
+#if VIEW_COLOUR
 		case VARS_COLOUR:
 			return &global_settings.colour;
+#endif
 
 		case VARS_READONLY:
 		case VARS_MODIFIED:
@@ -122,8 +133,10 @@ const char *vars_tostring(enum vartype v)
 			return S_EOL;
 		case VARS_TABSTOP:
 			return S_TABSTOP;
+#if VIEW_COLOUR
 		case VARS_COLOUR:
 			return S_COLOUR;
+#endif
 		case VARS_UNKNOWN:
 			break;
 	}
@@ -140,8 +153,10 @@ enum vartype vars_gettype(const char *s)
 		return VARS_EOL;
 	else if(!strcmp(S_TABSTOP, s))
 		return VARS_TABSTOP;
+#if VIEW_COLOUR
 	else if(!strcmp(S_COLOUR, s))
 		return VARS_COLOUR;
+#endif
 
 	return VARS_UNKNOWN;
 }
