@@ -343,8 +343,8 @@ static void checkcolour(const char *c, char *waitlen, char *colour_on, unsigned 
 		const char *const start, *const end;
 		const short slen, elen, colour;
 	} const syntax[] = {
-		{ "/*", "*/", 2, 2, COLOR_WHITE },
-		{ "#", "\n",  1, 1, COLOR_BLUE  }
+		{ "/*", "*/", 2, 2, COLOR_RED   },
+		{ "#",  "\n", 1, 1, COLOR_BLUE  }
 	};
 	unsigned int i;
 
@@ -356,11 +356,14 @@ static void checkcolour(const char *c, char *waitlen, char *colour_on, unsigned 
 			const char *ptr = syntax[i = *current].end;
 
 			if(!strncmp(c, ptr, syntax[i].elen)){
-				wcoloroff(syntax[i].colour);
-
 				*colour_on = 0;
-				*waitlen = syntax[i].elen - 1;
-				*current = -1;
+				*waitlen = syntax[i].elen;
+
+				/*wcoloroff(syntax[i].colour);*/
+				/*
+				 * wait until the chars have been added before removing colour
+				 * below in the else bit
+				 */
 			}
 		}else
 			for(i = 0; i < SYNTAX_COUNT; i++){
@@ -370,11 +373,15 @@ static void checkcolour(const char *c, char *waitlen, char *colour_on, unsigned 
 
 					*current = i;
 					*colour_on = 1;
-					*waitlen = strlen(ptr) - 1;
+					*waitlen = syntax[i].slen - 1;
 				}
 			}
-	}else
-		--*waitlen;
+	}else if(!--*waitlen)
+		if(!*colour_on){
+			wcoloroff(syntax[*current].colour);
+			*colour_on = 1;
+		}
+
 }
 #endif
 
