@@ -334,9 +334,11 @@ static int view_getactualx(int y, int x)
  *  A_CHARTEXT
  */
 #if VIEW_COLOUR
-static void checkcolour(const char *, char *const, char *constconst, unsigned int *);
+static void checkcolour(const char *, char *const,
+		char *constconst, unsigned int *, char *);
 
-static void checkcolour(const char *c, char *waitlen, char *colour_on, unsigned int *current)
+static void checkcolour(const char *c, char *waitlen, char *colour_on,
+		unsigned int *current, char *needcolouroff)
 {
 	struct
 	{
@@ -357,13 +359,16 @@ static void checkcolour(const char *c, char *waitlen, char *colour_on, unsigned 
 
 			if(!strncmp(c, ptr, syntax[i].elen)){
 				*colour_on = 0;
-				*waitlen = syntax[i].elen;
-
-				/*wcoloroff(syntax[i].colour);*/
-				/*
-				 * wait until the chars have been added before removing colour
-				 * below in the else bit
-				 */
+				if(syntax[i].elen == 1){
+					wcoloroff(syntax[i].colour);
+				}else{
+					*waitlen = syntax[i].elen;
+					*needcolouroff = 1;
+					/*
+					 * wait until the chars have been added before removing colour
+					 * below in the else bit
+					 */
+				}
 			}
 		}else
 			for(i = 0; i < SYNTAX_COUNT; i++){
@@ -376,12 +381,12 @@ static void checkcolour(const char *c, char *waitlen, char *colour_on, unsigned 
 					*waitlen = syntax[i].slen - 1;
 				}
 			}
-	}else if(!--*waitlen)
-		if(!*colour_on){
+	}else if(--*waitlen == 0){
+		if(*needcolouroff){
 			wcoloroff(syntax[*current].colour);
-			*colour_on = 1;
+			*needcolouroff = 0;
 		}
-
+	}
 }
 #endif
 
@@ -390,7 +395,7 @@ void view_drawbuffer(buffer_t *b)
 	struct list *l = buffer_gethead(b);
 	int y = 0, size = buffer_nlines(b);
 #if VIEW_COLOUR
-	char colour_on = 0, waitlen = 0;
+	char colour_on = 0, waitlen = 0, needcolouroff = 0;
 	unsigned int current_syntax = -1;
 	const char newline[] = "\n";
 #endif
@@ -409,17 +414,20 @@ void view_drawbuffer(buffer_t *b)
 	if(global_settings.colour){
 		while(l){
 			char *c = l->data;
-			int lim = MAX_X;
+			int lim = MAX_X - 2; /* -2 for '\n' */
 
-			while(*c && lim --> 0){
-				checkcolour(c, &waitlen, &colour_on, &current_syntax);
+			while(*c && --lim > 0){
+				checkcolour(c, &waitlen, &colour_on,
+						&current_syntax, &needcolouroff);
 				view_waddch(pad, *c++);
 			}
 
 			while(*c)
-				checkcolour(c++, &waitlen, &colour_on, &current_syntax);
+				checkcolour(c++, &waitlen, &colour_on,
+						&current_syntax, &needcolouroff);
 
-			checkcolour(newline, &waitlen, &colour_on, &current_syntax);
+			checkcolour(newline, &waitlen, &colour_on,
+					&current_syntax, &needcolouroff);
 
 			waddch(pad, '\n');
 			y++;
