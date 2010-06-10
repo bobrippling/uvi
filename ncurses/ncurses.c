@@ -69,6 +69,7 @@ static int  colon(void);
 static void delete(enum motion, int);
 static void replace(int);
 static void unknownchar(int);
+static void showgirl(void);
 
 
 static void status(const char *, ...);
@@ -535,6 +536,15 @@ static void delete(enum motion m, int repeat)
 	view_move(CURRENT); /* clip x */
 }
 
+static void showgirl()
+{
+	char *word, *line = buffer_getindex(buffer, pady)->data;
+
+	word = line + padx;
+	while(word > line && isalnum(*word))
+		word++;
+}
+
 static int colon()
 {
 #define BUF_SIZE 128
@@ -820,6 +830,10 @@ case_i:
 				break;
 			case 'L':
 				viewchanged = view_move(SCREEN_BOTTOM);
+				break;
+
+			case 'K':
+				showgirl();
 				break;
 
 			case C_ESC:
