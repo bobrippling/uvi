@@ -2,6 +2,7 @@ change to unicode internal strings
 
 ncurses.c:
 	'J'
+	:set list
 
 command.c:
 	investigate binary (command.o) file read

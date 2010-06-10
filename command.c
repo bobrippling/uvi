@@ -180,10 +180,11 @@ insert:
 						case 'q':
 							flag = 1;
 							fname = s + 3;
-							/*
-							 * 3 because there should be a space
-							 * tough crabs/RTFSource-Code if there isn't
-							 */
+							if(s[2] != ' '){
+								bail = 1;
+								wrongfunc();
+								break;
+							}
 vars_fname:
 							buffer_setfilename(buffer, fname);
 							break;
