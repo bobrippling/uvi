@@ -51,6 +51,7 @@ extern struct settings global_settings;
 #define coloroff(i)  (attroff(COLOR_PAIR(i)))
 #endif
 #define validmark(c) ('a' <= (c) && (c) <= 'z')
+#define iswordchar(c) (isalnum(c) || c == '_')
 
 static void nc_up(void);
 static void nc_down(void);
@@ -538,11 +539,32 @@ static void delete(enum motion m, int repeat)
 
 static void showgirl()
 {
-	char *word, *line = buffer_getindex(buffer, pady)->data;
+	char *line = buffer_getindex(buffer, pady)->data, *wordstart, *wordend, *word;
+	const char man[] = "man ";
+	int len;
 
-	word = line + padx;
-	while(word > line && isalnum(*word))
-		word++;
+	wordend = wordstart = line + padx;
+
+	if(!iswordchar(*wordstart)){
+		status("invalid word");
+		return;
+	}
+
+	while(--wordstart > line && iswordchar(*wordstart));
+	wordstart++;
+
+	while(iswordchar(*wordend))
+		wordend++;
+
+	len = wordend - wordstart;
+
+	word = umalloc(len + sizeof(man) + 1);
+	strcpy(word, man);
+	strncat(word, wordstart, len);
+	word[len + sizeof(man)] = '\0';
+
+	shellout(word);
+	free(word);
 }
 
 static int colon()

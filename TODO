@@ -1,11 +1,7 @@
 change to unicode internal strings
 
-view.c
-	ncurses colour
-
 ncurses.c:
 	'J'
-	'K'
 
 command.c:
 	investigate binary (command.o) file read
