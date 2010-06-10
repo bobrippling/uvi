@@ -32,8 +32,8 @@ static int view_actualx(int, int);
 static int view_getactualx(int, int);
 
 #if VIEW_COLOUR
-#define wcoloron(i)   (wattron( pad, COLOR_PAIR(i)))
-#define wcoloroff(i)  (wattroff(pad, COLOR_PAIR(i)))
+# define wcoloron( c, a)  (wattron( pad, COLOR_PAIR(c) | (a) ))
+# define wcoloroff(c, a)  (wattroff(pad, COLOR_PAIR(c) | (a) ))
 #endif
 
 #define clippad() do { clippady(); clippadx(); } while(0)
@@ -308,32 +308,6 @@ static int view_getactualx(int y, int x)
 	return actualx + x;
 }
 
-/*
- * valid colours:
- *  COLOR_BLACK
- *  COLOR_GREEN
- *  COLOR_WHITE
- *  COLOR_RED
- *  COLOR_CYAN
- *  COLOR_MAGENTA
- *  COLOR_BLUE
- *  COLOR_YELLOW
- *
- *  COLOR_PAIR(COLOR_NAME)
- *
- * Attributes:
- *  A_NORMAL
- *  A_STANDOUT
- *  A_UNDERLINE
- *  A_REVERSE
- *  A_BLINK
- *  A_DIM
- *  A_BOLD
- *  A_PROTECT
- *  A_INVIS
- *  A_ALTCHARSET
- *  A_CHARTEXT
- */
 #if VIEW_COLOUR
 static void checkcolour(const char *, char *const,
 		char *constconst, unsigned int *, char *);
@@ -341,15 +315,8 @@ static void checkcolour(const char *, char *const,
 static void checkcolour(const char *c, char *waitlen, char *colour_on,
 		unsigned int *current, char *needcolouroff)
 {
-	struct
-	{
-		const char *const start, *const end;
-		const short slen, elen, colour;
-	} const syntax[] = {
-		{ "/*", "*/", 2, 2, COLOR_RED   },
-		{ "#",  "\n", 1, 1, COLOR_BLUE  }
-	};
 	unsigned int i;
+	SYNTAXES;
 
 	#define SYNTAX_COUNT (sizeof(syntax)/sizeof(syntax[0]))
 
@@ -360,8 +327,8 @@ static void checkcolour(const char *c, char *waitlen, char *colour_on,
 
 			if(!strncmp(c, ptr, syntax[i].elen)){
 				*colour_on = 0;
-				if(syntax[i].elen == 1){
-					wcoloroff(syntax[i].colour);
+				if(c[1] == '\0'){
+					wcoloroff(syntax[i].colour, syntax[i].attrib);
 				}else{
 					*waitlen = syntax[i].elen;
 					*needcolouroff = 1;
@@ -374,8 +341,9 @@ static void checkcolour(const char *c, char *waitlen, char *colour_on,
 		}else
 			for(i = 0; i < SYNTAX_COUNT; i++){
 				const char *ptr = *colour_on ? syntax[i].end : syntax[i].start;
+
 				if(!strncmp(c, ptr, *colour_on ? syntax[i].elen : syntax[i].slen)){
-					wcoloron(syntax[i].colour);
+					wcoloron(syntax[i].colour, syntax[i].attrib);
 
 					*current = i;
 					*colour_on = 1;
@@ -384,7 +352,7 @@ static void checkcolour(const char *c, char *waitlen, char *colour_on,
 			}
 	}else if(--*waitlen == 0){
 		if(*needcolouroff){
-			wcoloroff(syntax[*current].colour);
+			wcoloroff(syntax[*current].colour, syntax[*current].attrib);
 			*needcolouroff = 0;
 		}
 	}
@@ -466,14 +434,12 @@ void view_drawbuffer(buffer_t *b)
 tilde:
 	move(y, 0);
 #if VIEW_COLOUR
-	wcoloron(COLOR_BLUE);
-	wattron(pad, A_BOLD);
+	wcoloron(COLOR_BLUE, 0);
 #endif
 	while(++y <= MAX_Y)
 		waddstr(pad, "~\n");
 #if VIEW_COLOUR
-	wattroff(pad, A_BOLD);
-	wcoloroff(COLOR_BLUE);
+	wcoloroff(COLOR_BLUE, 0);
 #endif
 
 	view_updatecursor();
