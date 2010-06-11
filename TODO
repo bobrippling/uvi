@@ -5,10 +5,6 @@ ncurses.c:
 	:set list
 
 command.c:
-	investigate binary (command.o) file read
-
-	regex search
-
 	s/ \+$// option
 
-	*word* = bold, _word_ = underline
+	regex search

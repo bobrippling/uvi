@@ -271,7 +271,10 @@ static int view_actualx(int y, int x)
 
 		while(*data && x-- > 0)
 			if(*data++ == '\t')
-				actualx += global_settings.tabstop;
+				if(global_settings.showtabs)
+					actualx += 2;
+				else
+					actualx += global_settings.tabstop;
 			else
 				actualx++;
 
@@ -299,7 +302,10 @@ static int view_getactualx(int y, int x)
 
 	while(*data && x > 0){
 		if(*data++ == '\t')
-			actualx += global_settings.tabstop;
+			if(global_settings.showtabs)
+				actualx += 2;
+			else
+				actualx += global_settings.tabstop;
 		else
 			actualx++;
 		--x;
@@ -390,7 +396,10 @@ void view_drawbuffer(buffer_t *b)
 						&current_syntax, &needcolouroff);
 
 				if(*c == '\t')
-					lim -= global_settings.tabstop;
+					if(global_settings.showtabs)
+						lim -= 2;
+					else
+						lim -= global_settings.tabstop;
 				else
 					lim--;
 				view_waddch(pad, *c++);
@@ -417,7 +426,10 @@ void view_drawbuffer(buffer_t *b)
 
 			while(len < MAX_X && *pos){
 				if(*pos == '\t')
-					len += global_settings.tabstop;
+					if(global_settings.showtabs)
+						len += 2;
+					else
+						len += global_settings.tabstop;
 				else
 					len++;
 
@@ -522,9 +534,13 @@ static void clippady()
 void view_waddch(WINDOW *w, int c)/*, int offset)*/
 {
 	if(c == '\t'){
-		c = global_settings.tabstop;
-		while(c--)
-			waddch(w, ' ');
+		if(global_settings.showtabs){
+			waddstr(w, "^I");
+		}else{
+			c = global_settings.tabstop;
+			while(c--)
+				waddch(w, ' ');
+		}
 	}else
 		waddch(w, c);
 }
