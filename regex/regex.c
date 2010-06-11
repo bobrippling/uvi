@@ -1,4 +1,7 @@
 #include <errno.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
 
 #include "regex.h"
 
@@ -11,15 +14,19 @@
 regex_t *regex_create(const char *s)
 {
 	regex_t *r = malloc(sizeof(*r));
-	char *start = s;
+	const char *start = s;
 	int len;
+
+	printf("regex_create(\"%s\")\n", s);
+	fflush(stdout);
+
 
 	if(!r)
 		return NULL;
 
 	errno = 0;
 
-	while(*s && *s != '*' && *s != '+')
+	while(*s && *s != '*' && *s != '+' && *s != '?')
 		s++;
 
 	len = s - start;
@@ -32,7 +39,7 @@ regex_t *regex_create(const char *s)
 		strncpy(r->str, start, len);
 
 		if(*s == '\0'){
-			r->next = malloc(sizeof(*(cur->next)));
+			r->next = malloc(sizeof(*r));
 			if(!r->next)
 				goto membail;
 		}
@@ -44,12 +51,15 @@ regex_t *regex_create(const char *s)
 
 	switch(*s){
 		case '*':
+			r->noderepeat = STAR;
+			break;
+
 		case '+':
-			if(!len){
-				errno = EINVAL;
-				return NULL;
-			}
-			r->noderepeat = *s == '*' ? STAR : PLUS;
+			r->noderepeat = PLUS;
+			break;
+
+		case '?':
+			r->noderepeat = QMARK;
 			break;
 
 		case '\0':
@@ -57,22 +67,33 @@ regex_t *regex_create(const char *s)
 			break;
 
 		default:
-			fprintf("MAJOR REGEX ERROR: '%c'\n", *s);
+			fprintf(stderr, "MAJOR REGEX ERROR: '%c'\n", *s);
 			return NULL;
 	}
 
-	r->next = regex_create(s);
+	if(r->noderepeat != NONE && !len){
+		errno = EINVAL;
+		return NULL;
+	}
+
+	if(*s == '\0')
+		r->next = NULL;
+	else
+		r->next = regex_create(s + 1);
 
 	return r;
 membail:
 	errno = ENOMEM;
 	regex_free(r);
+	return NULL;
 }
 
+/*
 int regex_matches(regex_t *r, const char *s, int *start, int *end)
 {
 	return 0;
 }
+*/
 
 /* 1 matches on 2 starting at 3, ending at 4 */
 void regex_free(regex_t *r)

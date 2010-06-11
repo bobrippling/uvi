@@ -1,10 +1,10 @@
 #ifndef REGEX_H
 #define REGEX_H
 
-typedef struct
+typedef struct _regex
 	{
 		char *str;
-		enum { NONE, STAR, PLUS } noderepeat;
+		enum { NONE, STAR, PLUS, QMARK } noderepeat;
 		struct _regex *next;
 	} regex_t;
 
