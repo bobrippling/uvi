@@ -69,8 +69,14 @@ static void open(int);
 static int  colon(void);
 static void delete(enum motion, int);
 static void replace(int);
+
 static void unknownchar(int);
+
 static void showgirl(void);
+
+static void percent(void);
+static char bracketdir(char);
+static char bracketrev(char);
 
 
 static void status(const char *, ...);
@@ -537,6 +543,118 @@ static void delete(enum motion m, int repeat)
 	view_move(CURRENT); /* clip x */
 }
 
+static char bracketdir(char b)
+{
+	switch(b){
+		case '<':
+		case '(':
+		case '[':
+		case '{':
+			return -1;
+
+		case '>':
+		case ')':
+		case ']':
+		case '}':
+			return 1;
+
+		default:
+			return 0;
+	}
+}
+
+static char bracketrev(char b)
+{
+	switch(b){
+		case '<': return '>';
+		case '(': return ')';
+		case '[': return ']';
+		case '{': return '}';
+
+		case '>': return '<';
+		case ')': return '(';
+		case ']': return '[';
+		case '}': return '{';
+
+		default: return '\0';
+	}
+}
+
+static void percent(void)
+{
+	struct list *listpos = buffer_getindex(buffer, pady);
+	char *line = listpos->data,
+			*pos = line + padx, *opposite, dir,
+			bracket = '\0', revbracket = '\0', xychanged = 0;
+	int nest = 0, pady_save = pady, padx_save = padx;
+
+#define restorepadxy() do{ padx = padx_save; \
+												pady = pady_save; \
+												status("matching bracket not found"); \
+												}while(0)
+
+	while(pos >= line && !bracket)
+		if((revbracket = bracketrev(*pos))){
+			bracket = *pos;
+			break;
+		}else
+			pos--;
+
+	if(!revbracket)
+		return;
+
+	dir = bracketdir(revbracket);
+
+	/* looking for revbracket */
+	opposite = pos + dir;
+
+	do{
+		while(opposite >= line && *opposite){
+			if(*opposite == revbracket){
+				if(--nest < 0)
+					break;
+			}else if(*opposite == bracket)
+				nest++;
+			opposite += dir;
+		}
+
+		if(opposite < line){
+			if(listpos->prev){
+				listpos = listpos->prev;
+				pady--;
+				xychanged = 1;
+
+				line = listpos->data;
+				opposite = line + strlen(line) - 1;
+			}else{
+				restorepadxy();
+				return;
+			}
+		}else if(!*opposite){
+			if(listpos->next){
+				listpos = listpos->next;
+				pady++;
+				xychanged = 1;
+
+				opposite = line = listpos->data;
+			}else{
+				restorepadxy();
+				return;
+			}
+		}else
+			break;
+	}while(1);
+
+	if(opposite){
+		padx = opposite - line;
+		if(xychanged)
+			view_move(CURRENT);
+		else
+			view_updatecursor();
+	}
+#undef	restorepadxy
+}
+
 static void showgirl()
 {
 	char *line = buffer_getindex(buffer, pady)->data, *wordstart, *wordend, *word;
@@ -668,8 +786,9 @@ int ncurses_main(const char *filename, char readonly)
 			 * cursor must be updated before
 			 * the pad is refreshed
 			 */
-			view_updatecursor();
+			/*view_updatecursor();*/
 			/*view_refreshpad();*/
+			view_move(CURRENT);
 			viewchanged = 0;
 		}
 		/*
@@ -783,7 +902,8 @@ case_i:
 						pady = multiple - 1;
 						if(pady < 0)
 							pady = 0;
-						viewchanged = view_move(CURRENT);
+
+						viewchanged = 1; /* causes... view_move(CURRENT);*/
 						/* change to NO_BLANK to do vim-style ^ thingy */
 					}else
 						pfunc("%d out of range", multiple);
@@ -854,6 +974,10 @@ case_i:
 				viewchanged = view_move(SCREEN_BOTTOM);
 				break;
 
+			case '%':
+				percent();
+				break;
+
 			case 'K':
 				showgirl();
 				break;
@@ -878,7 +1002,6 @@ case_i:
 							padx = pos - s;
 
 						view_updatecursor();
-						/*viewchanged = view_move(CURRENT);*/
 					}
 #if NCURSES_DEBUG_SHOW_UNKNOWN
 					else{

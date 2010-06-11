@@ -1,6 +1,7 @@
 change to unicode internal strings
 
 ncurses.c:
+	'\n' handling in insert()
 	'%'
 	'J'
 	:set list
