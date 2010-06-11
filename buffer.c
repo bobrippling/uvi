@@ -187,7 +187,7 @@ static int fgetline(char **s, FILE *in, char *haseol)
 			tmp = realloc(*s, buffer_size);
 			if(!tmp){
 				free(*s);
-				longjmp(allocerr, 1);
+				longjmp(allocerr, ALLOC_BUFFER_C);
 			}
 			*s = tmp;
 			if(fseek(in, offset, SEEK_SET) == -1){

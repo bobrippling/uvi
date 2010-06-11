@@ -494,7 +494,7 @@ static void resizepad()
 	pad = newpad(padheight, padwidth);
 	if(!pad){
 		endwin();
-		longjmp(allocerr, 1);
+		longjmp(allocerr, ALLOC_VIEW);
 	}
 }
 

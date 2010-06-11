@@ -10,6 +10,7 @@
 
 #include "main.h"
 #include "config.h"
+#include "util/alloc.h"
 
 static void usage(const char *);
 
@@ -50,13 +51,24 @@ int main(int argc, const char **argv)
 	int i, argv_options = 1, readonly = 0;
 	int (*main2)(const char *, char) = &ncurses_main;
 	const char *fname = NULL;
+	enum allocfail af;
 
 	global_settings.tabstop = DEFAULT_TAB_STOP;
 	global_settings.colour  = 1;
 
-	if(setjmp(allocerr)){
-		fprintf(stderr, PROG_NAME" panic! longjmp bail: malloc(): %s\n",
-				errno ?  strerror(errno) : "(no error code)");
+	if((af = setjmp(allocerr))){
+		const char *from = NULL;
+		switch(af){
+			case ALLOC_UMALLOC:   from = "umalloc.c"; break;
+			case ALLOC_BUFFER_C:  from = "buffer.c"; break;
+			case ALLOC_COMMAND_C: from = "command.c"; break;
+			case ALLOC_NCURSES_1: from = "ncurses.c(1)"; break;
+			case ALLOC_NCURSES_2: from = "ncurses.c(2)"; break;
+			case ALLOC_VIEW:      from = "view.c"; break;
+		}
+
+		fprintf(stderr, PROG_NAME" panic! longjmp bail from %s: malloc(): %s\n",
+				from, errno ?  strerror(errno) : "(no error code)");
 		return 1;
 	}
 

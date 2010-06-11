@@ -56,7 +56,7 @@ struct list *command_readlines(enum gret (*gfunc)(char *, int))
 						size *= 2;
 						if(!(tmp = realloc(s, size))){
 							free(s);
-							longjmp(allocerr, 1);
+							longjmp(allocerr, ALLOC_COMMAND_C);
 						}
 						s = tmp;
 						insert = s + size - BUFFER_SIZE;

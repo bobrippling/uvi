@@ -364,7 +364,7 @@ static void insert(int append)
 			int diff = linepos - line;
 
 			if(!new)
-				longjmp(allocerr, 1);
+				longjmp(allocerr, ALLOC_NCURSES_1);
 
 			line = new;
 			linepos = line + diff;
@@ -381,7 +381,7 @@ static void insert(int append)
 	                  strlen(curline->data) +
 	                  enteredlen + 1);
 	if(!linepos)
-		longjmp(allocerr, 1);
+		longjmp(allocerr, ALLOC_NCURSES_2);
 
 	curline->data = linepos;
 
