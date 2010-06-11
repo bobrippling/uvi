@@ -88,14 +88,40 @@ membail:
 	return NULL;
 }
 
-/*
+/* 1 matches on 2 starting at 3, ending at 4 */
 int regex_matches(regex_t *r, const char *s, int *start, int *end)
 {
-	return 0;
-}
-*/
+	char *nodepos;
+	int i = strlen(nodepos) - 1;
 
-/* 1 matches on 2 starting at 3, ending at 4 */
+try:
+	nodepos = r->str;
+
+	do{
+		if(*s == *nodepos){
+			nodepos++;
+			s++;
+		}else
+			return 0;
+		i--;
+	}
+
+	switch(r->noderepeat){
+		case NONE:
+			return *s == *nodepos;
+
+		case STAR:
+			while(*s == *nodepos){
+				s++;
+				nodepos++;
+			}
+			if(*nodepos == '\0')
+			break;
+
+
+	return 1;
+}
+
 void regex_free(regex_t *r)
 {
 	while(r){
