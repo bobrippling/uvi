@@ -13,6 +13,7 @@
 #define S_MODIFIED "modified"
 #define S_EOL      "eol"
 #define S_TABSTOP  "ts"
+#define S_SHOWTABS "st"
 #if VIEW_COLOUR
 #define S_COLOUR   "colour"
 #endif
@@ -46,6 +47,7 @@ char vars_isbool(enum vartype v)
 		case VARS_READONLY:
 		case VARS_MODIFIED:
 		case VARS_EOL:
+		case VARS_SHOWTABS:
 #if VIEW_COLOUR
 		case VARS_COLOUR:
 			return 1;
@@ -67,6 +69,7 @@ char vars_isbuffervar(enum vartype t)
 			return 1;
 		case VARS_UNKNOWN:
 		case VARS_TABSTOP:
+		case VARS_SHOWTABS:
 #if VIEW_COLOUR
 		case VARS_COLOUR:
 #endif
@@ -84,6 +87,7 @@ char *vars_bufferget(enum vartype t, buffer_t *b)
 			return &buffer_modified(b);
 		case VARS_EOL:
 			return &buffer_eol(b);
+		case VARS_SHOWTABS:
 		case VARS_TABSTOP:
 #if VIEW_COLOUR
 		case VARS_COLOUR:
@@ -99,6 +103,9 @@ char *vars_settingget(enum vartype t)
 	switch(t){
 		case VARS_TABSTOP:
 			return &global_settings.tabstop;
+
+		case VARS_SHOWTABS:
+			return &global_settings.showtabs;
 
 #if VIEW_COLOUR
 		case VARS_COLOUR:
@@ -125,6 +132,8 @@ char *vars_get(enum vartype t, buffer_t *b)
 const char *vars_tostring(enum vartype v)
 {
 	switch(v){
+		case VARS_SHOWTABS:
+			return S_SHOWTABS;
 		case VARS_READONLY:
 			return S_READONLY;
 		case VARS_MODIFIED:
@@ -147,6 +156,8 @@ enum vartype vars_gettype(const char *s)
 {
 	if(!strcmp(S_READONLY, s))
 		return VARS_READONLY;
+	else if(!strcmp(S_SHOWTABS, s))
+		return VARS_SHOWTABS;
 	else if(!strcmp(S_MODIFIED, s))
 		return VARS_MODIFIED;
 	else if(!strcmp(S_EOL, s))

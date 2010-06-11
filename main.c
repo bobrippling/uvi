@@ -53,8 +53,9 @@ int main(int argc, const char **argv)
 	const char *fname = NULL;
 	enum allocfail af;
 
-	global_settings.tabstop = DEFAULT_TAB_STOP;
-	global_settings.colour  = 1;
+	global_settings.tabstop  = DEFAULT_TAB_STOP;
+	global_settings.colour   = 1;
+	global_settings.showtabs = 0;
 
 	if((af = setjmp(allocerr))){
 		const char *from = NULL;
