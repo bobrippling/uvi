@@ -5,6 +5,8 @@ ncurses.c:
 	:set list
 
 command.c:
+	modelist for vars.h... only
+
 	s/ \+$// option
 
 	regex search
