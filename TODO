@@ -1,8 +1,10 @@
 change to unicode internal strings
 
 ncurses.c:
+	'%'
 	'J'
 	:set list
+	:e autocomplete?
 
 command.c:
 	modelist for vars.h... only
