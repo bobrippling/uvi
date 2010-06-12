@@ -4,6 +4,9 @@ ncurses.c:
 	'J'
 	:set list
 	:e autocomplete?
+	>> & <<
+	keywords, like TODO & FIXME
+	on new file, pady = 0
 
 command.c:
 	s/ \+$// option
