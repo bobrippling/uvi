@@ -22,7 +22,7 @@
 
 static buffer_t *buffer;
 
-static int	qfunc(const char *);
+static int  qfunc(const char *, ...);
 static void pfunc(const char *, ...);
 static enum gret gfunc(char *, int);
 static void wrongfunc(void);
@@ -45,10 +45,14 @@ static enum gret gfunc(char *s, int i)
 	return g_CONTINUE;
 }
 
-static int qfunc(const char *s)
+static int qfunc(const char *s, ...)
 {
 	int ans;
-	fputs(s, stdout);
+	va_list l;
+
+	va_start(l, s);
+	vprintf(s, l);
+	va_end(l);
 
 	ans = getchar();
 

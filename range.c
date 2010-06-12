@@ -70,7 +70,7 @@ static char *getrange(char *s, struct range *r, int cur, int lim)
 }
 
 char *parserange(char *in, struct range *rng,
-		struct range *lim, int (*qfunc)(const char *),
+		struct range *lim, int (*qfunc)(const char *, ...),
 		void (*pfunc)(const char *, ...))
 {
 	char *s = getrange(in, rng, lim->start, lim->end);

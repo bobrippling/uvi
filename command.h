@@ -26,7 +26,7 @@ int command_run(
 	void      (*const wrongfunc)(void),
 	void      (*const pfunc)(const char *, ...),
 	enum gret (*const gfunc)(char *, int),
-	int	      (*const qfunc)(const char *),
+	int       (*const qfunc)(const char *, ...),
 	void      (*const shellout)(const char *)
 	);
 

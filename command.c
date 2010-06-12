@@ -4,6 +4,7 @@
 #include <setjmp.h>
 #include <errno.h>
 #include <ctype.h>
+#include <sys/stat.h>
 
 #include "config.h"
 
@@ -92,7 +93,7 @@ int command_run(
 	void (*wrongfunc)(void),
 	void (*pfunc)(const char *, ...),
 	enum gret (*gfunc)(char *, int),
-	int	(*qfunc)(const char *),
+	int  (*qfunc)(const char *, ...),
 	void (*shellout)(const char *)
 	)
 {
@@ -156,19 +157,11 @@ insert:
 
 			switch(strlen(s)){
 				case 2:
-					switch(s[1]){
-						case 'q':
-							flag = 1;
-							break;
-
-						case ' ':
-							fname = s + 1;
-							goto vars_fname;
-							break;
-
-						default:
-							wrongfunc();
-							bail = 1;
+					if(s[1] == 'q')
+						flag = 1;
+					else{
+						wrongfunc();
+						bail = 1;
 					}
 				case 1:
 					break;
@@ -187,6 +180,16 @@ insert:
 								break;
 							}
 vars_fname:
+							if(strcmp(buffer_filename(buffer), fname)){
+								struct stat st;
+
+								if(stat(fname, &st)){
+									if(errno != ENOENT && !qfunc("couldn't stat %s: %s, write? ", fname, strerror(errno)))
+										return 1;
+								}else if(!qfunc("%s exists, write? ", fname))
+									return 1;
+							}
+
 							buffer_setfilename(buffer, fname);
 							break;
 

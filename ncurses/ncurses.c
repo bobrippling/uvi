@@ -59,7 +59,7 @@ static void sigh(int);
 
 #define pfunc status
 static void wrongfunc(void);
-static int  qfunc(const char *);
+static int  qfunc(const char *, ...);
 static enum gret gfunc(char *, int);
 static void shellout(const char *);
 
@@ -80,6 +80,7 @@ static char bracketrev(char);
 
 
 static void status(const char *, ...);
+static void vstatus(const char *, va_list);
 static void showpos(void);
 
 #define MAX_X	(COLS - 1)
@@ -126,10 +127,8 @@ static void nc_up()
 	refresh();
 }
 
-static void status(const char *s, ...)
+static void vstatus(const char *s, va_list l)
 {
-	va_list l;
-
 	if(strchr(s, '\n') || pfunc_wantconfimation)
 		/*
 		 * print a bunch of lines,
@@ -141,7 +140,6 @@ static void status(const char *s, ...)
 
 
 	clrtoeol();
-	va_start(l, s);
 #if VIEW_COLOUR
 	if(global_settings.colour)
 		coloron(COLOR_RED);
@@ -151,6 +149,13 @@ static void status(const char *s, ...)
 	if(global_settings.colour)
 		coloroff(COLOR_RED);
 #endif
+}
+
+static void status(const char *s, ...)
+{
+	va_list l;
+	va_start(l, s);
+	vstatus(s, l);
 	va_end(l);
 }
 
@@ -164,10 +169,15 @@ static void showpos()
 			i, 100.0f * (float)(1 + pady) /(float)i);
 }
 
-static int qfunc(const char *s)
+static int qfunc(const char *s, ...)
 {
+	va_list l;
 	int c;
-	status("%s", s);
+
+	va_start(l, s);
+	vstatus(s, l);
+	va_end(l);
+
 	c = nc_getch();
 	return c == '\n' || tolower(c) == 'y';
 }
