@@ -1,6 +1,7 @@
 change to unicode internal strings
 
 ncurses.c:
+	fix A_STANDOUT bug
 	'J'
 	:set list
 	:e autocomplete?
