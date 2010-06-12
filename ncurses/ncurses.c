@@ -693,7 +693,7 @@ static void tilde(int rep)
 	char *data = (char *)buffer_getindex(buffer, pady)->data,
 			*pos = data + padx;
 
-	while(rep){
+	while(rep--){
 		if(islower(*pos))
 			*pos = toupper(*pos);
 		else
@@ -710,6 +710,8 @@ static void tilde(int rep)
 			view_updatecursor();
 		}else
 			break;
+
+		pos++;
 	}
 }
 
