@@ -24,6 +24,9 @@ void usage(const char *s)
 	fputs("  -t: terminal mode\n", stderr);
 	fputs("  -d: debug mode (don't catch SEGV)\n", stderr);
 	fputs("  -R: open as read only\n", stderr);
+#if VIEW_COLOUR
+	fputs("  -C: no colour (ncurses)\n", stderr);
+#endif
 	exit(1);
 }
 
@@ -65,6 +68,7 @@ int main(int argc, const char **argv)
 			case ALLOC_COMMAND_C: from = "command.c"; break;
 			case ALLOC_NCURSES_1: from = "ncurses.c(1)"; break;
 			case ALLOC_NCURSES_2: from = "ncurses.c(2)"; break;
+			case ALLOC_NCURSES_3: from = "ncurses.c(3)"; break;
 			case ALLOC_VIEW:      from = "view.c"; break;
 		}
 
@@ -88,6 +92,12 @@ int main(int argc, const char **argv)
 					case 'd':
 						debug = 1;
 						break;
+
+#if VIEW_COLOUR
+					case 'C':
+						global_settings.colour = 0;
+						break;
+#endif
 
 					case 'R':
 						readonly = 1;

@@ -324,7 +324,7 @@ static void checkcolour(const char *c, char *waitlen, char *colour_on,
 	unsigned int i;
 	SYNTAXES;
 
-	#define SYNTAX_COUNT (sizeof(syntax)/sizeof(syntax[0]))
+#define SYNTAX_COUNT (sizeof(syntax)/sizeof(syntax[0]))
 
 	if(*waitlen <= 0){
 		if(*colour_on){

@@ -61,7 +61,10 @@
 
 struct settings
 {
-	char tabstop, colour, showtabs;
+	char tabstop, showtabs;
+#if VIEW_COLOUR
+	char colour;
+#endif
 };
 
 #endif

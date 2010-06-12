@@ -8,6 +8,7 @@ ncurses.c:
 	>> & <<
 	keywords, like TODO & FIXME
 	on new file, pady = 0
+	'{' & '}'
 
 command.c:
 	s/ \+$// option

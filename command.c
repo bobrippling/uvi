@@ -5,6 +5,8 @@
 #include <errno.h>
 #include <ctype.h>
 
+#include "config.h"
+
 #include "range.h"
 #include "buffer.h"
 #include "command.h"
@@ -14,7 +16,6 @@
 #include "vars.h"
 #include "util/alloc.h"
 
-#include "config.h"
 
 static void parse_setget(buffer_t *, char, char *, void (*)(const char *, ...), void (*)(void));
 static buffer_t *newemptybuffer(void);
@@ -543,14 +544,7 @@ static void parse_setget(buffer_t *b, char isset, /* is this "set" or "get"? */
 		enum vartype t = 0;
 
 		do{
-			char *val;
-			const char *const vs = vars_tostring(t);
-			val = vars_get(t, b);
-
-			if(val)
-				pfunc("%s: %d\n", vs, *val);
-			else
-				pfunc("%s: (not set)\n", vs);
+			pfunc("%s: %d\n", vars_tostring(t), t, *vars_get(t, b));
 		}while(++t != VARS_UNKNOWN);
 
 		return;

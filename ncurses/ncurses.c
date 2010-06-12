@@ -143,11 +143,13 @@ static void status(const char *s, ...)
 	clrtoeol();
 	va_start(l, s);
 #if VIEW_COLOUR
-	coloron(COLOR_RED);
+	if(global_settings.colour)
+		coloron(COLOR_RED);
 #endif
 	vwprintw(stdscr, s, l);
 #if VIEW_COLOUR
-	coloroff(COLOR_RED);
+	if(global_settings.colour)
+		coloroff(COLOR_RED);
 #endif
 	va_end(l);
 }
