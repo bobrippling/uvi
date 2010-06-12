@@ -69,10 +69,10 @@ static int  open(int);
 static int  colon(void);
 static void delete(enum motion, int);
 static void replace(int);
+static void showgirl(unsigned int);
+static void tilde(int);
 
 static void unknownchar(int);
-
-static void showgirl(void);
 
 static void percent(void);
 static char bracketdir(char);
@@ -688,11 +688,40 @@ static void percent(void)
 #undef	restorepadxy
 }
 
-static void showgirl()
+static void tilde(int rep)
+{
+	char *data = (char *)buffer_getindex(buffer, pady)->data,
+			*pos = data + padx;
+
+	while(rep){
+		if(islower(*pos))
+			*pos = toupper(*pos);
+		else
+			*pos = tolower(*pos);
+
+		mvwaddch(pad, pady, padx, *pos);
+
+		/**pos ^= (1 << 5); * flip bit 100000 = 6 */
+
+		buffer_modified(buffer) = 1;
+
+		if(padx < (signed)strlen(data)){
+			padx++;
+			view_updatecursor();
+		}else
+			break;
+	}
+}
+
+static void showgirl(unsigned int page)
 {
 	char *line = buffer_getindex(buffer, pady)->data, *wordstart, *wordend, *word;
-	const char man[] = "man ";
 	int len;
+
+	if(page > 9){
+		status("invalid man page");
+		return;
+	}
 
 	wordend = wordstart = line + padx;
 
@@ -701,7 +730,7 @@ static void showgirl()
 		return;
 	}
 
-	while(--wordstart > line && iswordchar(*wordstart));
+	while(--wordstart >= line && iswordchar(*wordstart));
 	wordstart++;
 
 	while(iswordchar(*wordend))
@@ -709,10 +738,14 @@ static void showgirl()
 
 	len = wordend - wordstart;
 
-	word = umalloc(len + sizeof(man) + 1);
-	strcpy(word, man);
+	word = umalloc(len + 7);
+	if(page)
+		sprintf(word, "man %d ", page);
+	else
+		strcpy(word, "man ");
+
 	strncat(word, wordstart, len);
-	word[len + sizeof(man)] = '\0';
+	word[len + 6] = '\0';
 
 	shellout(word);
 	free(word);
@@ -1011,8 +1044,12 @@ case_i:
 				percent();
 				break;
 
+			case '~':
+				tilde(multiple ? multiple : 1);
+				break;
+
 			case 'K':
-				showgirl();
+				showgirl(multiple);
 				break;
 
 			case C_ESC:
