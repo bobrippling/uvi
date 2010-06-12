@@ -386,6 +386,7 @@ void view_drawbuffer(buffer_t *b)
 		goto tilde;
 
 #if VIEW_COLOUR
+	wattrset(pad, A_NORMAL); /* bit of a bodge */
 	if(global_settings.colour){
 		while(l){
 			char *c = l->data;

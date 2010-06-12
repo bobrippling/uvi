@@ -387,13 +387,12 @@ static void command_e(char *s, buffer_t **b, int *y,
 	if(!force && buffer_modified(buffer))
 		pfunc("unsaved");
 	else{
-		int nlines;
-
 		buffer_free(buffer);
 		buffer = command_readfile(fname, 0, pfunc);
 
-		if(*y >= (nlines = buffer_nlines(buffer)))
-			*y = nlines - 1;
+		/*if(*y >= (nlines = buffer_nlines(buffer)))
+			*y = nlines - 1;*/
+		*y = 0;
 	}
 #undef buffer
 }

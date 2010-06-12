@@ -1,16 +1,13 @@
 change to unicode internal strings
 
 ncurses.c:
-	fix A_STANDOUT bug
 	'J'
 	:set list
 	:e autocomplete?
 	>> & <<
 	keywords, like TODO & FIXME
-	on new file, pady = 0
 	'{' & '}'
 
 command.c:
 	s/ \+$// option
-
 	regex search
