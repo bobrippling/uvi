@@ -65,7 +65,7 @@ static void shellout(const char *);
 
 static int  nc_getch(void);
 static void insert(int);
-static void open(int);
+static int  open(int);
 static int  colon(void);
 static void delete(enum motion, int);
 static void replace(int);
@@ -335,7 +335,7 @@ static void insert(int append)
 {
 	int startx = padx, size = 16, afterlen, enteredlen, tabcount = 0;
 	struct list *curline = buffer_getindex(buffer, pady);
-	char *line, *linepos;
+	char *line, *linepos, newline = 0, *after = NULL;
 
 	gfunc_onpad = 1;
 	linepos = line = umalloc(size);
@@ -349,9 +349,12 @@ static void insert(int append)
 	do{
 		int c = nc_getch();
 
-		/* TODO: '\n' */
-		if(c == C_ESC || c == C_EOF || c == C_NEWLINE){
+		if(c == C_ESC || c == C_EOF){
 			*linepos = '\0';
+			break;
+		}else if(c == '\n'){
+			*linepos = '\0';
+			newline = 1;
 			break;
 		}else if(c == '\b'){
 			if(linepos > line){
@@ -395,12 +398,36 @@ static void insert(int append)
 	afterlen = strlen(linepos);
 
 	if(afterlen)
-		memmove(linepos + enteredlen, linepos, afterlen + 1); /* include the nul char */
+		if(newline){
+			after = linepos + 1;
+			memmove(after, after - 1, afterlen); /* no more '\0' */
+			after[-1] = '\0';
+		}else
+			memmove(linepos + enteredlen, linepos, afterlen + 1); /* include the nul char */
 	else
 		linepos[enteredlen] = '\0'; /* vital as the above +1 */
 
-	memmove(linepos, line, enteredlen);
+	if(newline){
+		struct list *last;
+		char *tmp;
+		const int savedy = pady;
+		int y;
 
+		y = open(0);
+		last = buffer_getindex(buffer, savedy + y);
+
+		tmp = realloc(last->data, strlen(last->data) + afterlen + 1);
+		if(!tmp)
+			longjmp(allocerr, ALLOC_NCURSES_3);
+
+		last->data = tmp;
+		tmp += strlen(last->data);
+
+		memmove(tmp, after, afterlen);
+		tmp[afterlen] = '\0';
+	}
+
+	memmove(linepos, line, enteredlen + newline); /* include '\0' */
 	free(line);
 
 	buffer_modified(buffer) = 1;
@@ -409,9 +436,11 @@ static void insert(int append)
 		padx = 0;
 }
 
-static void open(int before)
+/* returns nlines */
+static int open(int before)
 {
 	struct list *cur, *new;
+	int nlines;
 
 	if(!before)
 		++pady;
@@ -428,6 +457,8 @@ static void open(int before)
 
 	gfunc_onpad = 1;
 	new = command_readlines(&gfunc);
+
+	nlines = list_count(new);
 
 	if(before)
 		buffer_insertlistbefore(buffer, cur, new);
@@ -453,6 +484,8 @@ static void open(int before)
 	}
 
 	buffer_modified(buffer) = 1;
+
+	return nlines;
 }
 
 static void replace(int n)

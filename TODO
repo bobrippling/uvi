@@ -1,15 +1,11 @@
 change to unicode internal strings
 
 ncurses.c:
-	'\n' handling in insert()
-	'%'
 	'J'
 	:set list
 	:e autocomplete?
 
 command.c:
-	modelist for vars.h... only
-
 	s/ \+$// option
 
 	regex search
