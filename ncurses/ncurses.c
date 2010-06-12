@@ -506,6 +506,8 @@ static void replace(int n)
 
 
 	if(isprint(c)){
+		buffer_modified(buffer) = 1;
+
 		while(n--)
 			s[padx + n] = c;
 
@@ -513,6 +515,8 @@ static void replace(int n)
 		/* delete n chars, and insert 1 line */
 		char *off = s + padx + n-1;
 		char *cpy = umalloc(strlen(off));
+
+		buffer_modified(buffer) = 1;
 
 		memset(off - n + 1, '\0', n);
 		strcpy(cpy, off + 1);
@@ -572,6 +576,8 @@ static void delete(enum motion m, int repeat)
 
 	if(pady >= buffer_nlines(buffer))
 		pady = buffer_nlines(buffer) - 1;
+
+	buffer_modified(buffer) = 1;
 
 	view_move(CURRENT); /* clip x */
 }
@@ -703,16 +709,16 @@ static void tilde(int rep)
 
 		/**pos ^= (1 << 5); * flip bit 100000 = 6 */
 
-		buffer_modified(buffer) = 1;
-
-		if(padx < (signed)strlen(data)){
+		if(padx < (signed)strlen(data))
 			padx++;
-			view_updatecursor();
-		}else
+		else
 			break;
 
 		pos++;
 	}
+
+	view_updatecursor();
+	buffer_modified(buffer) = 1;
 }
 
 static void showgirl(unsigned int page)
