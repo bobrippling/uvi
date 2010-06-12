@@ -51,9 +51,9 @@
 		{ "//",  "\n",  2, 1, COMMENT_COLOUR, COMMENT_ATTRIB }, \
 \
 		{ "\"",  "\"",  1, 1, QUOTE_COLOUR  , QUOTE_ATTRIB   }, \
-		{ "\'",  "'",   1, 1, QUOTE_COLOUR  , QUOTE_ATTRIB   }, \
+/*	{ "\'",  "'",   1, 1, QUOTE_COLOUR  , QUOTE_ATTRIB   }, \
 \
-/*	{ "*",   "*",   1, 1,              0, A_BOLD         }, \
+		{ "*",   "*",   1, 1,              0, A_BOLD         }, \
 		{ "_",   "_",   1, 1,              0, A_UNDERLINE    },*/ \
 	}
 #endif

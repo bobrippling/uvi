@@ -576,7 +576,7 @@ static void delete(enum motion m, int repeat)
 				break;
 
 			case MOTION_LINE:
-				buffer_remove(buffer, listpos);
+				buffer_remove(buffer, listpos); /* FIXME: segfault on "%ddd",x where x > nlines */
 				break;
 
 			case MOTION_EOL:

@@ -7,6 +7,11 @@ ncurses.c:
 	>> & <<
 	keywords, like TODO & FIXME
 	'{' & '}'
+	'f' and 't'
+	:!!
+	fix ^Z problem
+	only syntax highlight what's on screen
+	%ddd bug (FIXME'd)
 
 command.c:
 	s/ \+$// option
