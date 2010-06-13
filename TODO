@@ -12,6 +12,7 @@ ncurses.c:
 	fix ^Z problem
 	only syntax highlight what's on screen
 	%ddd bug (FIXME'd)
+	fix syntax highlight with /*hi*//*yo*/
 
 command.c:
 	s/ \+$// option

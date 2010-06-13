@@ -545,9 +545,9 @@ static void parse_setget(buffer_t *b, char isset, /* is this "set" or "get"? */
 		/* set dump */
 		enum vartype t = 0;
 
-		do{
+		do
 			pfunc("%s: %d\n", vars_tostring(t), t, *vars_get(t, b));
-		}while(++t != VARS_UNKNOWN);
+		while(++t != VARS_UNKNOWN);
 
 		return;
 	}
