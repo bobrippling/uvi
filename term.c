@@ -148,6 +148,7 @@ int term_main(const char *filename, char readonly)
 	}while(1);
 
 	buffer_free(buffer);
+	command_free();
 
 	return 0;
 }

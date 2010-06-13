@@ -1,5 +1,3 @@
-change to unicode internal strings
-
 ncurses.c:
 	'J'
 	:set list
@@ -13,7 +11,7 @@ ncurses.c:
 	only syntax highlight what's on screen
 	%ddd bug (FIXME'd)
 	'zz'
-	fix syntax highlight with /*hi*//*yo*/
+	fix syntax highlight with /*hi*//*hi*/
 
 command.c:
 	s/ \+$// option

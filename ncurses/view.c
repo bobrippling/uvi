@@ -336,8 +336,22 @@ static void checkcolour(const char *c, char *waitlen, char *colour_on,
 				if(c[1] == '\0'){
 					wcoloroff(syntax[i].colour, syntax[i].attrib);
 				}else{
-					*waitlen = syntax[i].elen;
-					*needcolouroff = 1;
+					int stayon = 0;
+					unsigned int j;
+
+					c++;
+					for(j = 0; j < SYNTAX_COUNT; j++)
+						if(!strncmp(c, syntax[j].start, syntax[j].slen)){
+							stayon = 1;
+							wcoloroff(syntax[i].colour, syntax[i].attrib);
+							wcoloron( syntax[j].colour, syntax[j].attrib);
+							break;
+						}
+
+					if(!stayon){
+						*needcolouroff = 1;
+						*waitlen = syntax[i].elen;
+					}
 					/*
 					 * wait until the chars have been added before removing colour
 					 * below in the else bit

@@ -34,6 +34,7 @@ buffer_t *command_readfile(const char *filename,
 		char forcereadonly, void (*const pfunc)(const char *, ...));
 
 void command_dumpbuffer(buffer_t *);
+void command_free(void);
 
 #define READ_ONLY_ERR "read only file"
 

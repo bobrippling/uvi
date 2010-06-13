@@ -17,11 +17,18 @@
 #include "vars.h"
 #include "util/alloc.h"
 
+static char *prevcmd = NULL;
 
 static void parse_setget(buffer_t *, char, char *, void (*)(const char *, ...), void (*)(void));
 static buffer_t *newemptybuffer(void);
 static void command_e(char *, buffer_t **, int *,
 		void (*const)(const char *, ...), void (*const)(void));
+
+void command_free()
+{
+	free(prevcmd);
+	prevcmd = NULL;
+}
 
 struct list *command_readlines(enum gret (*gfunc)(char *, int))
 {
@@ -333,10 +340,19 @@ vars_fname:
 			if(HAVE_RANGE)
 				wrongfunc();
 			else{
-				if(s[1] == '\0')
+				if(!strcmp(s+1,"!"))
+					if(prevcmd)
+						shellout(prevcmd);
+					else
+						pfunc("no previous command");
+				else if(s[1] == '\0')
 					shellout("sh");
-				else
+				else{
+					free(prevcmd);
+					prevcmd = umalloc(strlen(s));
+					strcpy(prevcmd, s+1);
 					shellout(s + 1);
+				}
 			}
 			break;
 

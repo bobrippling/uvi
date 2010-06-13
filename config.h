@@ -55,6 +55,7 @@
 \
 		{ "*",   "*",   1, 1,              0, A_BOLD         }, \
 		{ "_",   "_",   1, 1,              0, A_UNDERLINE    },*/ \
+		{ "COM",  "FIN",   3, 3, COMMENT_COLOUR, COMMENT_ATTRIB }, \
 	}
 #endif
 

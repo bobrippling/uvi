@@ -1114,6 +1114,7 @@ exit_while:
 fin:
 	view_termpad();
 	buffer_free(buffer);
+	command_free();
 
 	/*
 	 * apparently this uses uninitialised memory
