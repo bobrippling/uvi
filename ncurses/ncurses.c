@@ -32,19 +32,21 @@ extern struct settings global_settings;
 #define NCURSES_DEBUG_SHOW_UNKNOWN	0
 #define NCURSES_DEBUG_SHOWXY				0
 
+#define NC_RAW				0
+
 #define INVALID_MARK "invalid mark"
 
-#define CTRL_AND(c)	((c) & 037)
-#define CTRL_AND_g	8
-#define C_ESC				27
-#define C_EOF				4
-#define C_DEL				127
-#define C_BACKSPACE	263
-#define C_ASCIIDEL	7
-#define C_CTRL_C		3
-#define C_CTRL_Z		26
-#define C_TAB				9
-#define C_NEWLINE		'\r'
+#define CTRL_AND(c)		((c) & 037)
+#define CTRL_AND_g		8
+#define C_ESC					27
+#define C_EOF					4
+#define C_DEL					127
+#define C_BACKSPACE		263
+#define C_ASCIIDEL		7
+#define C_CTRL_C			3
+#define C_CTRL_Z			26
+#define C_TAB					9
+#define C_NEWLINE			'\r'
 
 #if VIEW_COLOUR
 #define coloron(i)   (attron(COLOR_PAIR(i)))
@@ -83,8 +85,8 @@ static void status(const char *, ...);
 static void vstatus(const char *, va_list);
 static void showpos(void);
 
-#define MAX_X	(COLS - 1)
-#define MAX_Y	(LINES - 1)
+#define MAX_X (COLS - 1)
+#define MAX_Y (LINES - 1)
 
 /* extern'd for view.c */
 buffer_t *buffer;
@@ -109,9 +111,11 @@ static void nc_up()
 
 	if(!init){
 		initscr();
-		cbreak();
-		raw(); /* use raw() to intercept ^C, ^Z */
 		noecho();
+		cbreak();
+#if NC_RAW
+		raw(); /* use raw() to intercept ^C, ^Z */
+#endif
 
 		/* halfdelay() for main-loop style timeout */
 
@@ -293,23 +297,22 @@ static int nc_getch()
 {
 	int c;
 
+#if NC_RAW
 get:
+#endif
 	c = getch();
 	switch(c){
+#if NC_RAW
 		case C_CTRL_C:
 			sigh(SIGINT);
 			break;
 
 		case C_CTRL_Z:
-		{
-			/* FIXME */
 			nc_down();
 			kill(getpid(), SIGSTOP);
 			nc_up();
-			view_updatecursor();
 			goto get;
-		}
-
+#endif
 		case 0:
 		case -1:
 		case C_EOF:
