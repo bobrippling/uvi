@@ -489,7 +489,7 @@ static void parse_setget(buffer_t *b, char isset, /* is this "set" or "get"? */
 			char *wordstart = s, bool, tmp;
 			enum vartype type;
 
-			if(!strncmp(wordstart, "no", 2)){
+			if(!strncmp(wordstart, "no", 2) && isset){
 				bool = 0;
 				wordstart += 2;
 			}else
@@ -512,11 +512,8 @@ static void parse_setget(buffer_t *b, char isset, /* is this "set" or "get"? */
 							vars_set(type, b, bool);
 						else
 							pfunc("\"%s\" needs an integer value", wordstart);
-					}else{
-						char *val = vars_get(type, b);
-						if(val)
-							pfunc("%s: %d", wordstart, *val);
-					}
+					}else
+						pfunc("%s: %d", wordstart, *vars_get(type, b));
 					break;
 
 				case ' ':
@@ -546,7 +543,7 @@ static void parse_setget(buffer_t *b, char isset, /* is this "set" or "get"? */
 		enum vartype t = 0;
 
 		do
-			pfunc("%s: %d\n", vars_tostring(t), t, *vars_get(t, b));
+			pfunc("%s: %d\n", vars_tostring(t), *vars_get(t, b));
 		while(++t != VARS_UNKNOWN);
 
 		return;
