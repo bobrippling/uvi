@@ -25,7 +25,7 @@ void usage(const char *s)
 	fputs("  -d: debug mode (don't catch SEGV)\n", stderr);
 	fputs("  -R: open as read only\n", stderr);
 #if VIEW_COLOUR
-	fputs("  -C: no colour (ncurses)\n", stderr);
+	fputs("  -c: colour (ncurses)\n", stderr);
 #endif
 	exit(1);
 }
@@ -57,7 +57,7 @@ int main(int argc, const char **argv)
 	enum allocfail af;
 
 	global_settings.tabstop  = DEFAULT_TAB_STOP;
-	global_settings.colour   = 1;
+	global_settings.colour   = 0;
 	global_settings.showtabs = 0;
 
 	if((af = setjmp(allocerr))){
@@ -94,8 +94,8 @@ int main(int argc, const char **argv)
 						break;
 
 #if VIEW_COLOUR
-					case 'C':
-						global_settings.colour = 0;
+					case 'c':
+						global_settings.colour = 1;
 						break;
 #endif
 

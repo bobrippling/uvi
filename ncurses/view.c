@@ -258,11 +258,35 @@ int view_move(enum direction d)
 	return ret;
 }
 
+static int view_getactualx(int y, int x)
+{
+	/*
+	 * gets the x, no matter where on screen
+	 */
+	char *data = buffer_getindex(buffer, y)->data;
+	int actualx = 0;
+
+	while(*data && x > 0){
+		if(*data++ == '\t')
+			if(global_settings.showtabs)
+				actualx += 2;
+			else
+				actualx += global_settings.tabstop;
+		else
+			actualx++;
+		--x;
+	}
+
+	return actualx + x;
+}
+
 static int view_actualx(int y, int x)
 {
 	/*
 	 * translate the x-coord in the buffer to the screen
 	 * coord, i.e. take \t into account
+	 *
+	 * this also clips it to the buffer
 	 */
 	struct list *l = buffer_getindex(buffer, y);
 	if(l){
@@ -293,25 +317,6 @@ void view_updatecursor()
 	wmove(pad, pady, view_actualx(pady, padx));
 
 	view_refreshpad();
-}
-
-static int view_getactualx(int y, int x)
-{
-	char *data = buffer_getindex(buffer, y)->data;
-	int actualx = 0;
-
-	while(*data && x > 0){
-		if(*data++ == '\t')
-			if(global_settings.showtabs)
-				actualx += 2;
-			else
-				actualx += global_settings.tabstop;
-		else
-			actualx++;
-		--x;
-	}
-
-	return actualx + x;
 }
 
 #if VIEW_COLOUR

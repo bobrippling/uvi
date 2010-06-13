@@ -12,6 +12,7 @@ ncurses.c:
 	%ddd bug (FIXME'd)
 	'zz'
 	fix syntax highlight with /*hi*//*hi*/
+	fix tilde/replace bug (BOTH) where the inserted char is offset wrongly due to \t
 
 command.c:
 	s/ \+$// option
