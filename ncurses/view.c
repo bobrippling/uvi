@@ -25,18 +25,18 @@ extern struct settings global_settings;
 #define PAD_HEIGHT_INC 16
 
 static void resizepad(void);
-static void clippadx(void);
-static void clippady(void);
 static void padyinrange(void);
 static int view_actualx(int, int);
+static void clippadx(void);
+static void clippady(void);
+#define clippad() do { clippady(); clippadx(); } while(0)
+										/* do y first */
+
 
 #if VIEW_COLOUR
 # define wcoloron( c, a)  (wattron( pad, COLOR_PAIR(c) | (a) ))
 # define wcoloroff(c, a)  (wattroff(pad, COLOR_PAIR(c) | (a) ))
 #endif
-
-#define clippad() do { clippady(); clippadx(); } while(0)
-										/* do y first */
 
 extern int padheight, padwidth, padtop, padleft,
 						padx, pady;
@@ -382,8 +382,7 @@ static void checkcolour(const char *c, char *waitlen, char *colour_on,
 {
 	unsigned int i;
 	SYNTAXES;
-
-#define SYNTAX_COUNT (sizeof(syntax)/sizeof(syntax[0]))
+#define SYNTAX_COUNT  (sizeof(syntax)/sizeof(syntax[0]))
 
 	if(*waitlen <= 0){
 		if(*colour_on){
@@ -427,6 +426,7 @@ static void checkcolour(const char *c, char *waitlen, char *colour_on,
 					*current = i;
 					*colour_on = 1;
 					*waitlen = syntax[i].slen - 1;
+					break;
 				}
 			}
 	}else if(--*waitlen == 0){
@@ -441,12 +441,15 @@ static void checkcolour(const char *c, char *waitlen, char *colour_on,
 void view_drawbuffer(buffer_t *b)
 {
 	struct list *l = buffer_gethead(b);
+	char keyword_on = 0;
 	int y = 0, size = buffer_nlines(b);
 #if VIEW_COLOUR
 	char colour_on = 0, waitlen = 0, needcolouroff = 0;
 	unsigned int current_syntax = -1;
 	const char newline[] = "\n";
 #endif
+	KEYWORDS;
+#define KEYWORD_COUNT (sizeof(keywords)/sizeof(keywords[0]))
 
 	if(size > padheight){
 		padheight = size + PAD_HEIGHT_INC;
@@ -463,11 +466,14 @@ void view_drawbuffer(buffer_t *b)
 	if(global_settings.colour){
 		while(l){
 			char *c = l->data;
-			int lim = MAX_X - 1;
+			int lim = MAX_X - 1, i;
 
 			while(*c && lim > 0){
 				checkcolour(c, &waitlen, &colour_on,
 						&current_syntax, &needcolouroff);
+
+				if(keyword_on && !--keyword_on)
+						wcoloroff(KEYWORD_COLOUR, A_BOLD);
 
 				if(*c == '\t')
 					if(global_settings.showtabs)
@@ -477,6 +483,14 @@ void view_drawbuffer(buffer_t *b)
 				else
 					lim--;
 				view_waddch(pad, *c++);
+
+				/* TODO: check */
+				for(i = 0; i < (signed)KEYWORD_COUNT; i++)
+					if(!strncmp(keywords[i].kw, c, keywords[i].len)){
+						wcoloron(KEYWORD_COLOUR, A_BOLD);
+						keyword_on = keywords[i].len;
+						break;
+					}
 			}
 
 			while(*c)
@@ -601,7 +615,7 @@ static void clippady()
 {
 	if(pady < padtop)
 		padtop = pady;
-	else if(pady > padtop + MAX_Y)
+	else if(pady > padtop + MAX_Y - 1)
 		padtop = pady - MAX_Y + 1;
 }
 
