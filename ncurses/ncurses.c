@@ -73,6 +73,7 @@ static void delete(enum motion, int);
 
 static void unknownchar(int);
 
+static int  search(int);
 static void percent(void);
 static void shift(unsigned int, char);
 static void showgirl(unsigned int);
@@ -95,9 +96,56 @@ WINDOW *pad;
 int padheight, padwidth, padtop, padleft, padx, pady;
 
 static int gfunc_onpad = 0, pfunc_wantconfimation = 0;
+#define SEARCH_STR_SIZE 256
+static char searchstr[SEARCH_STR_SIZE] = { 0 };
 
 extern int debug;
 
+static int search(int next)
+{
+	char *pos;
+	int y = pady + 1;
+	struct list *l = buffer_getindex(buffer, y);
+
+	if(next){
+		if(*searchstr)
+			goto dosearch;
+		else{
+			status("no previous search");
+			return 0;
+		}
+	}
+
+	gfunc_onpad = 0;
+	mvaddch(MAX_Y, 0, '/');
+	switch(gfunc(searchstr, SEARCH_STR_SIZE)){
+		case g_LAST:
+		case g_EOF:
+			status("search aborted");
+			break;
+
+		case g_CONTINUE:
+			if((pos = strchr(searchstr, '\n')))
+				*pos = '\0';
+
+dosearch:
+			while(l){
+				if((pos = strstr(l->data, searchstr))){
+					padx = pos - (char *)l->data;
+					pady = y;
+					view_move(CURRENT);
+					return 1;
+				}
+
+				y++;
+				l = l->next;
+			}
+			status("\"%s\" not found", searchstr);
+			break;
+	}
+
+	return 0;
+}
 
 static char bracketdir(char b)
 {
@@ -1128,6 +1176,12 @@ case_i:
 				break;
 			case 'L':
 				viewchanged = view_move(SCREEN_BOTTOM);
+				break;
+
+			case 'n':
+				flag = 1;
+			case '/':
+				viewchanged = search(flag);
 				break;
 
 			case '{':
