@@ -312,9 +312,14 @@ int view_getactualx(int y, int x)
 	/*
 	 * gets the x, no matter where on screen
 	 */
-	char *data = buffer_getindex(buffer, y)->data;
+	struct list *pos = buffer_getindex(buffer, y);
+	char *data;
 	int actualx = 0;
 
+	if(!pos)
+		return x;
+
+	data = pos->data;
 	while(*data && x > 0){
 		if(*data++ == '\t')
 			if(global_settings.showtabs)

@@ -506,7 +506,10 @@ static enum gret gfunc(char *s, int size)
 					goto exit;
 				}
 				count--;
-				move(y, view_getactualx(y, --x));
+				if(gfunc_onpad)
+					move(y, view_getactualx(y, --x));
+				else
+					move(y, --x);
 				break;
 
 				/* TODO: CTRL_AND('v') */
