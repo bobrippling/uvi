@@ -506,7 +506,7 @@ static enum gret gfunc(char *s, int size)
 					goto exit;
 				}
 				count--;
-				move(y, --x);
+				move(y, view_getactualx(y, --x));
 				break;
 
 				/* TODO: CTRL_AND('v') */
@@ -933,6 +933,9 @@ int ncurses_main(const char *filename, char readonly)
 
 				/* need to view_refresh_or_whatever() */
 				bufferchanged = 1;
+				break;
+
+			case '.':
 				break;
 
 			case 'm':

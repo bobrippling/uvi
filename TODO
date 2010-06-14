@@ -1,7 +1,6 @@
 ncurses.c:
 	'J'
 	:e autocomplete?
-	>> & <<
 	keywords, like TODO & FIXME
 	'f' and 't'
 	only syntax highlight what's on screen
