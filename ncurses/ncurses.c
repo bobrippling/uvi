@@ -866,7 +866,8 @@ int ncurses_main(const char *filename, char readonly)
 						/*resetmultiple = 1;*/ \
 				while(0)
 
-	int c, bufferchanged = 1, viewchanged = 1, ret = 0, multiple = 0;
+	int c, bufferchanged = 1, viewchanged = 1, ret = 0, multiple = 0,
+			prevcmd = '\0', prevmultiple = 0;
 	void (*oldinth)(int), (*oldsegh)(int);
 
 	if(!isatty(STDIN_FILENO))
@@ -926,6 +927,12 @@ int ncurses_main(const char *filename, char readonly)
 		 * view_refreshpad
 		 */
 
+#define SET_PREV() do{ \
+					prevcmd = c; \
+					prevmultiple = multiple; \
+				}while(0)
+
+switch_start:
 		switch((c = nc_getch())){
 			case ':':
 				if(!colon())
@@ -936,6 +943,12 @@ int ncurses_main(const char *filename, char readonly)
 				break;
 
 			case '.':
+				if(prevcmd){
+					ungetch(prevcmd);
+					multiple = prevmultiple;
+					goto switch_start;
+				}else
+					pfunc("no previous command");
 				break;
 
 			case 'm':
@@ -976,16 +989,19 @@ int ncurses_main(const char *filename, char readonly)
 				else{
 					open(flag);
 					bufferchanged = 1;
+					SET_PREV();
 				}
 				break;
 
 			case 'X':
 				delete(MOTION_BACKWARD_LETTER, multiple);
 				bufferchanged = 1;
+				SET_PREV();
 				break;
 			case 'x':
 				delete(MOTION_FORWARD_LETTER, multiple);
 				bufferchanged = 1;
+				SET_PREV();
 				break;
 
 			case 'C':
@@ -995,6 +1011,7 @@ int ncurses_main(const char *filename, char readonly)
 				if(flag)
 					insert(0);
 				bufferchanged = 1;
+				SET_PREV();
 				break;
 
 			case 'c':
@@ -1006,6 +1023,7 @@ int ncurses_main(const char *filename, char readonly)
 				if(flag)
 					insert(0);
 				bufferchanged = 1;
+				SET_PREV();
 				break;
 
 			case 'A':
@@ -1016,7 +1034,9 @@ int ncurses_main(const char *filename, char readonly)
 case_i:
 				insert(flag);
 				bufferchanged = 1;
+				SET_PREV();
 				break;
+
 			case 'I':
 				view_move(NO_BLANK);
 				goto case_i;
@@ -1024,6 +1044,7 @@ case_i:
 			case 'r':
 				replace(multiple);
 				bufferchanged = 1;
+				SET_PREV();
 				break;
 
 			case 'g':
@@ -1118,14 +1139,17 @@ case_i:
 			case '<':
 				shift(multiple, flag);
 				bufferchanged = 1;
+				SET_PREV();
 				break;
 
 			case '%':
 				percent();
+				SET_PREV();
 				break;
 
 			case '~':
 				tilde(multiple ? multiple : 1);
+				SET_PREV();
 				break;
 
 			case 'K':
