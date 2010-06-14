@@ -55,7 +55,16 @@
 \
 		{ "*",   "*",   1, 1,              0, A_BOLD         }, \
 		{ "_",   "_",   1, 1,              0, A_UNDERLINE    },*/ \
-		{ "COM",  "FIN",   3, 3, COMMENT_COLOUR, COMMENT_ATTRIB }, \
+	}
+
+#define KEYWORD_COLOUR COLOR_YELLOW
+#define KEYWORDS struct \
+	{ \
+		const char *const kw; \
+		const short len; \
+	} const keywords[] = { \
+		{ "TODO",  4 }, \
+		{ "FIXME", 4 } \
 	}
 #endif
 
