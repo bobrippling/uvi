@@ -1,6 +1,5 @@
 ncurses.c:
 	'J'
-	:set list
 	:e autocomplete?
 	>> & <<
 	keywords, like TODO & FIXME

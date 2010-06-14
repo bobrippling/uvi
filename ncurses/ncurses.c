@@ -70,16 +70,17 @@ static void insert(int);
 static int  open(int);
 static int  colon(void);
 static void delete(enum motion, int);
-static void replace(int);
-static void showgirl(unsigned int);
-static void tilde(int);
 
 static void unknownchar(int);
 
 static void percent(void);
+static void shift(unsigned int, char);
+static void showgirl(unsigned int);
+static void tilde(int);
+static void replace(int);
+
 static char bracketdir(char);
 static char bracketrev(char);
-
 
 static void status(const char *, ...);
 static void vstatus(const char *, va_list);
@@ -97,6 +98,263 @@ static int gfunc_onpad = 0, pfunc_wantconfimation = 0;
 
 extern int debug;
 
+
+static char bracketdir(char b)
+{
+	switch(b){
+		case '<':
+		case '(':
+		case '[':
+		case '{':
+			return -1;
+
+		case '>':
+		case ')':
+		case ']':
+		case '}':
+			return 1;
+
+		default:
+			return 0;
+	}
+}
+
+static char bracketrev(char b)
+{
+	switch(b){
+		case '<': return '>';
+		case '(': return ')';
+		case '[': return ']';
+		case '{': return '}';
+
+		case '>': return '<';
+		case ')': return '(';
+		case ']': return '[';
+		case '}': return '{';
+
+		default: return '\0';
+	}
+}
+
+void percent(void)
+{
+	struct list *listpos = buffer_getindex(buffer, pady);
+	char *line = listpos->data,
+			*pos = line + padx, *opposite, dir,
+			bracket = '\0', revbracket = '\0', xychanged = 0;
+	int nest = 0, pady_save = pady, padx_save = padx;
+
+#define restorepadxy() do{ padx = padx_save; \
+												pady = pady_save; \
+												status("matching bracket not found"); \
+												}while(0)
+
+	while(pos >= line && !bracket)
+		if((revbracket = bracketrev(*pos))){
+			bracket = *pos;
+			break;
+		}else
+			pos--;
+
+	if(!revbracket)
+		return;
+
+	dir = bracketdir(revbracket);
+
+	/* looking for revbracket */
+	opposite = pos + dir;
+
+	do{
+		while(opposite >= line && *opposite){
+			if(*opposite == revbracket){
+				if(--nest < 0)
+					break;
+			}else if(*opposite == bracket)
+				nest++;
+			opposite += dir;
+		}
+
+		if(opposite < line){
+			if(listpos->prev){
+				listpos = listpos->prev;
+				pady--;
+				xychanged = 1;
+
+				line = listpos->data;
+				opposite = line + strlen(line) - 1;
+			}else{
+				restorepadxy();
+				return;
+			}
+		}else if(!*opposite){
+			if(listpos->next){
+				listpos = listpos->next;
+				pady++;
+				xychanged = 1;
+
+				opposite = line = listpos->data;
+			}else{
+				restorepadxy();
+				return;
+			}
+		}else
+			break;
+	}while(1);
+
+	if(opposite){
+		padx = opposite - line;
+		if(xychanged)
+			view_move(CURRENT);
+		else
+			view_updatecursor();
+	}
+#undef	restorepadxy
+}
+
+void shift(unsigned int nlines, char indent)
+{
+	struct list *l = buffer_getindex(buffer, pady);
+
+	if(!nlines)
+		nlines = 1;
+
+	while(nlines-- && l){
+		char *data = l->data;
+
+		if(indent){
+			int len = strlen(data) + 1;
+			char *new = realloc(data, len + 1);
+
+			if(!new)
+				longjmp(allocerr, 1);
+
+			l->data = new;
+
+			memmove(new+1, new, len);
+			*new = '\t';
+		}else
+			switch(*data){
+				case ' ':
+					if(data[1] == ' ')
+						memmove(data, data+2, strlen(data+1));
+					break;
+
+				case '\t':
+					memmove(data, data+1, strlen(data));
+					break;
+			}
+
+		l = l->next;
+	}
+
+	buffer_modified(buffer) = 1;
+}
+
+void tilde(int rep)
+{
+	char *data = (char *)buffer_getindex(buffer, pady)->data,
+			*pos = data + padx;
+
+	while(rep--){
+		if(islower(*pos))
+			*pos = toupper(*pos);
+		else
+			*pos = tolower(*pos);
+
+		mvwaddch(pad, pady, view_getactualx(pady, padx), *pos);
+
+		/**pos ^= (1 << 5); * flip bit 100000 = 6 */
+
+		if(padx < (signed)strlen(data))
+			padx++;
+		else
+			break;
+
+		pos++;
+	}
+
+	view_updatecursor();
+	buffer_modified(buffer) = 1;
+}
+
+void showgirl(unsigned int page)
+{
+	char *line = buffer_getindex(buffer, pady)->data, *wordstart, *wordend, *word;
+	int len;
+
+	if(page > 9){
+		status("invalid man page");
+		return;
+	}
+
+	wordend = wordstart = line + padx;
+
+	if(!iswordchar(*wordstart)){
+		status("invalid word");
+		return;
+	}
+
+	while(--wordstart >= line && iswordchar(*wordstart));
+	wordstart++;
+
+	while(iswordchar(*wordend))
+		wordend++;
+
+	len = wordend - wordstart;
+
+	word = umalloc(len + 7);
+	if(page)
+		sprintf(word, "man %d ", page);
+	else
+		strcpy(word, "man ");
+
+	strncat(word, wordstart, len);
+	word[len + 6] = '\0';
+
+	shellout(word);
+	free(word);
+}
+
+void replace(int n)
+{
+	int c;
+	struct list *cur = buffer_getindex(buffer, pady);
+	char *s = cur->data;
+
+	if(n <= 0)
+		n = 1;
+
+	c = nc_getch();
+
+	if(*s == '\0')
+		return;
+	else if(n > (signed)strlen(s + padx))
+		return;
+
+
+	if(isprint(c)){
+		buffer_modified(buffer) = 1;
+
+		while(n--)
+			s[padx + n] = c;
+
+	}else if(c == '\n'){
+		/* delete n chars, and insert 1 line */
+		char *off = s + padx + n-1;
+		char *cpy = umalloc(strlen(off));
+
+		buffer_modified(buffer) = 1;
+
+		memset(off - n + 1, '\0', n);
+		strcpy(cpy, off + 1);
+
+		buffer_insertafter(buffer, cur, cpy);
+
+		pady++;
+		padx = 0;
+	}else
+		unknownchar(c);
+}
 
 static void nc_down()
 {
@@ -155,7 +413,7 @@ static void vstatus(const char *s, va_list l)
 #endif
 }
 
-static void status(const char *s, ...)
+void status(const char *s, ...)
 {
 	va_list l;
 	va_start(l, s);
@@ -503,47 +761,6 @@ static int open(int before)
 	return nlines;
 }
 
-static void replace(int n)
-{
-	int c;
-	struct list *cur = buffer_getindex(buffer, pady);
-	char *s = cur->data;
-
-	if(n <= 0)
-		n = 1;
-
-	c = nc_getch();
-
-	if(*s == '\0')
-		return;
-	else if(n > (signed)strlen(s + padx))
-		return;
-
-
-	if(isprint(c)){
-		buffer_modified(buffer) = 1;
-
-		while(n--)
-			s[padx + n] = c;
-
-	}else if(c == '\n'){
-		/* delete n chars, and insert 1 line */
-		char *off = s + padx + n-1;
-		char *cpy = umalloc(strlen(off));
-
-		buffer_modified(buffer) = 1;
-
-		memset(off - n + 1, '\0', n);
-		strcpy(cpy, off + 1);
-
-		buffer_insertafter(buffer, cur, cpy);
-
-		pady++;
-		padx = 0;
-	}else
-		unknownchar(c);
-}
-
 static void delete(enum motion m, int repeat)
 {
 	struct list *listpos = buffer_getindex(buffer, pady);
@@ -595,183 +812,6 @@ static void delete(enum motion m, int repeat)
 	buffer_modified(buffer) = 1;
 
 	view_move(CURRENT); /* clip x */
-}
-
-static char bracketdir(char b)
-{
-	switch(b){
-		case '<':
-		case '(':
-		case '[':
-		case '{':
-			return -1;
-
-		case '>':
-		case ')':
-		case ']':
-		case '}':
-			return 1;
-
-		default:
-			return 0;
-	}
-}
-
-static char bracketrev(char b)
-{
-	switch(b){
-		case '<': return '>';
-		case '(': return ')';
-		case '[': return ']';
-		case '{': return '}';
-
-		case '>': return '<';
-		case ')': return '(';
-		case ']': return '[';
-		case '}': return '{';
-
-		default: return '\0';
-	}
-}
-
-static void percent(void)
-{
-	struct list *listpos = buffer_getindex(buffer, pady);
-	char *line = listpos->data,
-			*pos = line + padx, *opposite, dir,
-			bracket = '\0', revbracket = '\0', xychanged = 0;
-	int nest = 0, pady_save = pady, padx_save = padx;
-
-#define restorepadxy() do{ padx = padx_save; \
-												pady = pady_save; \
-												status("matching bracket not found"); \
-												}while(0)
-
-	while(pos >= line && !bracket)
-		if((revbracket = bracketrev(*pos))){
-			bracket = *pos;
-			break;
-		}else
-			pos--;
-
-	if(!revbracket)
-		return;
-
-	dir = bracketdir(revbracket);
-
-	/* looking for revbracket */
-	opposite = pos + dir;
-
-	do{
-		while(opposite >= line && *opposite){
-			if(*opposite == revbracket){
-				if(--nest < 0)
-					break;
-			}else if(*opposite == bracket)
-				nest++;
-			opposite += dir;
-		}
-
-		if(opposite < line){
-			if(listpos->prev){
-				listpos = listpos->prev;
-				pady--;
-				xychanged = 1;
-
-				line = listpos->data;
-				opposite = line + strlen(line) - 1;
-			}else{
-				restorepadxy();
-				return;
-			}
-		}else if(!*opposite){
-			if(listpos->next){
-				listpos = listpos->next;
-				pady++;
-				xychanged = 1;
-
-				opposite = line = listpos->data;
-			}else{
-				restorepadxy();
-				return;
-			}
-		}else
-			break;
-	}while(1);
-
-	if(opposite){
-		padx = opposite - line;
-		if(xychanged)
-			view_move(CURRENT);
-		else
-			view_updatecursor();
-	}
-#undef	restorepadxy
-}
-
-static void tilde(int rep)
-{
-	char *data = (char *)buffer_getindex(buffer, pady)->data,
-			*pos = data + padx;
-
-	while(rep--){
-		if(islower(*pos))
-			*pos = toupper(*pos);
-		else
-			*pos = tolower(*pos);
-
-		mvwaddch(pad, pady, view_getactualx(pady, padx), *pos);
-
-		/**pos ^= (1 << 5); * flip bit 100000 = 6 */
-
-		if(padx < (signed)strlen(data))
-			padx++;
-		else
-			break;
-
-		pos++;
-	}
-
-	view_updatecursor();
-	buffer_modified(buffer) = 1;
-}
-
-static void showgirl(unsigned int page)
-{
-	char *line = buffer_getindex(buffer, pady)->data, *wordstart, *wordend, *word;
-	int len;
-
-	if(page > 9){
-		status("invalid man page");
-		return;
-	}
-
-	wordend = wordstart = line + padx;
-
-	if(!iswordchar(*wordstart)){
-		status("invalid word");
-		return;
-	}
-
-	while(--wordstart >= line && iswordchar(*wordstart));
-	wordstart++;
-
-	while(iswordchar(*wordend))
-		wordend++;
-
-	len = wordend - wordstart;
-
-	word = umalloc(len + 7);
-	if(page)
-		sprintf(word, "man %d ", page);
-	else
-		strcpy(word, "man ");
-
-	strncat(word, wordstart, len);
-	word[len + 6] = '\0';
-
-	shellout(word);
-	free(word);
 }
 
 static int colon()
@@ -1068,6 +1108,13 @@ case_i:
 				break;
 			case '}':
 				viewchanged = view_move(PARA_NEXT);
+				break;
+
+			case '>':
+				flag = 1;
+			case '<':
+				shift(multiple, flag);
+				bufferchanged = 1;
 				break;
 
 			case '%':
