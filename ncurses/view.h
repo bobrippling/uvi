@@ -19,6 +19,9 @@ enum direction
 	SCREEN_MIDDLE,
 	SCREEN_BOTTOM,
 
+	PARA_NEXT,
+	PARA_PREV,
+
 	CURRENT
 };
 
@@ -45,5 +48,7 @@ void	view_updatecursor(void);
 
 void	view_waddch(WINDOW *, int);
 void	view_putcursor(int, int, int, int);
+
+int	view_getactualx(int, int);
 
 #endif

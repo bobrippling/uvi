@@ -29,7 +29,6 @@ static void clippadx(void);
 static void clippady(void);
 static void padyinrange(void);
 static int view_actualx(int, int);
-static int view_getactualx(int, int);
 
 #if VIEW_COLOUR
 # define wcoloron( c, a)  (wattron( pad, COLOR_PAIR(c) | (a) ))
@@ -149,6 +148,95 @@ int view_move(enum direction d)
 		screenbottom = ylim;
 
 	switch(d){
+		case LEFT:
+			if(padx > 0){
+				padx--;
+				ret = 1;
+			}
+			break;
+
+		case RIGHT:
+			if(padx < xlim){
+				padx++;
+				ret = 1;
+			}
+			break;
+
+		case UP:
+		case DOWN:
+			if(d == UP){
+				if(pady > 0){
+					pady--;
+					if(padtop > pady)
+						padtop = pady;
+					cl = cl->prev;
+				}else
+					break;
+			}else{
+				if(pady < ylim){
+					pady++;
+					if(pady >= padtop + MAX_Y)
+						padtop = pady - MAX_Y + 1;
+					cl = cl->next;
+				}else
+					break;
+			}
+
+			/* only end up here has pady changed */
+			clippadx();
+			ret = 1;
+			break;
+
+		case PARA_PREV:
+			ret = 1;
+		case PARA_NEXT:
+		{
+			struct list *l = buffer_getindex(buffer, pady);
+			int diff = 0;
+
+			if(!strlen(l->data)){
+				if(ret)
+					while(l->prev){
+						l = l->prev;
+						diff--;
+						if(strlen(l->data))
+							break;
+					}
+				else
+					while(l->next){
+						l = l->next;
+						diff++;
+						if(strlen(l->data))
+							break;
+					}
+			}
+
+			if(ret){
+				while(l->prev){
+					l = l->prev;
+					diff--;
+					if(!strlen(l->data)){
+						pady += diff;
+						clippad();
+						break;
+					}
+				}
+			}else{
+				while(l->next){
+					l = l->next;
+					diff++;
+					if(!strlen(l->data)){
+						pady += diff;
+						clippad();
+						break;
+					}
+				}
+			}
+
+			ret = 0;
+			break;
+		}
+
 		case ABSOLUTE_LEFT:
 			padx = 0;
 			ret = 1;
@@ -192,47 +280,8 @@ int view_move(enum direction d)
 			break;
 		}
 
-		case LEFT:
-			if(padx > 0){
-				padx--;
-				ret = 1;
-			}
-			break;
-
-		case RIGHT:
-			if(padx < xlim){
-				padx++;
-				ret = 1;
-			}
-			break;
-
 		case CURRENT:
 			clippad();
-			break;
-
-		case UP:
-		case DOWN:
-			if(d == UP){
-				if(pady > 0){
-					pady--;
-					if(padtop > pady)
-						padtop = pady;
-					cl = cl->prev;
-				}else
-					break;
-			}else{
-				if(pady < ylim){
-					pady++;
-					if(pady >= padtop + MAX_Y)
-						padtop = pady - MAX_Y + 1;
-					cl = cl->next;
-				}else
-					break;
-			}
-
-			/* only end up here has pady changed */
-			clippadx();
-			ret = 1;
 			break;
 
 		case SCREEN_MIDDLE:
@@ -258,7 +307,7 @@ int view_move(enum direction d)
 	return ret;
 }
 
-static int view_getactualx(int y, int x)
+int view_getactualx(int y, int x)
 {
 	/*
 	 * gets the x, no matter where on screen
@@ -466,12 +515,14 @@ void view_drawbuffer(buffer_t *b)
 tilde:
 	move(y, 0);
 #if VIEW_COLOUR
-	wcoloron(COLOR_BLUE, 0);
+	if(global_settings.colour)
+		wcoloron(COLOR_BLUE, 0);
 #endif
 	while(++y <= MAX_Y)
 		waddstr(pad, "~\n");
 #if VIEW_COLOUR
-	wcoloroff(COLOR_BLUE, 0);
+	if(global_settings.colour)
+		wcoloroff(COLOR_BLUE, 0);
 #endif
 
 	view_updatecursor();

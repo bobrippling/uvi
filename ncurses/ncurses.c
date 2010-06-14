@@ -713,7 +713,6 @@ static void tilde(int rep)
 {
 	char *data = (char *)buffer_getindex(buffer, pady)->data,
 			*pos = data + padx;
-	int x = view_getactualx /* TODO */
 
 	while(rep--){
 		if(islower(*pos))
@@ -721,7 +720,7 @@ static void tilde(int rep)
 		else
 			*pos = tolower(*pos);
 
-		mvwaddch(pad, pady, padx, *pos);
+		mvwaddch(pad, pady, view_getactualx(pady, padx), *pos);
 
 		/**pos ^= (1 << 5); * flip bit 100000 = 6 */
 
@@ -1062,6 +1061,13 @@ case_i:
 				break;
 			case 'L':
 				viewchanged = view_move(SCREEN_BOTTOM);
+				break;
+
+			case '{':
+				viewchanged = view_move(PARA_PREV);
+				break;
+			case '}':
+				viewchanged = view_move(PARA_NEXT);
 				break;
 
 			case '%':

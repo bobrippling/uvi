@@ -4,15 +4,11 @@ ncurses.c:
 	:e autocomplete?
 	>> & <<
 	keywords, like TODO & FIXME
-	'{' & '}'
 	'f' and 't'
-	:!!
-	fix ^Z problem
 	only syntax highlight what's on screen
 	%ddd bug (FIXME'd)
 	'zz'
 	fix syntax highlight with /*hi*//*hi*/
-	fix tilde/replace bug (BOTH) where the inserted char is offset wrongly due to \t
 
 command.c:
 	s/ \+$// option
