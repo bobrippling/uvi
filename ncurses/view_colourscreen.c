@@ -10,13 +10,13 @@
 #include <stdlib.h>
 #include <ctype.h>
 
+#include "../config.h"
+
 #include "../util/list.h"
 #include "../range.h"
 #include "../buffer.h"
 #include "view.h"
 #include "../util/alloc.h"
-
-#include "../config.h"
 
 extern struct settings global_settings;
 
@@ -32,11 +32,9 @@ static void clippady(void);
 #define clippad() do { clippady(); clippadx(); } while(0)
 										/* do y first */
 
+#define wcolouron( i)  (attron( COLOR_PAIR(i) ))
+#define wcolouroff(i)  (attroff(COLOR_PAIR(i) ))
 
-#if VIEW_COLOUR
-# define wcoloron( c, a)  (wattron( pad, COLOR_PAIR(c) | (a) ))
-# define wcoloroff(c, a)  (wattroff(pad, COLOR_PAIR(c) | (a) ))
-#endif
 
 extern int padheight, padwidth, padtop, padleft,
 						padx, pady;
@@ -367,89 +365,16 @@ static int view_actualx(int y, int x)
 
 void view_updatecursor()
 {
+	view_refreshpad();
+
 	/* wmove takes care of pad{top,left} */
 	wmove(pad, pady, view_actualx(pady, padx));
-
-	view_refreshpad();
 }
-
-#if VIEW_COLOUR
-static void checkcolour(const char *, char *const,
-		char *constconst, unsigned int *, char *);
-
-static void checkcolour(const char *c, char *waitlen, char *colour_on,
-		unsigned int *current, char *needcolouroff)
-{
-	unsigned int i;
-	SYNTAXES;
-#define SYNTAX_COUNT  (sizeof(syntax)/sizeof(syntax[0]))
-
-	if(*waitlen <= 0){
-		if(*colour_on){
-			/* assert(*current >= 0); */
-			const char *ptr = syntax[i = *current].end;
-
-			if(!strncmp(c, ptr, syntax[i].elen)){
-				*colour_on = 0;
-				if(c[1] == '\0'){
-					wcoloroff(syntax[i].colour, syntax[i].attrib);
-				}else{
-					int stayon = 0;
-					unsigned int j;
-
-					c++;
-					for(j = 0; j < SYNTAX_COUNT; j++)
-						if(!strncmp(c, syntax[j].start, syntax[j].slen)){
-							stayon = 1;
-							wcoloroff(syntax[i].colour, syntax[i].attrib);
-							wcoloron( syntax[j].colour, syntax[j].attrib);
-							break;
-						}
-
-					if(!stayon){
-						*needcolouroff = 1;
-						*waitlen = syntax[i].elen;
-					}
-					/*
-					 * wait until the chars have been added before removing colour
-					 * below in the else bit
-					 */
-				}
-			}
-		}else
-			for(i = 0; i < SYNTAX_COUNT; i++){
-				const char *ptr = *colour_on ? syntax[i].end : syntax[i].start;
-
-				if(!strncmp(c, ptr, *colour_on ? syntax[i].elen : syntax[i].slen)){
-					wcoloron(syntax[i].colour, syntax[i].attrib);
-
-					*current = i;
-					*colour_on = 1;
-					*waitlen = syntax[i].slen - 1;
-					break;
-				}
-			}
-	}else if(--*waitlen == 0){
-		if(*needcolouroff){
-			wcoloroff(syntax[*current].colour, syntax[*current].attrib);
-			*needcolouroff = 0;
-		}
-	}
-}
-#endif
 
 void view_drawbuffer(buffer_t *b)
 {
 	struct list *l = buffer_gethead(b);
-	char keyword_on = 0;
 	int y = 0, size = buffer_nlines(b);
-#if VIEW_COLOUR
-	char colour_on = 0, waitlen = 0, needcolouroff = 0;
-	unsigned int current_syntax = -1;
-	const char newline[] = "\n";
-#endif
-	KEYWORDS;
-#define KEYWORD_COUNT (sizeof(keyword)/sizeof(keyword[0]))
 
 	if(size > padheight){
 		padheight = size + PAD_HEIGHT_INC;
@@ -461,51 +386,6 @@ void view_drawbuffer(buffer_t *b)
 	if(!l || !l->data)
 		goto tilde;
 
-#if VIEW_COLOUR
-	wattrset(pad, A_NORMAL); /* bit of a bodge */
-	if(global_settings.colour){
-		while(l){
-			char *c = l->data;
-			int lim = MAX_X - 1, i;
-
-			while(*c && lim > 0){
-				checkcolour(c, &waitlen, &colour_on,
-						&current_syntax, &needcolouroff);
-
-				if(keyword_on && !--keyword_on)
-						wcoloroff(KEYWORD_COLOUR, A_BOLD);
-
-				if(*c == '\t')
-					if(global_settings.showtabs)
-						lim -= 2;
-					else
-						lim -= global_settings.tabstop;
-				else
-					lim--;
-				view_waddch(pad, *c++);
-
-				/* TODO: check */
-				for(i = 0; i < (signed)KEYWORD_COUNT; i++)
-					if(!strncmp(keyword[i].kw, c, keyword[i].len)){
-						wcoloron(KEYWORD_COLOUR, A_BOLD);
-						keyword_on = keyword[i].len;
-						break;
-					}
-			}
-
-			while(*c)
-				checkcolour(c++, &waitlen, &colour_on,
-						&current_syntax, &needcolouroff);
-
-			checkcolour(newline, &waitlen, &colour_on,
-					&current_syntax, &needcolouroff);
-
-			waddch(pad, '\n');
-			y++;
-			l = l->next;
-		}
-	}else
-#endif
 	while(l){
 		if(strchr(l->data, '\t')){
 			/* write at most MAX_X-1 chars */
@@ -535,13 +415,13 @@ tilde:
 	move(y, 0);
 #if VIEW_COLOUR
 	if(global_settings.colour)
-		wcoloron(COLOR_BLUE, 0);
+		wcolouron(COLOR_BLUE);
 #endif
-	while(++y <= MAX_Y)
+	while(++y <= padheight)
 		waddstr(pad, "~\n");
 #if VIEW_COLOUR
 	if(global_settings.colour)
-		wcoloroff(COLOR_BLUE, 0);
+		wcolouroff(COLOR_BLUE);
 #endif
 
 	view_updatecursor();
@@ -549,11 +429,105 @@ tilde:
 
 void view_refreshpad()
 {
-	wnoutrefresh(stdscr);
-	prefresh(pad,
-			padtop, padleft,   /* top left pad corner */
-			0, 0,              /* top left screen (pad positioning) */
-			MAX_Y - 1, MAX_X); /* bottom right of screen */
+#if VIEW_COLOUR
+	if(global_settings.colour){
+		struct list *l = buffer_getindex(buffer, padtop);
+		char colour_on = 0, *pos;
+		int y = 0, isyntax = 0;
+		unsigned int i;
+#define CURLINE ((char *)l->data)
+#define colouron( i)  (attron( COLOR_PAIR(syntax[i].colour) | (syntax[i].attrib) ))
+#define colouroff(i)  (attroff(COLOR_PAIR(syntax[i].colour) | (syntax[i].attrib) ))
+
+
+		SYNTAXES;
+/*		KEYWORDS;
+#define KEYWORD_COUNT (sizeof(keyword) / sizeof(keyword[0]))*/
+#define  SYNTAX_COUNT (sizeof(syntax)  / sizeof(syntax[0]))
+
+
+		clear();
+		wattrset(pad, A_NORMAL);
+		while(l && y < MAX_Y-1){
+			char foundsyntax = 0;
+
+			for(i = 0; i < SYNTAX_COUNT; i++)
+				if((pos = strstr(l->data, colour_on ? syntax[i].end : syntax[i].start))){
+					foundsyntax = 1;
+					isyntax = i;
+					break;
+				}
+
+			move(y, padleft);
+			if(foundsyntax){
+				int curlen;
+				char *offpos;
+
+				if(colour_on){
+					char max_x_reached = 0;
+
+					if((curlen = pos - CURLINE) > MAX_X){
+						curlen = MAX_X;
+						max_x_reached = 1;
+					}
+
+					addnstr(l->data, curlen);
+					if(!max_x_reached){
+						colouron(isyntax);
+						colour_on = 1;
+					}
+
+					/* currently have up to the comment start */
+	still_have_colour:
+					if((offpos = strstr(pos, syntax[isyntax].end))){
+						curlen += offpos - pos;
+
+						if(curlen > MAX_X){
+							curlen = MAX_X;
+							max_x_reached = 1;
+						}
+
+						addnstr(pos, curlen);
+						if(colour_on){
+							colouroff(isyntax);
+							colour_on = 0;
+						}
+
+						if(!max_x_reached){
+							curlen += strlen(offpos);
+							if(curlen > MAX_X)
+								curlen = MAX_X;
+							addnstr(offpos, curlen);
+						}
+					}else{
+						/* leave colour_on */
+						curlen = strlen(pos);
+						if(curlen > MAX_X)
+							curlen = MAX_X;
+
+						addnstr(pos, curlen);
+					}
+				}else{
+					curlen = 0;
+					goto still_have_colour;
+				}
+			}else
+				mvaddnstr(y, padleft, l->data, MAX_X);
+
+			y++;
+			l = l->next;
+		}
+#undef colouron
+#undef colouroff
+	}else
+#endif
+	{
+		wnoutrefresh(stdscr);
+		prefresh(pad,
+				padtop, padleft,   /* top left pad corner */
+				0, 0,              /* top left screen (pad positioning) */
+				MAX_Y - 1, MAX_X); /* bottom right of screen */
+	}
 }
 
 void view_initpad()
