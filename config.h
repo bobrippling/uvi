@@ -62,7 +62,7 @@
 	{ \
 		const char *const kw; \
 		const short len; \
-	} const keywords[] = { \
+	} const keyword[] = { \
 		{ "TODO",  4 }, \
 		{ "FIXME", 4 } \
 	}

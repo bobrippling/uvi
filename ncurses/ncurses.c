@@ -13,6 +13,8 @@
 #include <stdlib.h>
 #include <sys/wait.h>
 
+#include "../config.h"
+
 #include "../range.h"
 #include "../buffer.h"
 #include "../command.h"
@@ -25,7 +27,6 @@
 #include "marks.h"
 
 #include "ncurses.h"
-#include "../config.h"
 
 extern struct settings global_settings;
 
@@ -970,6 +971,7 @@ int ncurses_main(const char *filename, char readonly)
 			/*view_updatecursor();*/
 			/*view_refreshpad();*/
 			view_move(CURRENT);
+
 			viewchanged = 0;
 		}
 		/*
