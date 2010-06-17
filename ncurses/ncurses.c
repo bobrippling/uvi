@@ -430,6 +430,8 @@ static void nc_up()
 		intrflush(stdscr, FALSE);
 		keypad(stdscr, TRUE);
 
+		ESCDELAY = 25; /* duh */
+
 		pady = padx = padtop = padleft = 0;
 
 		init = 1;
