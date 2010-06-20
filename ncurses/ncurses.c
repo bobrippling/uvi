@@ -530,9 +530,11 @@ static enum gret gfunc(char *s, int size)
 		y -= padtop;
 		move(y, x);
 		clrtoeol();
+		wclrtoeol(pad);
 	}else{
-		getyx(stdscr, y, x);
 		clrtoeol();
+
+		getyx(stdscr, y, x);
 	}
 
 	do
@@ -588,8 +590,13 @@ exit:
 	}else
 		s[count] = '\0';
 
-	addch('\n');
-	move(++y, 0);
+	if(gfunc_onpad){
+		waddnstr(pad, s, MAX_X);
+		waddch(pad, '\n');
+	}else{
+		addch('\n');
+		move(++y, 0);
+	}
 
 	if(gfunc_onpad){
 		++pady;
