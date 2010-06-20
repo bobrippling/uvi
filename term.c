@@ -104,7 +104,7 @@ static void shellout(const char *cmd)
 	int ret = system(cmd);
 	if(ret == -1)
 		perror("system()");
-	else
+	else if(WEXITSTATUS(ret))
 		printf("\"%s\" returned %d\n", cmd, WEXITSTATUS(ret));
 }
 

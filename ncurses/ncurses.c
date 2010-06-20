@@ -430,7 +430,7 @@ static void nc_up()
 		intrflush(stdscr, FALSE);
 		keypad(stdscr, TRUE);
 
-		ESCDELAY = 25; /* duh */
+		/*ESCDELAY = 25; * duh **/
 
 		pady = padx = padtop = padleft = 0;
 
@@ -504,13 +504,8 @@ static void shellout(const char *cmd)
 
 	if(ret == -1)
 		perror("system()");
-	else{
-		char *s = strchr(cmd, ' ');
-		if(s)
-			*s = '\0';
-
+	else if(WEXITSTATUS(ret))
 		printf("%s returned %d\n", cmd, WEXITSTATUS(ret));
-	}
 
 	fputs("Press enter to continue...", stdout);
 	fflush(stdout);
