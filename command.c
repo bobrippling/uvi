@@ -340,7 +340,7 @@ vars_fname:
 			if(HAVE_RANGE)
 				wrongfunc();
 			else{
-				if(!strcmp(s+1,"!"))
+				if(!strcmp(s+1, "!"))
 					if(prevcmd)
 						shellout(prevcmd);
 					else

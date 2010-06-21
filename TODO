@@ -1,4 +1,5 @@
 ncurses.c:
+	fix pad empty line ~ thing - "~\n~\n~~~~~\n" etc
 	fix syntax highlight with /*hi*//*hi*/
 	only syntax highlight what's on screen?
 	keywords, like TODO & FIXME
