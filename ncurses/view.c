@@ -30,7 +30,7 @@ static int view_actualx(int, int);
 static void clippadx(void);
 static void clippady(void);
 #define clippad() do { clippady(); clippadx(); } while(0)
-										/* do y first */
+/* do y first */
 
 
 #if VIEW_COLOUR
@@ -38,8 +38,7 @@ static void clippady(void);
 # define wcoloroff(c, a)  (wattroff(pad, COLOR_PAIR(c) | (a) ))
 #endif
 
-extern int padheight, padwidth, padtop, padleft,
-						padx, pady;
+extern int padheight, padwidth, padtop, padleft, padx, pady;
 
 extern buffer_t *buffer;
 extern WINDOW *pad;
@@ -347,7 +346,7 @@ static int view_actualx(int y, int x)
 		char *data = l->data;
 		int actualx = 0;
 
-		while(*data && x-- > 0)
+		while(*data && x --> 0)
 			if(*data++ == '\t')
 				if(global_settings.showtabs)
 					actualx += 2;
@@ -473,7 +472,8 @@ void view_drawbuffer(buffer_t *b)
 						&current_syntax, &needcolouroff);
 
 				if(keyword_on && !--keyword_on)
-						wcoloroff(KEYWORD_COLOUR, A_BOLD);
+					/* a keyword's last character has been added */
+					wcoloroff(KEYWORD_COLOUR, A_BOLD);
 
 				if(*c == '\t')
 					if(global_settings.showtabs)
@@ -482,15 +482,16 @@ void view_drawbuffer(buffer_t *b)
 						lim -= global_settings.tabstop;
 				else
 					lim--;
-				view_waddch(pad, *c++);
 
-				/* TODO: check */
-				for(i = 0; i < (signed)KEYWORD_COUNT; i++)
-					if(!strncmp(keyword[i].kw, c, keyword[i].len)){
-						wcoloron(KEYWORD_COLOUR, A_BOLD);
-						keyword_on = keyword[i].len;
-						break;
-					}
+				if(!colour_on && !keyword_on)
+					for(i = 0; i < (signed)KEYWORD_COUNT; i++)
+						if(!strncmp(keyword[i].kw, c, keyword[i].len)){
+							wcoloron(KEYWORD_COLOUR, A_BOLD);
+							keyword_on = keyword[i].len;
+							break;
+						}
+
+				view_waddch(pad, *c++);
 			}
 
 			while(*c)

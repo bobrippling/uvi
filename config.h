@@ -64,7 +64,7 @@
 		const short len; \
 	} const keyword[] = { \
 		{ "TODO",  4 }, \
-		{ "FIXME", 4 } \
+		{ "FIXME", 5 } \
 	}
 #endif
 
