@@ -1219,6 +1219,21 @@ case_i:
 				showgirl(multiple);
 				break;
 
+			case 'z':
+				/* screen move - vim's zz, zt & zb */
+				switch(nc_getch()){
+					case 'z':
+						view_scroll(CURSOR_MIDDLE);
+						break;
+					case 't':
+						view_scroll(CURSOR_TOP);
+						break;
+					case 'b':
+						view_scroll(CURSOR_BOTTOM);
+						break;
+				}
+				break;
+
 			case C_ESC:
 				break;
 

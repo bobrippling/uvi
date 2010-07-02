@@ -32,7 +32,7 @@ void usage(const char *s)
 
 void bail(int sig)
 {
-	/* TODO: save open buffers */
+	/* TODO: save open buffers? */
 	char m[] = "Received fatal signal ";
 
 	write(STDERR_FILENO, m, strlen(m));
@@ -66,9 +66,9 @@ int main(int argc, const char **argv)
 			case ALLOC_UMALLOC:   from = "umalloc.c"; break;
 			case ALLOC_BUFFER_C:  from = "buffer.c"; break;
 			case ALLOC_COMMAND_C: from = "command.c"; break;
-			case ALLOC_NCURSES_1: from = "ncurses.c(1)"; break;
-			case ALLOC_NCURSES_2: from = "ncurses.c(2)"; break;
-			case ALLOC_NCURSES_3: from = "ncurses.c(3)"; break;
+			case ALLOC_NCURSES_1: from = "ncurses.c (1)"; break;
+			case ALLOC_NCURSES_2: from = "ncurses.c (2)"; break;
+			case ALLOC_NCURSES_3: from = "ncurses.c (3)"; break;
 			case ALLOC_VIEW:      from = "view.c"; break;
 		}
 
@@ -107,16 +107,19 @@ int main(int argc, const char **argv)
 						fprintf(stderr, "unknown option: \"%s\"\n", argv[i]);
 						usage(*argv);
 				}
-			}else if(!strcmp(argv[i], "--help"))
+			}else if(!strcmp(argv[i], "--help")){
 				usage(*argv);
-			else{
+			}else{
 				fprintf(stderr, "invalid option: \"%s\"\n", argv[i]);
 				usage(*argv);
 			}
-		}else if(!fname)
-			fname = argv[i];
-		else
-			usage(*argv);
+		}else{
+			argv_options = 0;
+			if(!fname)
+				fname = argv[i];
+			else
+				usage(*argv);
+		}
 
 	return main2(fname, readonly);
 }

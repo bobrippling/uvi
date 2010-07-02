@@ -117,6 +117,18 @@ int view_scroll(enum scroll s)
 			padyinrange();
 			ret = 1;
 			break;
+
+		case CURSOR_TOP:
+			padtop = pady;
+			break;
+		case CURSOR_BOTTOM:
+			if((padtop = pady - MAX_Y + 1) < 0)
+				padtop = 0;
+			break;
+		case CURSOR_MIDDLE:
+			if((padtop = pady - MAX_Y/2) < 2)
+				padtop = 0;
+			break;
 	}
 
 	view_updatecursor();

@@ -32,7 +32,10 @@ enum scroll
 	HALF_DOWN,
 	HALF_UP,
 	PAGE_DOWN,
-	PAGE_UP
+	PAGE_UP,
+	CURSOR_MIDDLE,
+	CURSOR_TOP,
+	CURSOR_BOTTOM
 };
 
 void	view_initpad(void);

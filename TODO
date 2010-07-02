@@ -1,7 +1,6 @@
 ncurses.c:
 	only syntax highlight what's on screen?
 
-	'zz'
 	'f' and 't'
 	'J'
 	%ddd bug (FIXME'd)
