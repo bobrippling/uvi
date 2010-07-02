@@ -12,3 +12,6 @@ ncurses.c:
 command.c:
 	s/ \+$// option
 	regex search
+
+regex:
+	simple (man vi - see '/'): ^$.[]*
