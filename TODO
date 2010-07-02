@@ -5,7 +5,9 @@ ncurses.c:
 	'J'
 	%ddd bug (FIXME'd)
 	:e autocomplete?
+
 	fix motions/get rid of hacks
+	move marks to motion.c
 
 command.c:
 	s/ \+$// option

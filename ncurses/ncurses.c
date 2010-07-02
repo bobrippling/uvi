@@ -70,7 +70,7 @@ static int  nc_getch(void);
 static void insert(int);
 static int  open(int);
 static int  colon(void);
-static void delete(enum motion, int);
+static void delete(struct motion *);
 
 static void unknownchar(int);
 
@@ -817,15 +817,13 @@ static int open(int before)
 	return nlines;
 }
 
-static void delete(enum motion m, int repeat)
+static void delete(struct motion *mparam)
 {
 	struct list *listpos = buffer_getindex(buffer, pady);
-	/* assert(listpos) */
-	char *line = listpos->data, *applied;
-	int internalrepeat = 1;
+	struct motion mot;
 
-	if(m == MOTION_UNKNOWN){
-		m = getmotion(&nc_getch, &internalrepeat);
+	if(mparam->motion == MOTION_UNKNOWN){
+		getmotion(&nc_getch, &internalrepeat);
 		if(m == MOTION_UNKNOWN)
 			return;
 	}
@@ -912,19 +910,10 @@ static void sigh(int sig)
 
 int ncurses_main(const char *filename, char readonly)
 {
-#define incmultiple() \
-				do \
-					if(multiple < INT_MAX/10){ \
-						multiple = multiple * 10 + c - '0'; \
-						resetmultiple = 0; \
-					}else \
-						pfunc("range too large"); \
-						/*resetmultiple = 1;*/ \
-				while(0)
-
 	int c, bufferchanged = 1, viewchanged = 1, ret = 0, multiple = 0,
 			prevcmd = '\0', prevmultiple = 0;
 	void (*oldinth)(int), (*oldsegh)(int);
+	struct motion motion;
 
 	if(!isatty(STDIN_FILENO))
 		fputs(PROG_NAME": warning: input is not a terminal\n", stderr);
@@ -984,9 +973,24 @@ int ncurses_main(const char *filename, char readonly)
 		 * view_refreshpad
 		 */
 
-#define SET_PREV() do{ \
+#define INC_MULTIPLE() \
+				do \
+					if(multiple < INT_MAX/10){ \
+						multiple = multiple * 10 + c - '0'; \
+						resetmultiple = 0; \
+					}else \
+						pfunc("range too large"); \
+						/*resetmultiple = 1;*/ \
+				while(0)
+
+#define SET_DOT() do{ \
 					prevcmd = c; \
 					prevmultiple = multiple; \
+				}while(0)
+
+#define SET_MOTION(m) do{ \
+					motion.motion = m; \
+					motion.ntimes = multiple; \
 				}while(0)
 
 switch_start:
@@ -1025,6 +1029,7 @@ switch_start:
 						padx = x;
 
 						if(pady >= buffer_nlines(buffer))
+							/* buffer may have changed since mark was set */
 							pady = buffer_nlines(buffer)-1;
 
 						viewchanged = view_move(CURRENT);
@@ -1046,79 +1051,67 @@ switch_start:
 				else{
 					open(flag);
 					bufferchanged = 1;
-					SET_PREV();
+					SET_DOT();
 				}
 				break;
 
 			case 'X':
-				delete(MOTION_BACKWARD_LETTER, multiple);
+				SET_MOTION(MOTION_BACKWARD_LETTER);
+				delete(&motion);
 				bufferchanged = 1;
-				SET_PREV();
+				SET_DOT();
 				break;
 			case 'x':
-				delete(MOTION_FORWARD_LETTER, multiple);
+				SET_MOTION(MOTION_FORWARD_LETTER);
+				delete(&motion);
 				bufferchanged = 1;
-				SET_PREV();
+				SET_DOT();
 				break;
 
 			case 'C':
 				flag = 1;
 			case 'D':
-				delete(MOTION_EOL, 0);
+				SET_MOTION(MOTION_EOL);
+				delete(&motion);
 				if(flag)
-					insert(0);
+					insert(1 /* append */);
 				bufferchanged = 1;
-				SET_PREV();
+				SET_DOT();
 				break;
 
 			case 'c':
 				flag = 1;
-
 			case 'd':
-				delete(MOTION_UNKNOWN, multiple);
+				SET_MOTION(MOTION_UNKNOWN);
+				delete(&motion);
 				view_drawbuffer(buffer);
 				if(flag)
 					insert(0);
 				bufferchanged = 1;
-				SET_PREV();
+				SET_DOT();
 				break;
 
 			case 'A':
-				view_move(ABSOLUTE_RIGHT);
+				SET_MOTION(ABSOLUTE_RIGHT);
+				applymotion(&motion, &linepos);
+				view_move(&motion);
 			case 'a':
 				flag = 1;
 			case 'i':
 case_i:
 				insert(flag);
 				bufferchanged = 1;
-				SET_PREV();
+				SET_DOT();
 				break;
-
 			case 'I':
-				view_move(NO_BLANK);
+				SET_MOTION(MOTION_NOSPACE);
+				view_move(&motion);
 				goto case_i;
 
 			case 'r':
 				replace(multiple);
 				bufferchanged = 1;
-				SET_PREV();
-				break;
-
-			case 'g':
-				flag = 1;
-			case 'G':
-				if(multiple){
-					if(0 <= multiple && multiple <= buffer_nlines(buffer)){
-						pady = multiple - 1;
-						if(pady < 0)
-							pady = 0;
-
-						viewchanged = 1; /* causes... view_move(CURRENT);*/
-						/* change to NO_BLANK to do vim-style ^ thingy */
-					}else
-						pfunc("%d out of range", multiple);
-				}else
-					viewchanged = view_move(flag ? ABSOLUTE_UP : ABSOLUTE_DOWN);
+				SET_DOT();
 				break;
 
 			case CTRL_AND('f'):
@@ -1140,61 +1133,10 @@ case_i:
 				viewchanged = view_scroll(SINGLE_UP);
 				break;
 
-			case '0':
-				if(multiple)
-					incmultiple();
-				else
-					viewchanged = view_move(ABSOLUTE_LEFT);
-				break;
-				/*
-				 * now a motion
-			case '$':
-				viewchanged = view_move(ABSOLUTE_RIGHT);
-				break;
-				 */
-			case '^':
-				viewchanged = view_move(NO_BLANK);
-				break;
-			case 'j':
-				do
-					viewchanged = view_move(DOWN);
-				while(--multiple > 0);
-				break;
-			case 'k':
-				do
-					viewchanged = view_move(UP);
-				while(--multiple > 0);
-				break;
-				/*
-				 * these are now motions
-			case 'h':
-				viewchanged = view_move(LEFT);
-				break;
-			case 'l':
-				viewchanged = view_move(RIGHT);
-				break;
-				 */
-			case 'H':
-				viewchanged = view_move(SCREEN_TOP);
-				break;
-			case 'M':
-				viewchanged = view_move(SCREEN_MIDDLE);
-				break;
-			case 'L':
-				viewchanged = view_move(SCREEN_BOTTOM);
-				break;
-
 			case 'n':
 				flag = 1;
 			case '/':
 				viewchanged = search(flag);
-				break;
-
-			case '{':
-				viewchanged = view_move(PARA_PREV);
-				break;
-			case '}':
-				viewchanged = view_move(PARA_NEXT);
 				break;
 
 			case '>':
@@ -1202,17 +1144,12 @@ case_i:
 			case '<':
 				shift(multiple, flag);
 				bufferchanged = 1;
-				SET_PREV();
-				break;
-
-			case '%':
-				percent();
-				SET_PREV();
+				SET_DOT();
 				break;
 
 			case '~':
 				tilde(multiple ? multiple : 1);
-				SET_PREV();
+				SET_DOT();
 				break;
 
 			case 'K':
@@ -1238,28 +1175,22 @@ case_i:
 				break;
 
 			default:
-				if(isdigit(c))
-					incmultiple();
+				if(isdigit(c) && (c == '0' ? multiple : 1))
+					INC_MULTIPLE();
 				else{
-					enum motion m;
 					ungetch(c);
-					m = getmotion(&nc_getch);
-					if(m != MOTION_UNKNOWN){
-						char *pos = buffer_getindex(buffer, pady)->data,
-								 *s = applymotion(m, pos, padx, multiple);
+					getmotion(&nc_getch, &motion);
 
-						if(s > pos)
-							padx = s - pos;
-						else
-							padx = pos - s;
+					if(motion.motion != MOTION_UNKNOWN){
+						struct linepos lp;
 
-						view_updatecursor();
+						lp->line      = buffer_getindex(buffer, pady);
+						lp->charstart = lp->line->data;
+						lp->charpos   = lp->line->data + padx;
+
+						if(applymotion(&motion, &lp))
+							view_move(&motion);
 					}
-#if NCURSES_DEBUG_SHOW_UNKNOWN
-					else{
-						status("unknown: %c(%d)", c, c);
-					}
-#endif
 				}
 		}
 
@@ -1282,5 +1213,6 @@ fin:
 	 */
 
 	return ret;
-#undef incmultiple
+#undef INC_MULTIPLE
+#undef SET_DOT
 }
