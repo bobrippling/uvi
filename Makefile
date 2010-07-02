@@ -1,7 +1,5 @@
 include config.mk
 
-LDFLAGS = -lncurses
-
 VERBOSE ?= 0
 
 ifeq (${VERBOSE},1)
