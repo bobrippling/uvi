@@ -187,7 +187,7 @@ static int fgetline(char **s, FILE *in, char *haseol)
 			tmp = realloc(*s, buffer_size);
 			if(!tmp){
 				free(*s);
-				fprintf(stderr, "%s:%d: realloc failed, size %d\n", __FILE__, __LINE__, buffer_size);
+				fprintf(stderr, __FILE__":%d: realloc failed, size %d\n", __LINE__, buffer_size);
 				longjmp(allocerr, ALLOC_BUFFER_C);
 			}
 			*s = tmp;

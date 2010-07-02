@@ -1243,7 +1243,7 @@ case_i:
 				else{
 					enum motion m;
 					ungetch(c);
-					m = getmotion(&nc_getch, 0);
+					m = getmotion(&nc_getch);
 					if(m != MOTION_UNKNOWN){
 						char *pos = buffer_getindex(buffer, pady)->data,
 								 *s = applymotion(m, pos, padx, multiple);

@@ -6,35 +6,38 @@
 #include "motion.h"
 #define iswordpart(c) (isalnum(c) || (c) == '_')
 
-enum motion getmotion(int (*gfunc)(void), int *repeat)
+void getmotion(int (*charfunc)(void), struct motion *m)
 {
 	int c;
+
 	do
-		switch((c = gfunc())){
-			case 'l':
-				return MOTION_FORWARD_LETTER;
-			case 'h':
-				return MOTION_BACKWARD_LETTER;
-			case 'w':
-				return MOTION_FORWARD_WORD;
-			case 'b':
-				return MOTION_BACKWARD_WORD;
-			case '$':
-				return MOTION_EOL;
-			case 'c':
-			case 'd':
-				return MOTION_LINE;
+		switch((c = charfunc())){
+			case 'l': m->motion = MOTION_FORWARD_LETTER;  break;
+			case 'h': m->motion = MOTION_BACKWARD_LETTER; break;
+			case 'w': m->motion = MOTION_FORWARD_WORD;    break;
+			case 'b': m->motion = MOTION_BACKWARD_WORD;   break;
+
+			case '0': m->motion = MOTION_0;               break;
+			case '^': m->motion = MOTION_NOSPACE;         break;
+			case '$': m->motion = MOTION_EOL;             break;
+
+			case 'j': m->motion = MOTION_DOWN;            break;
 
 			default:
-				if('0' <= c && c <= '9' && *repeat < INT_MAX/10)
-					*repeat = *repeat * 10 + c - '0';
-				else
-					return MOTION_UNKNOWN;
+				if('0' <= c && c <= '9' && repeat < INT_MAX/10){
+					m->ntimes = m->ntimes * 10 + c - '0';
+				}else{
+					m->motion = MOTION_UNKNOWN;
+					return;
+				}
+				break;
 		}
 	while(1);
+
+	m->ntimes = repeat;
 }
 
-char *applymotion(enum motion m, char *s, int pos, int repeat)
+char applymotion(struct motion *motion, struct linepos *pos)
 {
 	/*
 	 * basically, it works like this (for word navigation):
@@ -43,54 +46,63 @@ char *applymotion(enum motion m, char *s, int pos, int repeat)
 	 *
 	 * and by char i mean iswordpart()
 	 */
-	do{
-		const char cmp = iswordpart(s[pos]);
+#define CURPOS (pos->charpos)
 
-		switch(m){
-			case MOTION_FORWARD_WORD:
-				while(iswordpart(s[pos]) == cmp && s[pos] != '\0')
-					pos++;
-				if(s[pos] == '\0'){
-					pos--;
-					goto fin;
-				}
-				break;
+	switch(motion->motion){
+		case MOTION_UNKNOWN:
+			return 0;
 
-			case MOTION_BACKWARD_WORD:
-				while(pos > 0 && iswordpart(s[pos]) == cmp && pos > 0)
-					pos--;
-				if(pos == 0)
-					goto fin;
-				break;
+		case MOTION_0:
+			pos->charpos = pos->charstart;
+			return 1;
 
-			case MOTION_FORWARD_LETTER:
-				if(s[pos] == '\0')
-					goto fin;
-				else if(s[++pos] == '\0'){
-					pos--;
-					goto fin;
-				}
-				break;
-
-			case MOTION_BACKWARD_LETTER:
-				if(pos > 0)
-					pos--;
-				else
-					goto fin;
-				break;
-
-			case MOTION_EOL:
-				while(s[pos] != '\0')
-					pos++;
-				pos--;
-				goto fin;
-
-			case MOTION_LINE:
-			case MOTION_UNKNOWN:
-				return NULL;
+		case MOTION_NOSPACE:
+		{
+			char *p = pos->charstart;
+			while(isspace(*p))
+				p++;
+			if(*p != '\0')
+				pos->charpos = p;
+			else
+				pos->charpos = pos->charstart;
+			return 1;
 		}
-	}while(--repeat > 0);
 
-fin:
-	return s + pos;
+		case MOTION_EOL:
+			while(*pos->charpos != '\0')
+				pos->charpos++;
+			return 1;
+
+		case MOTION_FORWARD_WORD:
+		case MOTION_BACKWARD_WORD:
+		{
+			const int dir = m->motion == MOTION_FORWARD_WORD ? 1 : -1;
+			const char cmp = iswordpart(*CURPOS);
+
+			while(iswordpart(*CURPOS) == cmp && *CURPOS != '\0')
+				CURPOS += dir;
+
+			if(CURPOS == '\0' && CURPOS > pos->charstart)
+				CURPOS--;
+			return 1;
+		}
+
+		case MOTION_FORWARD_LETTER:
+			break;
+
+		case MOTION_BACKWARD_LETTER:
+			if(pos > 0)
+				pos--;
+			else
+				goto fin;
+			break;
+
+		/* time for the line changer awkward ones */
+		case MOTION_UP:
+		case MOTION_DOWN:
+
+	}
+
+	return 0;
+#undef CURPOS
 }
