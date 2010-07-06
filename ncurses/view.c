@@ -13,6 +13,7 @@
 #include "../util/list.h"
 #include "../range.h"
 #include "../buffer.h"
+#include "motion.h"
 #include "view.h"
 #include "../util/alloc.h"
 
@@ -26,20 +27,17 @@ extern struct settings global_settings;
 
 static void resizepad(void);
 static void padyinrange(void);
-static int view_actualx(int, int);
 static void clippadx(void);
-static void clippady(void);
-#define clippad() do { clippady(); clippadx(); } while(0)
-										/* do y first */
 
+static void view_updatecursor(void);
+static int  view_actualx(int, int);
 
 #if VIEW_COLOUR
 # define wcoloron( c, a)  (wattron( pad, COLOR_PAIR(c) | (a) ))
 # define wcoloroff(c, a)  (wattroff(pad, COLOR_PAIR(c) | (a) ))
 #endif
 
-extern int padheight, padwidth, padtop, padleft,
-						padx, pady;
+extern int padheight, padwidth, padtop, padleft, padx, pady;
 
 extern buffer_t *buffer;
 extern WINDOW *pad;
@@ -118,6 +116,18 @@ int view_scroll(enum scroll s)
 			padyinrange();
 			ret = 1;
 			break;
+
+		case CURSOR_TOP:
+			padtop = pady;
+			break;
+		case CURSOR_BOTTOM:
+			if((padtop = pady - MAX_Y + 1) < 0)
+				padtop = 0;
+			break;
+		case CURSOR_MIDDLE:
+			if((padtop = pady - MAX_Y/2) < 2)
+				padtop = 0;
+			break;
 	}
 
 	view_updatecursor();
@@ -131,180 +141,6 @@ static void padyinrange()
 	else if(pady > padtop + MAX_Y)
 		pady = padtop + MAX_Y - 1;
 	clippadx();
-}
-
-int view_move(enum direction d)
-{
-	int ylim, ret = 0,
-			xlim, screenbottom = padtop + MAX_Y - 1;
-	struct list *cl = buffer_getindex(buffer, pady);
-
-	xlim = strlen(cl->data) - 1;
-	if(xlim < 0)
-		xlim = 0;
-
-	ylim = buffer_nlines(buffer)-1;
-	if(screenbottom > ylim)
-		screenbottom = ylim;
-
-	switch(d){
-		case LEFT:
-			if(padx > 0){
-				padx--;
-				ret = 1;
-			}
-			break;
-
-		case RIGHT:
-			if(padx < xlim){
-				padx++;
-				ret = 1;
-			}
-			break;
-
-		case UP:
-		case DOWN:
-			if(d == UP){
-				if(pady > 0){
-					pady--;
-					if(padtop > pady)
-						padtop = pady;
-					cl = cl->prev;
-				}else
-					break;
-			}else{
-				if(pady < ylim){
-					pady++;
-					if(pady >= padtop + MAX_Y)
-						padtop = pady - MAX_Y + 1;
-					cl = cl->next;
-				}else
-					break;
-			}
-
-			/* only end up here has pady changed */
-			clippadx();
-			ret = 1;
-			break;
-
-		case PARA_PREV:
-			ret = 1;
-		case PARA_NEXT:
-		{
-			struct list *l = buffer_getindex(buffer, pady);
-			int diff = 0;
-
-			if(!strlen(l->data)){
-				if(ret)
-					while(l->prev){
-						l = l->prev;
-						diff--;
-						if(strlen(l->data))
-							break;
-					}
-				else
-					while(l->next){
-						l = l->next;
-						diff++;
-						if(strlen(l->data))
-							break;
-					}
-			}
-
-			if(ret){
-				while(l->prev){
-					l = l->prev;
-					diff--;
-					if(!strlen(l->data)){
-						pady += diff;
-						clippad();
-						break;
-					}
-				}
-			}else{
-				while(l->next){
-					l = l->next;
-					diff++;
-					if(!strlen(l->data)){
-						pady += diff;
-						clippad();
-						break;
-					}
-				}
-			}
-
-			ret = 0;
-			break;
-		}
-
-		case ABSOLUTE_LEFT:
-			padx = 0;
-			ret = 1;
-			break;
-
-		case ABSOLUTE_RIGHT:
-			padx = xlim;
-			ret = 1;
-			break;
-
-		case ABSOLUTE_UP:
-			padtop = pady = 0;
-			ret = 1;
-			break;
-
-		case ABSOLUTE_DOWN:
-			pady = buffer_nlines(buffer)-1;
-			if(pady >= padtop + MAX_Y){
-				padtop = pady - MAX_Y + 1;
-				if(padtop < 0)
-					padtop = 0;
-			}
-			clippadx();
-			ret = 1;
-			break;
-
-		case NO_BLANK:
-		{
-			char *c = cl->data;
-			while(isspace(*c))
-				c++;
-			if(c == '\0'){
-				if(padx){
-					padx = 0;
-					ret = 1;
-				}
-			}else if(padx != c - (char *)cl->data){
-				padx = c - (char *)cl->data;
-				ret = 1;
-			}
-			break;
-		}
-
-		case CURRENT:
-			clippad();
-			break;
-
-		case SCREEN_MIDDLE:
-			pady = padtop + (screenbottom - padtop) / 2;
-			if(pady < 0)
-				pady = 0;
-			clippad();
-			ret = 1;
-			break;
-		case SCREEN_BOTTOM:
-			pady = screenbottom;
-			clippad();
-			ret = 1;
-			break;
-		case SCREEN_TOP:
-			pady = padtop;
-			ret = 1;
-			break;
-	}
-
-	view_updatecursor();
-
-	return ret;
 }
 
 int view_getactualx(int y, int x)
@@ -347,7 +183,7 @@ static int view_actualx(int y, int x)
 		char *data = l->data;
 		int actualx = 0;
 
-		while(*data && x-- > 0)
+		while(*data && x --> 0)
 			if(*data++ == '\t')
 				if(global_settings.showtabs)
 					actualx += 2;
@@ -365,7 +201,18 @@ static int view_actualx(int y, int x)
 		return x;
 }
 
-void view_updatecursor()
+void view_cursoronscreen()
+{
+	/* ensure pady is between top & bottom */
+	if(pady < padtop)
+		padtop = pady;
+	else if(pady >= padtop + MAX_Y - 1) /* -1 for status bar */
+		padtop = pady - MAX_Y + 1;
+
+	view_updatecursor();
+}
+
+static void view_updatecursor()
 {
 	/* wmove takes care of pad{top,left} */
 	wmove(pad, pady, view_actualx(pady, padx));
@@ -473,7 +320,8 @@ void view_drawbuffer(buffer_t *b)
 						&current_syntax, &needcolouroff);
 
 				if(keyword_on && !--keyword_on)
-						wcoloroff(KEYWORD_COLOUR, A_BOLD);
+					/* a keyword's last character has been added */
+					wcoloroff(KEYWORD_COLOUR, A_BOLD);
 
 				if(*c == '\t')
 					if(global_settings.showtabs)
@@ -482,15 +330,16 @@ void view_drawbuffer(buffer_t *b)
 						lim -= global_settings.tabstop;
 				else
 					lim--;
-				view_waddch(pad, *c++);
 
-				/* TODO: check */
-				for(i = 0; i < (signed)KEYWORD_COUNT; i++)
-					if(!strncmp(keyword[i].kw, c, keyword[i].len)){
-						wcoloron(KEYWORD_COLOUR, A_BOLD);
-						keyword_on = keyword[i].len;
-						break;
-					}
+				if(!colour_on && !keyword_on)
+					for(i = 0; i < (signed)KEYWORD_COUNT; i++)
+						if(!strncmp(keyword[i].kw, c, keyword[i].len)){
+							wcoloron(KEYWORD_COLOUR, A_BOLD);
+							keyword_on = keyword[i].len;
+							break;
+						}
+
+				view_waddch(pad, *c++);
 			}
 
 			while(*c)
@@ -585,6 +434,10 @@ void view_termpad()
 	delwin(pad);
 }
 
+/*
+ * static funcs
+ */
+
 static void resizepad()
 {
 	if(pad)
@@ -611,14 +464,6 @@ static void clippadx()
 		padx = xlim;
 }
 
-static void clippady()
-{
-	if(pady < padtop)
-		padtop = pady;
-	else if(pady > padtop + MAX_Y - 1)
-		padtop = pady - MAX_Y + 1;
-}
-
 /* cursor/character adding positioning code */
 
 void view_waddch(WINDOW *w, int c)/*, int offset)*/
@@ -641,4 +486,19 @@ void view_putcursor(int y, int x, int offset, int tabcount)
 		+ offset
 		+ tabcount * (global_settings.tabstop - 1)
 		- padleft);
+}
+
+void view_move(struct motion *m)
+{
+	struct bufferpos bp;
+	struct screeninfo si;
+
+	bp.buffer    = buffer;
+	bp.x         = &padx;
+	bp.y         = &pady;
+	si.padtop    = padtop;
+	si.padheight = MAX_Y;
+
+	if(applymotion(m, &bp, &si))
+		view_cursoronscreen();
 }

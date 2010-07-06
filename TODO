@@ -1,16 +1,19 @@
 ncurses.c:
-	fix pad empty line ~ thing - "~\n~\n~~~~~\n" etc
-	fix syntax highlight with /*hi*//*hi*/
 	only syntax highlight what's on screen?
-	keywords, like TODO & FIXME
-
-	'zz'
-	'f' and 't'
 	'J'
 	%ddd bug (FIXME'd)
 	:e autocomplete?
-	fix motions/get rid of hacks
+
+motions.c:
+	'f' and 't'
 
 command.c:
-	s/ \+$// option
+	filters/pipes:
+		:r!cmd
+		:w!cmd
+		:rw!cmd # filter through prog
+	s/ \+$// command
 	regex search
+
+regex:
+	simple (vi(1) - see '/'): ^$.[]*
