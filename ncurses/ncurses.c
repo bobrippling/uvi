@@ -20,10 +20,10 @@
 #include "../command.h"
 #include "../util/list.h"
 #include "../main.h"
+#include "motion.h"
 #include "view.h"
 #include "../util/alloc.h"
 #include "../vars.h"
-#include "motion.h"
 #include "marks.h"
 
 #include "ncurses.h"
@@ -75,14 +75,10 @@ static void delete(struct motion *);
 static void unknownchar(int);
 
 static int  search(int);
-static void percent(void);
 static void shift(unsigned int, char);
 static void showgirl(unsigned int);
 static void tilde(int);
 static void replace(int);
-
-static char bracketdir(char);
-static char bracketrev(char);
 
 static void status(const char *, ...);
 static void vstatus(const char *, va_list);
@@ -134,7 +130,7 @@ dosearch:
 				if((pos = strstr(l->data, searchstr))){
 					padx = pos - (char *)l->data;
 					pady = y;
-					view_move(CURRENT);
+					view_cursoronscreen();
 					return 1;
 				}
 
@@ -146,118 +142,6 @@ dosearch:
 	}
 
 	return 0;
-}
-
-static char bracketdir(char b)
-{
-	switch(b){
-		case '<':
-		case '(':
-		case '[':
-		case '{':
-			return -1;
-
-		case '>':
-		case ')':
-		case ']':
-		case '}':
-			return 1;
-
-		default:
-			return 0;
-	}
-}
-
-static char bracketrev(char b)
-{
-	switch(b){
-		case '<': return '>';
-		case '(': return ')';
-		case '[': return ']';
-		case '{': return '}';
-
-		case '>': return '<';
-		case ')': return '(';
-		case ']': return '[';
-		case '}': return '{';
-
-		default: return '\0';
-	}
-}
-
-void percent(void)
-{
-	struct list *listpos = buffer_getindex(buffer, pady);
-	char *line = listpos->data,
-			*pos = line + padx, *opposite, dir,
-			bracket = '\0', revbracket = '\0', xychanged = 0;
-	int nest = 0, pady_save = pady, padx_save = padx;
-
-#define restorepadxy() do{ padx = padx_save; \
-												pady = pady_save; \
-												status("matching bracket not found"); \
-												}while(0)
-
-	while(pos >= line && !bracket)
-		if((revbracket = bracketrev(*pos))){
-			bracket = *pos;
-			break;
-		}else
-			pos--;
-
-	if(!revbracket)
-		return;
-
-	dir = bracketdir(revbracket);
-
-	/* looking for revbracket */
-	opposite = pos + dir;
-
-	do{
-		while(opposite >= line && *opposite){
-			if(*opposite == revbracket){
-				if(--nest < 0)
-					break;
-			}else if(*opposite == bracket)
-				nest++;
-			opposite += dir;
-		}
-
-		if(opposite < line){
-			if(listpos->prev){
-				listpos = listpos->prev;
-				pady--;
-				xychanged = 1;
-
-				line = listpos->data;
-				opposite = line + strlen(line) - 1;
-			}else{
-				restorepadxy();
-				return;
-			}
-		}else if(!*opposite){
-			if(listpos->next){
-				listpos = listpos->next;
-				pady++;
-				xychanged = 1;
-
-				opposite = line = listpos->data;
-			}else{
-				restorepadxy();
-				return;
-			}
-		}else
-			break;
-	}while(1);
-
-	if(opposite){
-		padx = opposite - line;
-		if(xychanged)
-			view_move(CURRENT);
-		else
-			view_updatecursor();
-	}
-#undef	restorepadxy
 }
 
 void shift(unsigned int nlines, char indent)
@@ -322,7 +206,7 @@ void tilde(int rep)
 		pos++;
 	}
 
-	view_updatecursor();
+	view_cursoronscreen();
 	buffer_modified(buffer) = 1;
 }
 
@@ -450,7 +334,6 @@ static void vstatus(const char *s, va_list l)
 		move(pfunc_wantconfimation++, 0);
 	else
 		move(MAX_Y, 0);
-
 
 	clrtoeol();
 #if VIEW_COLOUR
@@ -601,7 +484,7 @@ exit:
 	if(gfunc_onpad){
 		++pady;
 		padx = 0;
-		view_updatecursor();
+		view_cursoronscreen();
 	}
 
 	return r;
@@ -822,50 +705,7 @@ static void delete(struct motion *mparam)
 	struct list *listpos = buffer_getindex(buffer, pady);
 	struct motion mot;
 
-	if(mparam->motion == MOTION_UNKNOWN){
-		getmotion(&nc_getch, &internalrepeat);
-		if(m == MOTION_UNKNOWN)
-			return;
-	}
-
-	if(m == MOTION_EOL){
-		line[padx] = '\0';
-		return;
-	}
-
-	applied = applymotion(m, listpos->data, padx, internalrepeat);
-	do
-		switch(m){
-			case MOTION_BACKWARD_LETTER:
-				if(padx <= 0)
-					break;
-				padx--;
-			case MOTION_BACKWARD_WORD:
-				memmove(applied, line + padx, strlen(line + padx) + 1);
-				break;
-
-			case MOTION_FORWARD_WORD:
-			case MOTION_FORWARD_LETTER:
-				memmove(line + padx, applied, strlen(applied) + 1);
-				break;
-
-			case MOTION_LINE:
-				buffer_remove(buffer, listpos); /* FIXME: segfault on "%ddd",x where x > nlines */
-				break;
-
-			case MOTION_EOL:
-				/* unreachable */
-			case MOTION_UNKNOWN:
-				break;
-		}
-	while(--repeat > 0);
-
-	if(pady >= buffer_nlines(buffer))
-		pady = buffer_nlines(buffer) - 1;
-
-	buffer_modified(buffer) = 1;
-
-	view_move(CURRENT); /* clip x */
+	/* TODO */
 }
 
 static int colon()
@@ -961,10 +801,7 @@ int ncurses_main(const char *filename, char readonly)
 			 * cursor must be updated before
 			 * the pad is refreshed
 			 */
-			/*view_updatecursor();*/
-			/*view_refreshpad();*/
-			view_move(CURRENT);
-
+			view_cursoronscreen();
 			viewchanged = 0;
 		}
 		/*
@@ -1032,7 +869,7 @@ switch_start:
 							/* buffer may have changed since mark was set */
 							pady = buffer_nlines(buffer)-1;
 
-						viewchanged = view_move(CURRENT);
+						view_cursoronscreen();
 					}else
 						status("mark not set");
 				}else
@@ -1071,7 +908,7 @@ switch_start:
 			case 'C':
 				flag = 1;
 			case 'D':
-				SET_MOTION(MOTION_EOL);
+				SET_MOTION(MOTION_ABSOLUTE_RIGHT);
 				delete(&motion);
 				if(flag)
 					insert(1 /* append */);
@@ -1092,8 +929,7 @@ switch_start:
 				break;
 
 			case 'A':
-				SET_MOTION(ABSOLUTE_RIGHT);
-				applymotion(&motion, &linepos);
+				SET_MOTION(MOTION_ABSOLUTE_RIGHT);
 				view_move(&motion);
 			case 'a':
 				flag = 1;
@@ -1181,16 +1017,8 @@ case_i:
 					ungetch(c);
 					getmotion(&nc_getch, &motion);
 
-					if(motion.motion != MOTION_UNKNOWN){
-						struct linepos lp;
-
-						lp->line      = buffer_getindex(buffer, pady);
-						lp->charstart = lp->line->data;
-						lp->charpos   = lp->line->data + padx;
-
-						if(applymotion(&motion, &lp))
-							view_move(&motion);
-					}
+					if(motion.motion != MOTION_UNKNOWN)
+						view_move(&motion);
 				}
 		}
 

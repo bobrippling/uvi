@@ -126,19 +126,14 @@ int buffer_read(buffer_t **buffer, const char *fname)
 
 static char canwrite(mode_t mode, uid_t uid, gid_t gid)
 {
-	struct passwd *pd;
-
 	if(mode & 02)
 		return 1;
 
-	pd = getpwuid(getuid());
-	if(!pd)
-		return 0;
-
-	if((mode & 020) && gid == pd->pw_gid)
+	/* can't be bothered checking all groups */
+	if((mode & 020) && gid == getgid())
 		return 1;
 
-	if((mode & 0200) && uid == pd->pw_uid)
+	if((mode & 0200) && uid == getuid())
 		return 1;
 
 	return 0;
@@ -187,7 +182,8 @@ static int fgetline(char **s, FILE *in, char *haseol)
 			tmp = realloc(*s, buffer_size);
 			if(!tmp){
 				free(*s);
-				fprintf(stderr, __FILE__":%d: realloc failed, size %d\n", __LINE__, buffer_size);
+				fprintf(stderr, __FILE__":%d: realloc failed, size %ld\n", __LINE__, buffer_size);
+				/* %zd corresponds to size_t */
 				longjmp(allocerr, ALLOC_BUFFER_C);
 			}
 			*s = tmp;

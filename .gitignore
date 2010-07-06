@@ -1,3 +1,4 @@
 *.o
 uvi
 INPUT
+INPUT_dump

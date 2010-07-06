@@ -36,20 +36,26 @@ struct motion
 	int ntimes;
 };
 
-struct linepos
+struct bufferpos
 {
-	struct list *line;
-	char *charstart, *charpos;
+	buffer_t *buffer;
+	int *x, *y;
 };
 
 
 void getmotion(int (*charfunc)(void), struct motion *);
+
+struct screeninfo
+{
+	int padtop, padheight;
+};
 
 /*
  * linepos _must_ be initialised
  * (with current pos)
  * before calling this function
  */
-char/*aka bool*/ applymotion(struct motion *, struct linepos *);
+char/*aka bool*/ applymotion(struct motion *,
+		struct bufferpos *, struct screeninfo *);
 
 #endif
