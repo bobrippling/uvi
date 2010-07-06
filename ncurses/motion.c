@@ -285,12 +285,18 @@ char applymotion(struct motion *motion, struct bufferpos *pos,
 			return 1;
 
 		case MOTION_ABSOLUTE_DOWN:
-			if((*pos->y = buffer_nlines(pos->buffer) - 1) < 0){
-				*pos->y = 0;
+		{
+			int last = buffer_nlines(pos->buffer) - 1;
+			if(last < 0)
+				last = 0;
+
+			if(*pos->y != last){
+				*pos->y = last;
 				CLIPX();
 				return 1;
 			}
 			break;
+		}
 	}
 
 	return 0;
