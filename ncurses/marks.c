@@ -24,3 +24,8 @@ char mark_get(int c, int *y, int *x)
 	}else
 		return 0;
 }
+
+char mark_isset(int c)
+{
+	return !!marks[c - 'a'].y;
+}

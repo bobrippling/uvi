@@ -30,10 +30,13 @@ struct motion
 		MOTION_ABSOLUTE_UP,    /* g */
 		MOTION_ABSOLUTE_DOWN,  /* G */
 
+		MOTION_MARK,           /* ' */
+
 		MOTION_UNKNOWN
 	} motion;
 
 	int ntimes;
+	char extra;
 };
 
 struct bufferpos
@@ -43,7 +46,8 @@ struct bufferpos
 };
 
 
-void getmotion(int (*charfunc)(void), struct motion *);
+void getmotion(void status(const char *, ...),
+		int (*charfunc)(void), struct motion *);
 
 struct screeninfo
 {

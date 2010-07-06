@@ -7,9 +7,10 @@
 #include "../range.h"
 #include "../buffer.h"
 #include "motion.h"
+#include "marks.h"
+
 #define iswordpart(c) (isalnum(c) || (c) == '_')
 
-#include <stdio.h>
 
 /* for percent() */
 static char bracketdir(char);
@@ -17,7 +18,8 @@ static char bracketrev(char);
 static void percent(struct bufferpos *);
 
 
-void getmotion(int (*charfunc)(void), struct motion *m)
+void getmotion(void status(const char *, ...),
+		int (*charfunc)(void), struct motion *m)
 {
 	int c;
 
@@ -52,12 +54,29 @@ void getmotion(int (*charfunc)(void), struct motion *m)
 			case 'g': m->motion = MOTION_ABSOLUTE_UP;     return;
 			case 'G': m->motion = MOTION_ABSOLUTE_DOWN;   return;
 
+			case '\'':
+				c = charfunc();
+				if(validmark(c)){
+					if(mark_isset(c)){
+						m->motion = MOTION_MARK;
+						m->extra = c;
+					}else{
+						status("mark not set");
+						m->motion = MOTION_UNKNOWN;
+					}
+				}else{
+					status("invalid mark");
+					m->motion = MOTION_UNKNOWN;
+				}
+				return;
+
 			default:
 				if('0' <= c && c <= '9' && m->ntimes < INT_MAX/10){
 					m->ntimes = m->ntimes * 10 + c - '0';
 					continue;
 				}else{
 					m->motion = MOTION_UNKNOWN;
+					status("unknown motion");
 					return;
 				}
 		}
@@ -79,21 +98,26 @@ char applymotion(struct motion *motion, struct bufferpos *pos,
 
 #define CLIPX() \
 	do{ \
-		struct list *l = buffer_getindex(pos->buffer, *pos->y); \
-		if(l){ \
-			int len = strlen(l->data) - 1; \
-	\
-			if(len < 0) \
-				len = 0; \
-	\
-			if(*pos->x > len) \
-				*pos->x = len; \
-		}else \
-			fprintf(stderr, "NULL list, y: %d\n", *pos->y); \
+		int len = strlen(buffer_getindex(pos->buffer, *pos->y)->data) - 1; \
+\
+		if(len < 0) \
+			len = 0; \
+\
+		if(*pos->x > len) \
+			*pos->x = len; \
 	}while(0)
 
 	switch(motion->motion){
 		case MOTION_UNKNOWN:
+			return 0;
+
+		case MOTION_MARK:
+			if(mark_get(motion->extra, pos->y, pos->x)){
+				/* buffer may have changed since mark was set... */
+				if(*pos->y >= buffer_nlines(pos->buffer))
+					*pos->y = buffer_nlines(pos->buffer)-1;
+				return 1;
+			}
 			return 0;
 
 		case MOTION_ABSOLUTE_LEFT:

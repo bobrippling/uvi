@@ -35,8 +35,6 @@ extern struct settings global_settings;
 
 #define NC_RAW				0
 
-#define INVALID_MARK "invalid mark"
-
 #define CTRL_AND(c)		((c) & 037)
 #define CTRL_AND_g		8
 #define C_ESC					27
@@ -53,7 +51,6 @@ extern struct settings global_settings;
 #define coloron(i)   (attron(COLOR_PAIR(i)))
 #define coloroff(i)  (attroff(COLOR_PAIR(i)))
 #endif
-#define validmark(c) ('a' <= (c) && (c) <= 'z')
 #define iswordchar(c) (isalnum(c) || c == '_')
 
 static void nc_up(void);
@@ -854,26 +851,7 @@ switch_start:
 				if(validmark(c))
 					mark_set(c, pady, padx);
 				else
-					status(INVALID_MARK);
-				break;
-
-			case '\'':
-				c = nc_getch();
-				if(validmark(c)){
-					int y, x;
-					if(mark_get(c, &y, &x)){
-						pady = y;
-						padx = x;
-
-						if(pady >= buffer_nlines(buffer))
-							/* buffer may have changed since mark was set */
-							pady = buffer_nlines(buffer)-1;
-
-						view_cursoronscreen();
-					}else
-						status("mark not set");
-				}else
-					status(INVALID_MARK);
+					status("invalid mark");
 				break;
 
 			case CTRL_AND_g:
@@ -1015,7 +993,7 @@ case_i:
 					INC_MULTIPLE();
 				else{
 					ungetch(c);
-					getmotion(&nc_getch, &motion);
+					getmotion(&status, &nc_getch, &motion);
 
 					if(motion.motion != MOTION_UNKNOWN)
 						view_move(&motion);

@@ -1,17 +1,15 @@
 ncurses.c:
 	only syntax highlight what's on screen?
-
-	'f' and 't'
 	'J'
 	%ddd bug (FIXME'd)
 	:e autocomplete?
 
-	fix motions/get rid of hacks
-	move marks to motion.c
+motions.c:
+	'f' and 't'
 
 command.c:
-	s/ \+$// option
+	s/ \+$// command
 	regex search
 
 regex:
-	simple (man vi - see '/'): ^$.[]*
+	simple (vi(1) - see '/'): ^$.[]*
