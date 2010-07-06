@@ -57,25 +57,29 @@ static void nc_up(void);
 static void nc_down(void);
 static void sigh(int);
 
+/* I/O */
 #define pfunc status
 static void wrongfunc(void);
 static int  qfunc(const char *, ...);
 static enum gret gfunc(char *, int);
 static void shellout(const char *);
-
 static int  nc_getch(void);
+
+/* text altering */
 static void insert(int);
-static int  open(int);
-static int  colon(void);
+static int  open(int); /* as in, 'o' & 'O' */
 static void delete(struct motion *);
-
-static void unknownchar(int);
-
-static int  search(int);
+static void join(int);
 static void shift(unsigned int, char);
-static void showgirl(unsigned int);
 static void tilde(int);
 static void replace(int);
+
+/* extra */
+static int  colon(void);
+static void showgirl(unsigned int);
+static int  search(int);
+
+static void unknownchar(int);
 
 static void status(const char *, ...);
 static void vstatus(const char *, va_list);
@@ -710,28 +714,81 @@ static void delete(struct motion *mparam)
 	si.padheight = MAX_Y;
 
 	if(applymotion(mparam, &topos, &si)){
+		struct range r;
+
+		if(pady > y){
+			int t = y;
+			y = pady;
+			pady = t;
+		}
+
+		/* _remove_range expects 1-based offsets */
+		r.start = pady + 1;
+		r.end   = y    + 1;
+
 		if(islinemotion(mparam)){
 			/* delete lines between pady and y, inclusive */
-			struct range r;
-
-			if(pady > y){
-				int t = y;
-				y = pady;
-				pady = t;
-			}
-
-			/* _remove_range expects 1-based offsets */
-			r.start = pady + 1;
-			r.end   = y    + 1;
-
 			buffer_remove_range(buffer, &r);
 		}else{
 			/*
 			 * delete chars between (x,y) and (padx,pady), inclusive
 			 * aka delete between y+1 and pady-1, then join y & pady into one
 			 */
+			r.start++;
+			r.end--;
+			if(r.start <= r.end)
+				/* lines to remove */
+				buffer_remove_range(buffer, &r);
+
+			/* join line pady with line y */
+			join(1);
 		}
 	}
+
+	buffer_modified(buffer) = 1;
+}
+
+static void join(int ntimes)
+{
+	struct list *jointhese, *l, *cur = buffer_getindex(buffer, pady);
+	struct range r;
+	char *alloced;
+	int len = 0;
+
+	if(ntimes == 0)
+		ntimes = 1;
+
+	if(pady + 1 + ntimes >= buffer_nlines(buffer)){
+		status("can't join %d line%s", ntimes,
+				ntimes > 1 ? "s" : "");
+		return;
+	}
+
+	r.end = (r.start = pady + 2) + ntimes - 1;
+	/*
+	 * +2, because...
+	 * +1 for the next line
+	 * +1 because buffer_extract_range expects
+	 * a 1-based offset
+	 */
+
+	jointhese = buffer_extract_range(buffer, &r);
+
+	for(l = jointhese; l; l = l->next)
+		len += strlen(l->data);
+
+	alloced = realloc(cur->data, strlen(cur->data) + len + 1);
+	if(!alloced)
+		longjmp(allocerr, 1);
+
+	cur->data = alloced;
+	for(l = jointhese; l; l = l->next)
+		/* TODO: add a space between these? */
+		strcat(cur->data, l->data);
+
+	list_free(jointhese);
+
+	buffer_modified(buffer) = 1;
 }
 
 static int colon()
@@ -959,6 +1016,12 @@ case_i:
 				SET_MOTION(MOTION_NOSPACE);
 				view_move(&motion);
 				goto case_i;
+
+			case 'J':
+				join(multiple);
+				bufferchanged = 1;
+				SET_DOT();
+				break;
 
 			case 'r':
 				replace(multiple);

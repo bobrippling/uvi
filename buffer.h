@@ -32,35 +32,35 @@ struct list	*buffer_extract_range(buffer_t *, struct range *);
 #define b2l(b) ((b)->lines)
 
 /* helpers */
-#define buffer_modified(b)								((b)->modified)
-#define buffer_readonly(b)								((b)->readonly)
-#define buffer_eol(b)											((b)->eol)
+#define buffer_modified(b)                ((b)->modified)
+#define buffer_readonly(b)                ((b)->readonly)
+#define buffer_eol(b)                     ((b)->eol)
 
-#define buffer_changed(b)									((b)->changed)
+#define buffer_changed(b)                 ((b)->changed)
 
-#define buffer_filename(b)								((b)->fname ? (b)->fname : "(empty file)")
-#define buffer_hasfilename(b)							(!!(b)->fname)
+#define buffer_filename(b)                ((b)->fname ? (b)->fname : "(empty file)")
+#define buffer_hasfilename(b)             (!!(b)->fname)
 
 
 /* functions that change the buffer */
-#define buffer_insertbefore(b, l, d)			buffer_changed(b) = 1, list_insertbefore			(	l, d )
-#define buffer_insertafter(b, l, d)				buffer_changed(b) = 1, list_insertafter				(	l, d )
-#define buffer_append(b, l, d)						buffer_changed(b) = 1, list_append						(	l, d )
-#define buffer_insertlistbefore(b, l, m)	buffer_changed(b) = 1, list_insertlistbefore	(	l, m )
-#define buffer_insertlistafter(b, l, m)		buffer_changed(b) = 1, list_insertlistafter		(	l, m )
-#define buffer_appendlist(b, l)						buffer_changed(b) = 1, list_appendlist				(	b2l(b), l )
+#define buffer_insertbefore(b, l, d)      ( buffer_changed(b) = 1, list_insertbefore      ( l, d )         )
+#define buffer_insertafter(b, l, d)       ( buffer_changed(b) = 1, list_insertafter       ( l, d )         )
+#define buffer_append(b, l, d)            ( buffer_changed(b) = 1, list_append            ( l, d )         )
+#define buffer_insertlistbefore(b, l, m)  ( buffer_changed(b) = 1, list_insertlistbefore  ( l, m )         )
+#define buffer_insertlistafter(b, l, m)   ( buffer_changed(b) = 1, list_insertlistafter   ( l, m )         )
+#define buffer_appendlist(b, l)           ( buffer_changed(b) = 1, list_appendlist        ( b2l(b), l )    )
 
-#define buffer_extract(b, l)							buffer_changed(b) = 1, list_extract						(l)
-#define buffer_remove(b, l)								buffer_changed(b) = 1, list_remove						(l)
+#define buffer_extract(b, l)              ( buffer_changed(b) = 1, list_extract           (l)              )
+#define buffer_remove(b, l)               ( buffer_changed(b) = 1, list_remove            (l)              )
 
 
 /* read only functions */
-#define buffer_getindex(b, m)							list_getindex	(	b2l(b), m)
+#define buffer_getindex(b, m)             list_getindex ( b2l(b), m)
 /* TODO: jump table in buffer? */
-#define buffer_indexof(b, l)							list_indexof	( b2l(b), l)
+#define buffer_indexof(b, l)              list_indexof  ( b2l(b), l)
 
 /* TODO: store head and tail pointers in buffer */
-#define buffer_gethead(b)									list_gethead	( b2l(b) )
-#define buffer_gettail(b)									list_gettail	( b2l(b) )
+#define buffer_gethead(b)                 list_gethead  ( b2l(b) )
+#define buffer_gettail(b)                 list_gettail  ( b2l(b) )
 
 #endif
