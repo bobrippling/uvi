@@ -17,6 +17,37 @@ static char bracketdir(char);
 static char bracketrev(char);
 static void percent(struct bufferpos *);
 
+char islinemotion(struct motion *m)
+{
+	switch(m->motion){
+		case MOTION_FORWARD_LETTER:
+		case MOTION_BACKWARD_LETTER:
+		case MOTION_FORWARD_WORD:
+		case MOTION_BACKWARD_WORD:
+		case MOTION_NOSPACE:
+		case MOTION_PAREN_MATCH:
+		case MOTION_ABSOLUTE_LEFT:
+		case MOTION_ABSOLUTE_RIGHT:
+		case MOTION_MARK:
+			return 0;
+
+		case MOTION_DOWN:
+		case MOTION_UP:
+		case MOTION_SCREEN_TOP:
+		case MOTION_SCREEN_MIDDLE:
+		case MOTION_SCREEN_BOTTOM:
+		case MOTION_PARA_PREV:
+		case MOTION_PARA_NEXT:
+		case MOTION_ABSOLUTE_UP:
+		case MOTION_ABSOLUTE_DOWN:
+		case MOTION_LINE:
+			return 1;
+
+		case MOTION_UNKNOWN:
+			break;
+	}
+	return 0;
+}
 
 void getmotion(void status(const char *, ...),
 		int (*charfunc)(void), struct motion *m)
@@ -76,7 +107,6 @@ void getmotion(void status(const char *, ...),
 					continue;
 				}else{
 					m->motion = MOTION_UNKNOWN;
-					status("unknown motion");
 					return;
 				}
 		}
@@ -110,6 +140,16 @@ char applymotion(struct motion *motion, struct bufferpos *pos,
 	switch(motion->motion){
 		case MOTION_UNKNOWN:
 			return 0;
+
+		case MOTION_LINE:
+		{
+			int n = motion->ntimes - 1;
+			if(n < 0)
+				n = 0;
+
+			*pos->y += n;
+			return 1;
+		}
 
 		case MOTION_MARK:
 			if(mark_get(motion->extra, pos->y, pos->x)){

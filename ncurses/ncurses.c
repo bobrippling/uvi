@@ -699,10 +699,39 @@ static int open(int before)
 
 static void delete(struct motion *mparam)
 {
-	struct list *listpos = buffer_getindex(buffer, pady);
-	struct motion mot;
+	struct bufferpos topos;
+	struct screeninfo si;
+	int x = padx, y = pady;
 
-	/* TODO */
+	topos.buffer = buffer;
+	topos.x = &x;
+	topos.y = &y;
+	si.padtop = padtop;
+	si.padheight = MAX_Y;
+
+	if(applymotion(mparam, &topos, &si)){
+		if(islinemotion(mparam)){
+			/* delete lines between pady and y, inclusive */
+			struct range r;
+
+			if(pady > y){
+				int t = y;
+				y = pady;
+				pady = t;
+			}
+
+			/* _remove_range expects 1-based offsets */
+			r.start = pady + 1;
+			r.end   = y    + 1;
+
+			buffer_remove_range(buffer, &r);
+		}else{
+			/*
+			 * delete chars between (x,y) and (padx,pady), inclusive
+			 * aka delete between y+1 and pady-1, then join y & pady into one
+			 */
+		}
+	}
 }
 
 static int colon()
@@ -897,13 +926,22 @@ switch_start:
 			case 'c':
 				flag = 1;
 			case 'd':
-				SET_MOTION(MOTION_UNKNOWN);
-				delete(&motion);
-				view_drawbuffer(buffer);
-				if(flag)
-					insert(0);
-				bufferchanged = 1;
-				SET_DOT();
+				c = nc_getch();
+				if(c == 'd' || c == 'c'){
+					/* allow dd or cc (or dc or cd... but yeah) */
+					SET_MOTION(MOTION_LINE);
+				}else{
+					ungetch(c);
+					getmotion(&status, &nc_getch, &motion);
+				}
+				if(motion.motion != MOTION_UNKNOWN){
+					delete(&motion);
+					view_drawbuffer(buffer);
+					if(flag)
+						insert(0);
+					bufferchanged = 1;
+					SET_DOT();
+				}
 				break;
 
 			case 'A':

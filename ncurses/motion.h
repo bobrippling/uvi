@@ -15,6 +15,7 @@ struct motion
 
 		MOTION_DOWN,           /* j */
 		MOTION_UP,             /* k */
+		MOTION_LINE,           /* no key */
 
 		MOTION_SCREEN_TOP,     /* H */
 		MOTION_SCREEN_MIDDLE,  /* M */
@@ -45,6 +46,7 @@ struct bufferpos
 	int *x, *y;
 };
 
+char islinemotion(struct motion *);
 
 void getmotion(void status(const char *, ...),
 		int (*charfunc)(void), struct motion *);
