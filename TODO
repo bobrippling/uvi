@@ -8,6 +8,10 @@ motions.c:
 	'f' and 't'
 
 command.c:
+	filters/pipes:
+		:r!cmd
+		:w!cmd
+		:rw!cmd # filter through prog
 	s/ \+$// command
 	regex search
 
