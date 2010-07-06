@@ -769,8 +769,6 @@ static int colon()
 static void sigh(int sig)
 {
 	nc_down();
-	command_dumpbuffer(buffer);
-	buffer_free(buffer);
 	bail(sig);
 }
 

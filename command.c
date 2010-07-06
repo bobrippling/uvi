@@ -17,6 +17,8 @@
 #include "vars.h"
 #include "util/alloc.h"
 
+extern buffer_t *lastbuffer;
+
 static char *prevcmd = NULL;
 
 static void parse_setget(buffer_t *, char, char *, void (*)(const char *, ...), void (*)(void));
@@ -454,6 +456,8 @@ buffer_t *command_readfile(const char *filename, char forcereadonly, void (*cons
 newfile:
 		pfunc("(new file)");
 	}
+
+	lastbuffer = buffer;
   return buffer;
 }
 
@@ -474,6 +478,7 @@ void command_dumpbuffer(buffer_t *b)
 	if(!b)
 		return;
 
+	/* TODO: more robust - check if it already exists, etc... */
 	if(!buffer_hasfilename(b))
 		f = fopen(PROG_NAME DUMP_POSTFIX, "w");
 	else{
