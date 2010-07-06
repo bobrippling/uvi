@@ -623,7 +623,7 @@ get:
 
 		case C_CTRL_Z:
 			nc_down();
-			kill(getpid(), SIGSTOP);
+			raise(SIGSTOP);
 			nc_up();
 			goto get;
 #endif
