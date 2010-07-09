@@ -746,14 +746,14 @@ static void delete(struct motion *mparam)
 				data = buffer_getindex(buffer, pady)->data;
 			}
 
-			if(mparam->motion == MOTION_PAREN_MATCH)
-				x++; /* delete the other paren, not just up to it */
-
-
 			{
 				char *linestart = data;
 				char *curpos    = linestart + padx;
 				char *xpos      = linestart + x;
+
+				if(*xpos != '\0')
+					xpos++; /* delete over where we motion() up to */
+				/* else can't go any further */
 
 				/* remove the chars between padx and x, inclusive */
 				memmove(curpos, xpos, strlen(xpos) + 1);
