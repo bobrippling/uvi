@@ -507,7 +507,7 @@ get:
 
 		case C_CTRL_Z:
 			nc_down();
-			kill(getpid(), SIGSTOP);
+			raise(SIGSTOP);
 			nc_up();
 			goto get;
 #endif
@@ -841,8 +841,6 @@ static int colon()
 static void sigh(int sig)
 {
 	nc_down();
-	command_dumpbuffer(buffer);
-	buffer_free(buffer);
 	bail(sig);
 }
 

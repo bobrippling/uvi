@@ -75,28 +75,14 @@ getchar_break:
 
 static void pfunc(const char *s, ...)
 {
-	char *copy = NULL;
-	const char *news = s;
 	va_list l;
 
-	if(strchr(s, '\n')){
-		/*
-		 * filter out, since we just print it out anyway
-		 * as opposed to ncurses
-		 */
-		int len = strlen(s);
-		copy = umalloc(len);
-		strncpy(copy, s, len);
-		copy[len-1] = '\0'; /* assuming \n is the last char... */
-		news = copy;
-	}
-
 	va_start(l, s);
-	vprintf(news, l);
+	vprintf(s, l);
 	va_end(l);
-	putchar('\n');
 
-	free(copy);
+	if(!strchr(s, '\n'))
+		putchar('\n');
 }
 
 static void shellout(const char *cmd)

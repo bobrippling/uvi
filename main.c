@@ -4,9 +4,14 @@
 #include <setjmp.h>
 #include <unistd.h>
 #include <errno.h>
+#include <signal.h>
 
 #include "term.h"
 #include "ncurses/ncurses.h"
+
+#include "range.h"
+#include "buffer.h"
+#include "command.h"
 
 #include "main.h"
 #include "config.h"
@@ -16,6 +21,7 @@ static void usage(const char *);
 
 jmp_buf allocerr;
 struct settings global_settings;
+buffer_t *lastbuffer = NULL;
 int debug = 0;
 
 void usage(const char *s)
@@ -32,8 +38,21 @@ void usage(const char *s)
 
 void bail(int sig)
 {
-	/* TODO: save open buffers? */
 	char m[] = "Received fatal signal ";
+	static int saving = 0;
+
+	if(!saving){
+		/*
+		 * rudimentary mutex
+		 * if we're signaled again
+		 * (during bail()), then something's
+		 * really wrong
+		 */
+		saving = 1;
+		if(lastbuffer)
+			command_dumpbuffer(lastbuffer);
+		saving = 0;
+	}
 
 	write(STDERR_FILENO, m, strlen(m));
 
@@ -59,6 +78,8 @@ int main(int argc, const char **argv)
 	global_settings.tabstop  = DEFAULT_TAB_STOP;
 	global_settings.colour   = 0;
 	global_settings.showtabs = 0;
+
+	signal(SIGHUP, &bail);
 
 	if((af = setjmp(allocerr))){
 		const char *from = NULL;
