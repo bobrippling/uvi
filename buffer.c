@@ -357,13 +357,13 @@ struct list *buffer_extract_range(buffer_t *buffer, struct range *rng)
 {
 	struct list *l, *newpos, *extracted;
 
-	l = list_getindex(buffer->lines, rng->start - 1);
+	l = list_getindex(buffer->lines, rng->start);
 
-	extracted = list_extract_range(&l, rng->end - rng->start + 1);
+	extracted = list_extract_range(&l, rng->end - rng->start);
 	newpos = l;
 
 	/* l must be used below, since buffer->lines is now invalid */
-	if(!(l = list_getindex(newpos, rng->start - 1)))
+	if(!(l = list_getindex(newpos, rng->start)))
 		/* removed lines, and curline was in the range rng */
 		l = list_gettail(newpos);
 
