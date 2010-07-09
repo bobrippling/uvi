@@ -58,6 +58,8 @@ void getmotion(void status(const char *, ...),
  * s/^ *\([^,]*\), *\/\* \(.\).*$/\t\t\tcase '\2': m->motion = \1; return;/
  */
 
+	/* m->ntimes is already initialised */
+
 	do
 		switch((c = charfunc())){
 			case 'l': m->motion = MOTION_FORWARD_LETTER;  return;
@@ -104,7 +106,6 @@ void getmotion(void status(const char *, ...),
 			default:
 				if('0' <= c && c <= '9' && m->ntimes < INT_MAX/10){
 					m->ntimes = m->ntimes * 10 + c - '0';
-					continue;
 				}else{
 					m->motion = MOTION_UNKNOWN;
 					return;
@@ -280,13 +281,19 @@ char applymotion(struct motion *motion, struct bufferpos *pos,
 			return 1;
 
 		case MOTION_ABSOLUTE_UP:
+			if(motion->ntimes)
+				goto MOTION_GOTO;
 			*pos->y = 0;
 			*pos->x = 0;
 			return 1;
 
 		case MOTION_ABSOLUTE_DOWN:
 		{
-			int last = buffer_nlines(pos->buffer) - 1;
+			int last;
+			if(motion->ntimes)
+				goto MOTION_GOTO;
+
+			last = buffer_nlines(pos->buffer) - 1;
 			if(last < 0)
 				last = 0;
 
@@ -299,6 +306,14 @@ char applymotion(struct motion *motion, struct bufferpos *pos,
 		}
 	}
 
+	return 0;
+MOTION_GOTO:
+	if(0 <= motion->ntimes &&
+			motion->ntimes <= buffer_nlines(pos->buffer)-1){
+		*pos->y = motion->ntimes - 1;
+		CLIPX();
+		return 1;
+	}
 	return 0;
 }
 
@@ -409,4 +424,3 @@ static char bracketrev(char b)
 		default: return '\0';
 	}
 }
-

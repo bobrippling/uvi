@@ -728,12 +728,15 @@ static void delete(struct motion *mparam)
 		if(islinemotion(mparam)){
 			/* delete lines between pady and y, inclusive */
 			buffer_remove_range(buffer, &r);
+			if(pady >= buffer_nlines(buffer))
+				pady = buffer_nlines(buffer) - 1;
 		}else{
 			char *data = buffer_getindex(buffer, pady)->data;
 			int oldlen = strlen(data);
 
 			if(r.start < r.end){
 				/* lines to remove */
+				r.start++;
 				buffer_remove_range(buffer, &r);
 
 				/* join line pady with line y */
@@ -741,14 +744,9 @@ static void delete(struct motion *mparam)
 				x += oldlen;
 
 				data = buffer_getindex(buffer, pady)->data;
-			}else if(mparam->motion == MOTION_PAREN_MATCH)
-				/*
-				 * else we're just removing between the x co-ords on this line
-				 * -> make a minor adjustment for '%' aka MOTION_PAREN_MATCH:
-				 *
-				 * (don't need to do this for the full lines, because
-				 * x += oldlen takes care of it)
-				 */
+			}
+
+			if(mparam->motion == MOTION_PAREN_MATCH)
 				x++; /* delete the other paren, not just up to it */
 
 
@@ -759,6 +757,9 @@ static void delete(struct motion *mparam)
 
 				/* remove the chars between padx and x, inclusive */
 				memmove(curpos, xpos, strlen(xpos) + 1);
+
+				if(padx >= x)
+					padx = x;
 			}
 		}
 	}
@@ -776,7 +777,7 @@ static void join(int ntimes)
 	if(ntimes == 0)
 		ntimes = 1;
 
-	if(pady + 1 + ntimes >= buffer_nlines(buffer)){
+	if(pady + ntimes >= buffer_nlines(buffer)){
 		status("can't join %d line%s", ntimes,
 				ntimes > 1 ? "s" : "");
 		return;
@@ -1105,6 +1106,7 @@ case_i:
 					INC_MULTIPLE();
 				else{
 					ungetch(c);
+					motion.ntimes = multiple;
 					getmotion(&status, &nc_getch, &motion);
 
 					if(motion.motion != MOTION_UNKNOWN)
