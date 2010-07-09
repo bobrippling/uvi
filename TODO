@@ -4,6 +4,10 @@ ncurses.c:
 	%ddd bug (FIXME'd)
 	:e autocomplete?
 
+	change tabs -
+		int ntabs = curpos / 8;
+		mov(ntabs * 8 + 8)
+
 motions.c:
 	'f' and 't'
 
