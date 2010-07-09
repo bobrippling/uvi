@@ -8,6 +8,15 @@ ncurses.c:
 		int ntabs = curpos / 8;
 		mov(ntabs * 8 + 8)
 
+	fix:
+		>free(b->fname);
+		>if(s){ <-- cursor here: "d%"
+		>	b->fname = umalloc(strlen(s) + 1);
+		>	strcpy(b->fname, s);
+		>}else
+		>	b->fname = NULL;
+		ends up with if(s) deleted
+
 motions.c:
 	'f' and 't'
 
