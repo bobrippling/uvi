@@ -731,17 +731,37 @@ static void delete(struct motion *mparam)
 			buffer_remove_range(buffer, &r);
 		}else{
 			/*
-			 * delete chars between (x,y) and (padx,pady), inclusive
-			 * aka delete between y+1 and pady-1, then join y & pady into one
+			 * delete chars between topos.(x,y) and (padx,pady), inclusive
+			 * aka delete between y+1 and pady-1,
+			 *     then join y & pady into one
+			 *     then delete for x
 			 */
+			int oldlen = strlen(buffer_getindex(buffer, pady)->data);
+
 			r.start++;
 			r.end--;
-			if(r.start <= r.end)
+			if(r.start < r.end){
 				/* lines to remove */
+				fprintf(stderr, "remove_range(\"%s\", \"%s\")\n",
+					buffer_getindex(buffer, r.start)->data,
+					buffer_getindex(buffer, r.end)->data);
 				buffer_remove_range(buffer, &r);
 
-			/* join line pady with line y */
-			join(1);
+				/* join line pady with line y */
+				fprintf(stderr, "joining \"%s\" & \"%s\"\n",
+					buffer_getindex(buffer, pady)->data,
+					buffer_getindex(buffer, pady+1)->data);
+				join(1);
+			}
+
+			{
+				char *linestart = (char *)buffer_getindex(buffer, pady)->data;
+				char *curpos    = linestart + padx;
+				char *xpos      = linestart + oldlen + x;
+
+				/* remove the chars between padx and x, inclusive */
+				memmove(curpos, xpos, strlen(xpos));
+			}
 		}
 	}
 
@@ -764,13 +784,8 @@ static void join(int ntimes)
 		return;
 	}
 
-	r.end = (r.start = pady + 2) + ntimes - 1;
-	/*
-	 * +2, because...
-	 * +1 for the next line
-	 * +1 because buffer_extract_range expects
-	 * a 1-based offset
-	 */
+	r.start = pady;
+	r.end   = r.start + ntimes;
 
 	jointhese = buffer_extract_range(buffer, &r);
 
