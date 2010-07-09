@@ -722,45 +722,43 @@ static void delete(struct motion *mparam)
 			pady = t;
 		}
 
-		/* _remove_range expects 1-based offsets */
-		r.start = pady + 1;
-		r.end   = y    + 1;
+		r.start = pady;
+		r.end   = y;
 
 		if(islinemotion(mparam)){
 			/* delete lines between pady and y, inclusive */
 			buffer_remove_range(buffer, &r);
 		}else{
-			/*
-			 * delete chars between topos.(x,y) and (padx,pady), inclusive
-			 * aka delete between y+1 and pady-1,
-			 *     then join y & pady into one
-			 *     then delete for x
-			 */
-			int oldlen = strlen(buffer_getindex(buffer, pady)->data);
+			char *data = buffer_getindex(buffer, pady)->data;
+			int oldlen = strlen(data);
 
-			r.start++;
-			r.end--;
 			if(r.start < r.end){
 				/* lines to remove */
-				fprintf(stderr, "remove_range(\"%s\", \"%s\")\n",
-					buffer_getindex(buffer, r.start)->data,
-					buffer_getindex(buffer, r.end)->data);
 				buffer_remove_range(buffer, &r);
 
 				/* join line pady with line y */
-				fprintf(stderr, "joining \"%s\" & \"%s\"\n",
-					buffer_getindex(buffer, pady)->data,
-					buffer_getindex(buffer, pady+1)->data);
 				join(1);
-			}
+				x += oldlen;
+
+				data = buffer_getindex(buffer, pady)->data;
+			}else if(mparam->motion == MOTION_PAREN_MATCH)
+				/*
+				 * else we're just removing between the x co-ords on this line
+				 * -> make a minor adjustment for '%' aka MOTION_PAREN_MATCH:
+				 *
+				 * (don't need to do this for the full lines, because
+				 * x += oldlen takes care of it)
+				 */
+				x++; /* delete the other paren, not just up to it */
+
 
 			{
-				char *linestart = (char *)buffer_getindex(buffer, pady)->data;
+				char *linestart = data;
 				char *curpos    = linestart + padx;
-				char *xpos      = linestart + oldlen + x;
+				char *xpos      = linestart + x;
 
 				/* remove the chars between padx and x, inclusive */
-				memmove(curpos, xpos, strlen(xpos));
+				memmove(curpos, xpos, strlen(xpos) + 1);
 			}
 		}
 	}
@@ -784,7 +782,7 @@ static void join(int ntimes)
 		return;
 	}
 
-	r.start = pady;
+	r.start = pady + 1; /* extract the next line(s) */
 	r.end   = r.start + ntimes;
 
 	jointhese = buffer_extract_range(buffer, &r);

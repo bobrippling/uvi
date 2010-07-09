@@ -177,7 +177,7 @@ struct list *list_extract_range(struct list **l, int count)
 		/* we can adjust where l points -> trivial */
 		struct list *top = *l, *bot = (*l)->next;
 
-		while(bot->next && --count)
+		while(bot->next && --count > 0)
 			bot = bot->next;
 
 		if(!(*l = bot->next))
@@ -188,7 +188,7 @@ struct list *list_extract_range(struct list **l, int count)
 	}else{
 		struct list *top = (*l)->prev, *bot = *l, *ret;
 
-		while(bot->next && --count)
+		while(bot->next && --count > 0)
 			bot = bot->next;
 
 		top->next = bot->next;
