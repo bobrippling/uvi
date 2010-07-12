@@ -393,13 +393,13 @@ tilde:
 	move(y, 0);
 #if VIEW_COLOUR
 	if(global_settings.colour)
-		wcoloron(COLOR_BLUE, 0);
+		wcoloron(COLOR_BLUE, A_BOLD);
 #endif
-	while(++y <= MAX_Y)
+	while(++y <= padheight)
 		waddstr(pad, "~\n");
 #if VIEW_COLOUR
 	if(global_settings.colour)
-		wcoloroff(COLOR_BLUE, 0);
+		wcoloroff(COLOR_BLUE, A_BOLD);
 #endif
 
 	view_updatecursor();
@@ -452,8 +452,8 @@ static void resizepad()
 	if(pad)
 		delwin(pad);
 
-	if(padheight < MAX_Y)
-		padheight = MAX_Y;
+	if(padheight < MAX_Y * 2)
+		padheight = MAX_Y * 2;
 
 	pad = newpad(padheight, padwidth);
 	if(!pad){
