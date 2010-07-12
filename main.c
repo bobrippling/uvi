@@ -26,7 +26,11 @@ char debug = 0;
 
 void usage(const char *s)
 {
-	fprintf(stderr, "Usage: %s [-tdR] [--] [filename]\n", s);
+	fprintf(stderr, "Usage: %s [-tdR"
+#if VIEW_COLOUR
+			"c"
+#endif
+			"] [--] [filename]\n", s);
 	fputs("  -t: terminal mode\n", stderr);
 	fputs("  -d: debug mode (don't catch SEGV)\n", stderr);
 	fputs("  -R: open as read only\n", stderr);
