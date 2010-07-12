@@ -217,6 +217,15 @@ static void view_updatecursor()
 	/* wmove takes care of pad{top,left} */
 	wmove(pad, pady, view_actualx(pady, padx));
 
+	/* check if any lines after padbottom need clearing */
+	if(padheight - padtop < MAX_Y){
+		int y = padheight - padtop;
+		while(y < MAX_Y){
+			move(y++, 0);
+			clrtoeol();
+		}
+	}
+
 	view_refreshpad();
 }
 
