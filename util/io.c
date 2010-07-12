@@ -11,17 +11,18 @@
 #define BUFFER_SIZE 128
 /* nearest 2^n, st > 80 */
 
+/*
+FIXME
 int fdgetline(char **s, char **buffer, int fd)
 {
-	char *nl;
+	char *nl = NULL;
 	int ret;
 
-	if(!*buffer){
+	if(!*buffer)
 		*buffer = umalloc(BUFFER_SIZE);
-		memset(*buffer, '\0', BUFFER_SIZE);
-	}
+	else
+		nl = strchr(*buffer, '\n');
 
-	nl = strchr(*buffer, '\n');
 	if(nl){
 		int len;
 newline:
@@ -32,6 +33,7 @@ newline:
 		(*s)[len] = '\0';
 
 		memmove(*buffer, nl + 1, strlen(nl));
+
 		return len;
 	}else{
 		switch((ret = read(fd, *buffer, BUFFER_SIZE))){
@@ -41,17 +43,20 @@ newline:
 				*buffer = NULL;
 				return ret;
 		}
+		memset(*buffer + ret, '\0', BUFFER_SIZE - ret);
 		nl = strchr(*buffer, '\n');
 
-		if(nl)
+		if(nl){
+			fputs("goto newline; !!!!!!!!!!!!!!!!!!\n", stderr);
 			goto newline;
+		}
 
-		/* FIXME? */
 		*s = *buffer;
 		*buffer = NULL;
 		return strlen(*s);
 	}
 }
+*/
 
 int fgetline(char **s, FILE *in, char *haseol)
 {
