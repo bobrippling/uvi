@@ -1,22 +1,17 @@
 ncurses.c:
+	delete(): backwards motions
 	only syntax highlight what's on screen?
-	'J'
-	%ddd bug (FIXME'd)
 	:e autocomplete?
-	change tabs -
+	change tabs:
 		int ntabs = curpos / 8;
 		mov(ntabs * 8 + 8)
-
 
 motions.c:
 	'f' and 't'
 
 command.c:
 	filters/pipes:
-		:r!cmd
-		:w!cmd
 		:rw!cmd # filter through prog
-	s/ \+$// command
 	regex search
 
 regex:
