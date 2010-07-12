@@ -5,6 +5,7 @@
 #include <string.h>
 #include <sys/wait.h>
 #include <setjmp.h>
+#include <errno.h>
 
 /* open() */
 #include <sys/types.h>
@@ -41,19 +42,31 @@ struct list *pipe_read(const char *cmd)
 
 		default:
 		{
-			char *line = NULL, *buffer = NULL;
-			int ret;
+			char *line = NULL;
+			int ret, saveerrno;
+			char unused;
 			struct list *l = list_new(NULL);
+			FILE *f = fdopen(fds[0], "r");
+			saveerrno = errno;
 
 			close(fds[1]);
 
-			while((ret = fdgetline(&line, &buffer, fds[0])) > 0)
+			if(!f){
+				errno = saveerrno;
+				return NULL;
+			}
+
+			while((ret = fgetline(&line, f, &unused)) > 0)
 				list_append(l, line);
 
-			close(fds[0]);
+			saveerrno = errno;
+
+			/*close(fds[0]);*/
+			fclose(f);
 
 			if(ret == -1){
 				list_free(l);
+				errno = saveerrno;
 				return NULL;
 			}
 
