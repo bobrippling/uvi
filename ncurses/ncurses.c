@@ -983,7 +983,7 @@ switch_start:
 				SET_DOT();
 				break;
 			case 'x':
-				SET_MOTION(MOTION_FORWARD_LETTER);
+				SET_MOTION(MOTION_FORWARD_LETTER); /* FIXME: deletes two chars instead of one */
 				delete(&motion);
 				bufferchanged = 1;
 				SET_DOT();

@@ -99,8 +99,8 @@ int fgetline(char **s, FILE *in, char *haseol)
 			tmp = realloc(*s, buffer_size);
 			if(!tmp){
 				free(*s);
-				fprintf(stderr, __FILE__":%d: realloc failed, size %ld\n", __LINE__, buffer_size);
-				/* %zd corresponds to size_t */
+				fprintf(stderr, __FILE__":%d: realloc failed, size %lu\n", __LINE__, (unsigned long)buffer_size);
+				/*                                                                    ^ good enough for x{86,64} */
 				longjmp(allocerr, ALLOC_BUFFER_C);
 			}
 			*s = tmp;
