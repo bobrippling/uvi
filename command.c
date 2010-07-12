@@ -16,6 +16,7 @@
 #include "util/list.h"
 #include "vars.h"
 #include "util/alloc.h"
+#include "util/pipe.h"
 
 extern buffer_t *lastbuffer;
 
@@ -153,9 +154,63 @@ insert:
 				wrongfunc();
 			break;
 
+		case 'r':
+		{
+			if(s[1] == '!'){
+				char *cmd = s + 2;
+				while(*cmd == ' ')
+					cmd++;
+
+				if(!strlen(cmd))
+					pfunc("need command to read from");
+				else{
+					struct list *l = pipe_read(cmd);
+					if(!l)
+						pfunc("pipe error: %s", strerror(errno));
+					else
+						buffer_insertlistafter(buffer,
+								buffer_getindex(buffer, *curline),
+								l);
+				}
+			}else{
+				char *cmd = s + 1;
+				while(*cmd == ' ')
+					cmd++;
+
+				if(!strlen(cmd))
+					pfunc("need file to read from");
+				else{
+					buffer_t *tmpbuf = command_readfile(cmd, 0, pfunc);
+					if(!tmpbuf)
+						pfunc("read: %s", strerror(errno));
+					else{
+						buffer_insertlistafter(buffer,
+								buffer_getindex(buffer, *curline),
+								buffer_gethead(tmpbuf));
+						buffer_free(tmpbuf);
+					}
+				}
+			}
+			break;
+		}
+
 		case 'w':
 		{
 			char bail = 0, edit = 0, *fname;
+
+			if(s[1] == '!'){
+				/* write [TODO: range] to pipe */
+				char *cmd = s + 2;
+				while(*cmd == ' ')
+					cmd++;
+
+				if(!strlen(cmd))
+					pfunc("need command to pipe to");
+				else if(pipe_write(cmd, buffer_gethead(buffer)) == -1)
+					pfunc("pipe error: %s", strerror(errno));
+				break;
+			}
+
 			if(HAVE_RANGE){
 				wrongfunc();
 				break;
