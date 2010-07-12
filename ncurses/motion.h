@@ -11,6 +11,8 @@ struct motion
 		MOTION_FORWARD_WORD,
 		MOTION_BACKWARD_WORD,
 
+		MOTION_NO_MOVE,        /* i.e. for deleting the current char */
+
 		MOTION_NOSPACE,        /* ^ */
 
 		MOTION_DOWN,           /* j */

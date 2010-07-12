@@ -761,7 +761,7 @@ static void delete(struct motion *mparam)
 				char *xpos      = linestart + x;
 
 				if(*xpos != '\0')
-					xpos++; /* delete over where we motion() up to */
+					xpos++; /* delete up to and including where we motion() to */
 				/* else can't go any further */
 
 				/* remove the chars between padx and x, inclusive */
@@ -977,13 +977,13 @@ switch_start:
 				break;
 
 			case 'X':
-				SET_MOTION(MOTION_BACKWARD_LETTER);
+				SET_MOTION(MOTION_BACKWARD_LETTER); /* TODO: test */
 				delete(&motion);
 				bufferchanged = 1;
 				SET_DOT();
 				break;
 			case 'x':
-				SET_MOTION(MOTION_FORWARD_LETTER); /* FIXME: deletes two chars instead of one */
+				SET_MOTION(MOTION_NO_MOVE);
 				delete(&motion);
 				bufferchanged = 1;
 				SET_DOT();

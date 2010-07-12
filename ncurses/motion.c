@@ -29,6 +29,7 @@ char islinemotion(struct motion *m)
 		case MOTION_ABSOLUTE_LEFT:
 		case MOTION_ABSOLUTE_RIGHT:
 		case MOTION_MARK:
+		case MOTION_NO_MOVE:
 			return 0;
 
 		case MOTION_DOWN:
@@ -141,6 +142,9 @@ char applymotion(struct motion *motion, struct bufferpos *pos,
 	switch(motion->motion){
 		case MOTION_UNKNOWN:
 			return 0;
+
+		case MOTION_NO_MOVE:
+			return 1;
 
 		case MOTION_LINE:
 		{
