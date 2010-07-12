@@ -127,9 +127,8 @@ int term_main(const char *filename, char readonly)
 			*s = '\0';
 
 		if(!command_run(in,
-					&curline, &buffer,
-					&wrongfunc, &pfunc,
-					&gfunc, &qfunc, &shellout))
+					&curline, &buffer, &wrongfunc, &pfunc,
+					&gfunc, &qfunc, &shellout, NULL))
 			break;
 	}while(1);
 

@@ -27,7 +27,8 @@ int command_run(
 	void      (*const pfunc)(const char *, ...),
 	enum gret (*const gfunc)(char *, int),
 	int       (*const qfunc)(const char *, ...),
-	void      (*const shellout)(const char *)
+	void      (*const shellout)(const char *),
+	void      (*ui_toggle)(char up)
 	);
 
 buffer_t *command_readfile(const char *filename,

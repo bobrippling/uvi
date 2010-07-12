@@ -55,6 +55,7 @@ extern struct settings global_settings;
 
 static void nc_up(void);
 static void nc_down(void);
+static void nc_toggle(char up);
 static void sigh(int);
 
 /* I/O */
@@ -290,6 +291,14 @@ void replace(int n)
 		unknownchar(c);
 }
 
+static void nc_toggle(char up)
+{
+	if(up)
+		nc_up();
+	else
+		endwin();
+}
+
 static void nc_down()
 {
 	view_termpad();
@@ -299,7 +308,7 @@ static void nc_down()
 
 static void nc_up()
 {
-	static int init = 0;
+	static char init = 0;
 
 	if(!init){
 		initscr();
@@ -822,9 +831,8 @@ static int colon()
 				*c = '\0';
 
 			ret = command_run(in,
-					&pady, &buffer,
-					&wrongfunc, &pfunc,
-					&gfunc, &qfunc, &shellout);
+					&pady, &buffer, &wrongfunc, &pfunc,
+					&gfunc, &qfunc, &shellout, &nc_toggle);
 
 			return ret;
 

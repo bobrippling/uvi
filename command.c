@@ -24,8 +24,7 @@ static char *prevcmd = NULL;
 
 static void parse_setget(buffer_t *, char, char *, void (*)(const char *, ...), void (*)(void));
 static buffer_t *newemptybuffer(void);
-static void command_e(char *, buffer_t **, int *,
-		void (*const)(const char *, ...), void (*const)(void));
+static void command_e(char *s, buffer_t **b, int *curline, void (*const pfunc)(const char *, ...));
 
 void command_free()
 {
@@ -104,7 +103,8 @@ int command_run(
 	void (*pfunc)(const char *, ...),
 	enum gret (*gfunc)(char *, int),
 	int  (*qfunc)(const char *, ...),
-	void (*shellout)(const char *)
+	void (*shellout)(const char *),
+	void (*ui_toggle)(char up)
 	)
 {
 #define buffer (*b)
@@ -167,10 +167,16 @@ insert:
 					struct list *l = pipe_read(cmd);
 					if(!l)
 						pfunc("pipe error: %s", strerror(errno));
-					else
+					else if(l->data){
 						buffer_insertlistafter(buffer,
 								buffer_getindex(buffer, *curline),
 								l);
+
+						buffer_modified(buffer) = 1;
+					}else{
+						list_free(l);
+						pfunc("%s: no output", cmd);
+					}
 				}
 			}else{
 				char *cmd = s + 1;
@@ -187,7 +193,10 @@ insert:
 						buffer_insertlistafter(buffer,
 								buffer_getindex(buffer, *curline),
 								buffer_gethead(tmpbuf));
-						buffer_free(tmpbuf);
+
+						buffer_free_nolist(tmpbuf);
+
+						buffer_modified(buffer) = 1;
 					}
 				}
 			}
@@ -196,6 +205,7 @@ insert:
 
 		case 'w':
 		{
+			/* brace for spaghetti */
 			char bail = 0, edit = 0, *fname;
 
 			if(s[1] == '!'){
@@ -206,8 +216,25 @@ insert:
 
 				if(!strlen(cmd))
 					pfunc("need command to pipe to");
-				else if(pipe_write(cmd, buffer_gethead(buffer)) == -1)
-					pfunc("pipe error: %s", strerror(errno));
+				else{
+					if(ui_toggle)
+						ui_toggle(0);
+
+					if(pipe_write(cmd, buffer_gethead(buffer)) == -1)
+						pfunc("pipe error: %s", strerror(errno));
+
+					if(ui_toggle){
+						int c;
+						fputs("Press enter to continue", stdout);
+						fflush(stdout);
+
+						c = getchar();
+						if(c != '\n' && c != EOF)
+							while((c = getchar()) != '\n' && c != EOF);
+					}
+
+						ui_toggle(1);
+				}
 				break;
 			}
 
@@ -292,7 +319,7 @@ vars_fname:
 						buffer_nlines(buffer) - !buffer_eol(buffer), nw);
 			}
 			if(edit){
-				command_e(s + 1, b, curline, pfunc, wrongfunc);
+				command_e(s + 1, b, curline, pfunc);
 				break;
 			}else if(!flag)
 				/* i.e. 'q' hasn't been passed */
@@ -328,7 +355,7 @@ vars_fname:
 			if(HAVE_RANGE)
 				wrongfunc();
 			else if(strlen(s) != 1)
-				goto def;
+				goto def; /* could be ':get' */
 			else
 				pfunc("%d", 1 + *curline);
 			break;
@@ -417,7 +444,7 @@ vars_fname:
 			if(HAVE_RANGE){
 				wrongfunc();
 			}else
-				command_e(s, b, curline, pfunc, wrongfunc);
+				command_e(s, b, curline, pfunc);
 			break;
 
 
@@ -437,31 +464,28 @@ vars_fname:
 }
 
 static void command_e(char *s, buffer_t **b, int *y,
-		void (*const pfunc)(const char *, ...),
-		void (*const wrongfunc)(void))
+		void (*const pfunc)(const char *, ...))
 {
-	char force = 0, *fname;
+	char force = 0, *fname = s + 1;
 
-	switch(s[1]){
-		case ' ':
-			fname = s + 2;
-			break;
-
-		case '!':
-			force = 1;
-			fname = s + 3;
-			break;
-
-		default:
-			wrongfunc();
-			return;
+	if(s[1] == '!'){
+		fname = s + 2;
+		force = 1;
 	}
+
+	while(*fname == ' ')
+		fname++;
 
 	if(!force && buffer_modified(buffer))
 		pfunc("unsaved");
 	else{
 		buffer_free(buffer);
-		buffer = command_readfile(fname, 0, pfunc);
+		if(strlen(fname))
+			buffer = command_readfile(fname, 0, pfunc);
+		else{
+			buffer = newemptybuffer();
+			pfunc("new empty buffer");
+		}
 
 		/*if(*y >= (nlines = buffer_nlines(buffer)))
 			*y = nlines - 1;*/

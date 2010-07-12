@@ -250,12 +250,19 @@ bail:
 #endif
 }
 
+void buffer_free_nolist(buffer_t *b)
+{
+	if(b){
+		free(b->fname);
+		free(b);
+	}
+}
+
 void buffer_free(buffer_t *b)
 {
 	if(b){
 		list_free(b->lines);
-		free(b->fname);
-		free(b);
+		buffer_free_nolist(b);
 	}
 }
 
@@ -277,9 +284,9 @@ int buffer_nchars(buffer_t *b)
 
 int buffer_nlines(buffer_t *b)
 {
-	if(buffer_changed(b)){
+	if(b->changed){
 		b->nlines = list_count(b->lines);
-		buffer_changed(b) = 0;
+		b->changed = 0;
 	}
 
 	return b->nlines;

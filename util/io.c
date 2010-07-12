@@ -3,14 +3,58 @@
 #include <stdlib.h>
 #include <string.h>
 #include <setjmp.h>
+#include <unistd.h>
 
 #include "alloc.h"
 #include "io.h"
 
-int fgetline(char **s, FILE *in, char *haseol)
-{
 #define BUFFER_SIZE 128
 /* nearest 2^n, st > 80 */
+
+int fdgetline(char **s, char **buffer, int fd)
+{
+	char *nl;
+	int ret;
+
+	if(!*buffer){
+		*buffer = umalloc(BUFFER_SIZE);
+		memset(*buffer, '\0', BUFFER_SIZE);
+	}
+
+	nl = strchr(*buffer, '\n');
+	if(nl){
+		int len;
+newline:
+		len = nl - *buffer;
+
+		*s = umalloc(len + 1);
+		strncpy(*s, *buffer, len);
+		(*s)[len] = '\0';
+
+		memmove(*buffer, nl + 1, strlen(nl));
+		return len;
+	}else{
+		switch((ret = read(fd, *buffer, BUFFER_SIZE))){
+			case 0:
+			case -1:
+				free(*buffer);
+				*buffer = NULL;
+				return ret;
+		}
+		nl = strchr(*buffer, '\n');
+
+		if(nl)
+			goto newline;
+
+		/* FIXME? */
+		*s = *buffer;
+		*buffer = NULL;
+		return strlen(*s);
+	}
+}
+
+int fgetline(char **s, FILE *in, char *haseol)
+{
 	size_t buffer_size = BUFFER_SIZE;
 	char *c;
 	const long offset = ftell(in);
@@ -64,5 +108,4 @@ int fgetline(char **s, FILE *in, char *haseol)
 			}
 		}
 	}while(1);
-#undef BUFFER_SIZE
 }

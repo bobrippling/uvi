@@ -22,7 +22,7 @@ static void usage(const char *);
 jmp_buf allocerr;
 struct settings global_settings;
 buffer_t *lastbuffer = NULL;
-int debug = 0;
+char debug = 0;
 
 void usage(const char *s)
 {
@@ -56,14 +56,14 @@ void bail(int sig)
 
 	write(STDERR_FILENO, m, strlen(m));
 
-	while(sig){
-		*m = '0' + sig % 10;
-		sig /= 10;
-		write(STDERR_FILENO, m, 1);
-	}
-
-	*m = '\n';
-	write(STDERR_FILENO, m, 1);
+	if(sig == SIGTERM)
+		write(STDERR_FILENO, "TERM\n", 5);
+	else if(sig == SIGINT)
+		write(STDERR_FILENO, "INT\n", 4);
+	else if(sig == SIGSEGV)
+		write(STDERR_FILENO, "SEGV\n", 5);
+	else
+		write(STDERR_FILENO, "\n", 1);
 
 	exit(sig);
 }
