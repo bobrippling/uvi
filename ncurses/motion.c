@@ -251,12 +251,22 @@ char applymotion(struct motion *motion, struct bufferpos *pos,
 			break;
 
 		case MOTION_SCREEN_MIDDLE:
-			if(*pos->y != si->padtop + si->padheight/2){
-				*pos->y = si->padtop + si->padheight/2;
+		{
+			int mid = si->padtop;
+
+			if(buffer_nlines(pos->buffer) > si->padheight)
+				mid += si->padheight/2;
+			else
+				mid += (buffer_nlines(pos->buffer) - 1) / 2;
+
+			if(*pos->y != mid){
+				*pos->y = mid;
+
 				CLIPX();
 				return 1;
 			}
 			break;
+		}
 
 		case MOTION_SCREEN_BOTTOM:
 			if(*pos->y != si->padtop + si->padheight - 1){
