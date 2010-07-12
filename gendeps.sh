@@ -1,3 +1,12 @@
 #!/bin/sh
 
-gcc -MM *.c ncurses/*.c util/*.c | sed 's/^\(ncurses\|view\)\.o/ncurses\/\1\.o/'
+set -e
+
+gcc -MM *.c
+
+for d in ncurses util
+do
+	cd $d
+	gcc -MM *.c | sed "s/\(^\| \)/\1$d\//g"
+	cd ..
+done

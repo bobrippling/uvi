@@ -45,7 +45,7 @@ term.o: term.c util/list.h range.h buffer.h term.h command.h vars.h \
  util/alloc.h config.h
 vars.o: vars.c config.h util/alloc.h range.h buffer.h vars.h
 marks.o: ncurses/marks.c ncurses/marks.h
-motion.o: ncurses/motion.c ncurses/../util/list.h ncurses/../range.h \
+ncurses/motion.o: ncurses/motion.c ncurses/../util/list.h ncurses/../range.h \
  ncurses/../buffer.h ncurses/motion.h ncurses/marks.h
 ncurses/ncurses.o: ncurses/ncurses.c ncurses/../config.h ncurses/../range.h \
  ncurses/../buffer.h ncurses/../command.h ncurses/../util/list.h \
@@ -61,4 +61,4 @@ view_colourscreen.o: ncurses/view_colourscreen.c ncurses/../config.h \
 alloc.o: util/alloc.c util/alloc.h
 io.o: util/io.c util/alloc.h util/io.h
 list.o: util/list.c util/list.h util/alloc.h
-pipe.o: util/pipe.c util/list.h util/io.h util/pipe.h
+pipe.o: util/pipe.c util/list.h util/io.h util/pipe.h util/alloc.h
