@@ -178,6 +178,14 @@ insert:
 						pfunc("%s: no output", cmd);
 					}
 				}
+			}else if(s[1] == 'w'){
+				/* rw!cmd command */
+				if(s[2] != '!')
+					wrongfunc();
+				else{
+					/* TODO */
+					pfunc("!rw: TODO");
+				}
 			}else{
 				char *cmd = s + 1;
 				while(*cmd == ' ')
