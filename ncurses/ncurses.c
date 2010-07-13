@@ -453,8 +453,6 @@ static enum gret gfunc(char *s, int size)
 					move(y, --x);
 				break;
 
-				/* TODO: CTRL_AND('v') */
-
 			default:
 				if(isprint(c) || c == '\t'){
 					s[count++] = c;
@@ -504,6 +502,7 @@ static int nc_getch()
 {
 	int c;
 
+
 #if NC_RAW
 get:
 #endif
@@ -520,6 +519,9 @@ get:
 			nc_up();
 			goto get;
 #endif
+
+		/* TODO: CTRL_AND('v') */
+
 		case 0:
 		case -1:
 		case C_EOF:
@@ -555,7 +557,7 @@ static void unknownchar(int c)
 
 static void insert(int append)
 {
-	int startx = padx, size = 16, afterlen, enteredlen, tabcount = 0;
+	int startx = padx, size = 16, afterlen, enteredlen;
 	struct list *curline = buffer_getindex(buffer, pady);
 	char *line, *linepos, newline = 0, *after = NULL;
 
@@ -565,7 +567,7 @@ static void insert(int append)
 	if(append && *(char *)curline->data != '\0')
 		startx++;
 
-	view_putcursor(pady, startx, 0, 0);
+	move(pady, view_getactualx(pady, startx));
 	refresh();
 
 	do{
@@ -579,14 +581,10 @@ static void insert(int append)
 			newline = 1;
 			break;
 		}else if(c == '\b'){
-			if(linepos > line){
-				if(*linepos == '\t')
-					tabcount--;
-				view_putcursor(pady, startx, --linepos - line, tabcount);
-			}
+			if(linepos > line)
+				move(pady, view_getactualx(pady, startx));
 			continue;
-		}else if(c == '\t')
-			tabcount++;
+		}
 
 		*linepos++ = c;
 

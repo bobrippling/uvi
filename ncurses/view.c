@@ -489,14 +489,6 @@ void view_waddch(WINDOW *w, int c)/*, int offset)*/
 		waddch(w, c);
 }
 
-void view_putcursor(int y, int x, int offset, int tabcount)
-{
-	move(y - padtop, view_getactualx(y, x)
-		+ offset
-		+ tabcount * (global_settings.tabstop - 1)
-		- padleft);
-}
-
 void view_move(struct motion *m)
 {
 	struct bufferpos bp;
