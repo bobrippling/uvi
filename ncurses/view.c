@@ -452,8 +452,8 @@ static void resizepad()
 	if(pad)
 		delwin(pad);
 
-	if(padheight < MAX_Y * 2)
-		padheight = MAX_Y * 2;
+	if(padheight < buffer_nlines(buffer) + MAX_Y)
+		padheight = buffer_nlines(buffer) + MAX_Y;
 
 	pad = newpad(padheight, padwidth);
 	if(!pad){
