@@ -256,12 +256,15 @@ char applymotion(struct motion *motion, struct bufferpos *pos,
 
 		case MOTION_SCREEN_MIDDLE:
 		{
-			int mid = si->padtop;
+			int mid;
 
-			if(buffer_nlines(pos->buffer) > si->padheight)
-				mid += si->padheight/2;
-			else
-				mid += (buffer_nlines(pos->buffer) - 1) / 2;
+			if(buffer_nlines(pos->buffer) - si->padtop > si->padheight)
+				mid = si->padtop + si->padheight/2;
+			else{
+				mid = si->padtop + (buffer_nlines(pos->buffer) - si->padtop)/2;
+				if(mid < 0)
+					mid = 0;
+			}
 
 			if(*pos->y != mid){
 				*pos->y = mid;
