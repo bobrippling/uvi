@@ -81,6 +81,7 @@ static void showgirl(unsigned int);
 static int  search(int);
 
 static void unknownchar(int);
+static char iseditchar(int);
 
 static void status(const char *, ...);
 static void vstatus(const char *, va_list);
@@ -849,6 +850,31 @@ static void sigh(int sig)
 	bail(sig);
 }
 
+static char iseditchar(int c)
+{
+	switch(c){
+		case 'O':
+		case 'o':
+		case 'X':
+		case 'x':
+		case 'C':
+		case 'D':
+		case 'c':
+		case 'd':
+		case 'A':
+		case 'a':
+		case 'i':
+		case 'I':
+		case 'J':
+		case 'r':
+		case '>':
+		case '<':
+		case '~':
+			return 1;
+	}
+	return 0;
+}
+
 int ncurses_main(const char *filename, char readonly)
 {
 	int c, bufferchanged = 1, viewchanged = 1, ret = 0, multiple = 0,
@@ -932,7 +958,14 @@ int ncurses_main(const char *filename, char readonly)
 				}while(0)
 
 switch_start:
-		switch((c = nc_getch())){
+		c = nc_getch();
+		if(iseditchar(c) && buffer_readonly(buffer)){
+			status(READ_ONLY_ERR);
+			view_cursoronscreen();
+			continue;
+		}
+
+		switch(c){
 			case ':':
 				if(!colon())
 					goto exit_while;
@@ -965,13 +998,9 @@ switch_start:
 			case 'O':
 				flag = 1;
 			case 'o':
-				if(buffer_readonly(buffer))
-					status(READ_ONLY_ERR);
-				else{
-					open(flag);
-					bufferchanged = 1;
-					SET_DOT();
-				}
+				open(flag);
+				bufferchanged = 1;
+				SET_DOT();
 				break;
 
 			case 'X':
