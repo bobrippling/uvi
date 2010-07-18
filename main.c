@@ -40,9 +40,9 @@ void usage(const char *s)
 	exit(1);
 }
 
-void bail(int sig)
+void bail(const int sig)
 {
-	char m[] = "Received fatal signal ";
+	const char m[] = "We get signal: ";
 	static int saving = 0;
 
 	if(!saving){
@@ -67,7 +67,7 @@ void bail(int sig)
 	else if(sig == SIGSEGV)
 		write(STDERR_FILENO, "SEGV\n", 5);
 	else
-		write(STDERR_FILENO, "\n", 1);
+		write(STDERR_FILENO, "..?\n", 1);
 
 	exit(sig);
 }

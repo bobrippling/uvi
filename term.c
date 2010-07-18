@@ -15,6 +15,7 @@
 #include "command.h"
 #include "vars.h"
 #include "util/alloc.h"
+#include "main.h"
 
 #include "config.h"
 
@@ -100,11 +101,13 @@ int term_main(const char *filename, char readonly)
 	char in[IN_SIZE], hadeof = 0;
 	int curline = 0;
 
-  if(!(buffer = command_readfile(filename, readonly, pfunc))){
-    fprintf(stderr, PROG_NAME": %s: ", filename);
-    perror(NULL);
-    return 1;
-  }
+	signal(SIGSEGV, &bail);
+
+	if(!(buffer = command_readfile(filename, readonly, pfunc))){
+		fprintf(stderr, PROG_NAME": %s: ", filename);
+		perror(NULL);
+		return 1;
+	}
 
 	do{
 		char *s;

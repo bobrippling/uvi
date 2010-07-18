@@ -558,26 +558,44 @@ static buffer_t *newemptybuffer()
 
 void command_dumpbuffer(buffer_t *b)
 {
-#define DUMP_POSTFIX "_dump"
-#define POSTFIX_LEN  6
+	char dump_postfix[] = "_dump_a";
 	FILE *f;
+	struct stat st;
+	char *path, freepath = 0, *prefixletter;
 
 	if(!b)
 		return;
 
-	/* TODO: more robust - check if it already exists, etc... */
-	if(!buffer_hasfilename(b))
-		f = fopen(PROG_NAME DUMP_POSTFIX, "w");
-	else{
-		char *s = malloc(strlen(buffer_filename(b)) + POSTFIX_LEN);
-		if(!s)
-			f = fopen(PROG_NAME DUMP_POSTFIX, "w");
-		else{
+	path = dump_postfix;
+
+	if(buffer_hasfilename(b)){
+		char *const s = malloc(strlen(buffer_filename(b)) + strlen(dump_postfix) + 1);
+		if(s){
+			freepath = 1;
 			strcpy(s, buffer_filename(b));
-			strcat(s, DUMP_POSTFIX);
-			f = fopen(s, "w");
+			strcat(s, dump_postfix);
+			path = s;
 		}
 	}
+
+	prefixletter = path + strlen(path) - 1;
+	/*
+	 * if file exists, increase dump prefix,
+	 * else (and on stat error), save
+	 */
+	do
+		if(stat(path, &st) == 0)
+			/* exists */
+			++*prefixletter;
+		else
+			break;
+	while(*prefixletter < 'z');
+	/* if it's 'z', the user should clean their freakin' directory */
+
+	f = fopen(path, "w");
+
+	if(freepath)
+		free(path);
 
 	if(f){
 		struct list *head = buffer_gethead(b);
