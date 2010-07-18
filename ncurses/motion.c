@@ -17,6 +17,26 @@ static char bracketdir(char);
 static char bracketrev(char);
 static void percent(struct bufferpos *);
 
+/*
+ * is this motion a 'til' motion, i.e.
+ * should we go up to but not including
+ * the final char of the motion (when deleting)
+ */
+char istilmotion(struct motion *m)
+{
+	switch(m->motion){
+		case MOTION_FORWARD_LETTER:
+		case MOTION_BACKWARD_LETTER:
+		case MOTION_FORWARD_WORD:
+		case MOTION_BACKWARD_WORD:
+			return 1;
+
+		default:
+			break;
+	}
+	return 0;
+}
+
 char islinemotion(struct motion *m)
 {
 	switch(m->motion){

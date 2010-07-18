@@ -49,6 +49,7 @@ struct bufferpos
 };
 
 char islinemotion(struct motion *);
+char istilmotion(struct motion *);
 
 void getmotion(void status(const char *, ...),
 		int (*charfunc)(void), struct motion *);

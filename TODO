@@ -1,14 +1,13 @@
 ncurses.c:
 	clean up open() and insert() and gfunc():
 		one function to gather them all, one function to bind them etc etc hi long lines
-		on newline tabs get displayed as the terminal pleases
-		on backspace, if there was a tab the cursor shifts all over
+		bug: on newline tabs get displayed as the terminal pleases
+		bug: on backspace, if there was a tab the cursor shifts all over
 
 		change tabs - access termios?
 			int ntabs = curpos / 8;
 			mov(ntabs * 8 + 8)
 
-	delete(): backwards motions
 	only syntax highlight what's on screen?
 	:e autocomplete?
 

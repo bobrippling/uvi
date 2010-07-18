@@ -1,18 +1,14 @@
 PREFIX  ?= /usr
 VERBOSE = 0
+DEBUG   = 0
 
-# gcc
-CC			= gcc
-LD			= gcc
-
-LDFLAGS = -g -lncurses
-
-
-ifeq (${CC},gcc)
-	CFLAGS = -g -pipe -W -Wall -Wcast-align -Wcast-qual -Wshadow -Wnested-externs \
-			-Waggregate-return -Wbad-function-cast -Wpointer-arith -Wcast-align \
-			-Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Winline \
-			-Wredundant-decls -Wextra -pedantic -ansi
+ifeq (${DEBUG},1)
+	CC      = gcc
+	CFLAGS  = -g
+	LDFLAGS = -g -lncurses
 else
-	CFLAGS = -g -Wimplicit-function-declaration -Wunsupported -Wwrite-strings -Wall
+	CC      = tcc
+	CFLAGS  = -Wall -Os
+	LDFLAGS = -lncurses
 endif
+LD      = gcc

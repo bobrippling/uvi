@@ -739,7 +739,7 @@ static void delete(struct motion *mparam)
 			if(pady >= buffer_nlines(buffer))
 				pady = buffer_nlines(buffer) - 1;
 		}else{
-			char *data = buffer_getindex(buffer, pady)->data;
+			char *data = buffer_getindex(buffer, pady)->data, forwardmotion = 1;
 			int oldlen = strlen(data);
 
 			if(r.start < r.end){
@@ -754,14 +754,29 @@ static void delete(struct motion *mparam)
 				data = buffer_getindex(buffer, pady)->data;
 			}
 
+			/* padx should be left-most */
+			if(padx > x){
+				int t = x;
+				x = padx;
+				padx = t;
+				forwardmotion = 0;
+			}
+
 			{
 				char *linestart = data;
 				char *curpos    = linestart + padx;
 				char *xpos      = linestart + x;
 
-				if(*xpos != '\0')
-					xpos++; /* delete up to and including where we motion() to */
-				/* else can't go any further */
+				if(forwardmotion){
+					if(*xpos != '\0' && !istilmotion(mparam))
+						xpos++; /* delete up to and including where we motion() to */
+				}else{
+					if(*xpos != '\0'){
+						curpos++;
+						/* include the current char in the deletion */
+						xpos++;
+					}
+				}
 
 				/* remove the chars between padx and x, inclusive */
 				memmove(curpos, xpos, strlen(xpos) + 1);
