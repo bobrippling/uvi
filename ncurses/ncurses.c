@@ -423,9 +423,10 @@ static enum gret gfunc(char *s, int size)
 		x -= padleft;
 		y -= padtop;
 		move(y, x);
-		clrtoeol();
-		wclrtoeol(pad);
+		/*clrtoeol();*/
+		/*wclrtoeol(pad);*/
 	}else{
+		/* probably a command */
 		clrtoeol();
 
 		getyx(stdscr, y, x);
