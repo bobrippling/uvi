@@ -558,103 +558,53 @@ static void unknownchar(int c)
 
 static void insert(int append)
 {
-	int startx = padx, size = 16, afterlen, enteredlen;
-	struct list *curline = buffer_getindex(buffer, pady);
-	char *line, *linepos, newline = 0, *after = NULL;
+	struct list *listpos = buffer_getindex(buffer, pady),
+							*new, *firstline;
+	char *newline;
+	int savepadx;
+	int newlen;
 
 	gfunc_onpad = 1;
-	linepos = line = umalloc(size);
 
-	if(append && *(char *)curline->data != '\0')
-		startx++;
-
-	move(pady, view_getactualx(pady, startx));
-	refresh();
-
-	do{
-		int c = nc_getch();
-
-		if(c == C_ESC || c == C_EOF){
-			*linepos = '\0';
-			break;
-		}else if(c == '\n'){
-			*linepos = '\0';
-			newline = 1;
-			break;
-		}else if(c == '\b'){
-			if(linepos > line)
-				move(pady, view_getactualx(pady, startx));
-			continue;
-		}
-
-		*linepos++ = c;
-
-		if(linepos - line >= size - 1){
-			char *new = realloc(line, size *= 2);
-			int diff = linepos - line;
-
-			if(!new)
-				longjmp(allocerr, ALLOC_NCURSES_1);
-
-			line = new;
-			linepos = line + diff;
-			linepos[1] = '\0';
-		}
-
-		view_waddch(stdscr, c);
-		refresh();
-	}while(1);
-
-	enteredlen = linepos - line;
-
-	linepos = realloc(curline->data,
-	                  strlen(curline->data) +
-	                  enteredlen + 1);
-	if(!linepos)
-		longjmp(allocerr, ALLOC_NCURSES_2);
-
-	curline->data = linepos;
-
-	linepos += startx; /* linepos is now the insertion point */
-	afterlen = strlen(linepos);
-
-	if(afterlen)
-		if(newline){
-			after = linepos + 1;
-			memmove(after, after - 1, afterlen); /* no more '\0' */
-			after[-1] = '\0';
-		}else
-			memmove(linepos + enteredlen, linepos, afterlen + 1); /* include the nul char */
-	else
-		linepos[enteredlen] = '\0'; /* vital as the above +1 */
-
-	if(newline){
-		struct list *last;
-		char *tmp;
-		const int savedy = pady;
-		int y;
-
-		y = open(0);
-		last = buffer_getindex(buffer, savedy + y);
-
-		tmp = realloc(last->data, strlen(last->data) + afterlen + 1);
-		if(!tmp)
-			longjmp(allocerr, ALLOC_NCURSES_3);
-
-		last->data = tmp;
-		tmp += strlen(last->data);
-
-		memmove(tmp, after, afterlen);
-		tmp[afterlen] = '\0';
+	if(append && *(char *)listpos->data != '\0'){
+		padx++;
+		view_cursoronscreen();
 	}
 
-	memmove(linepos, line, enteredlen + newline); /* include '\0' */
-	free(line);
+	savepadx = padx;
+	firstline = new = command_readlines(&gfunc);
+	padx = savepadx;
+	pady--;
+
+	new = new->next;
+
+	/* snip */
+	firstline->next = NULL;
+	if(new)
+		new->prev = NULL;
+
+	/*
+	 * insert firstline->data into (pady, padx)
+	 * then append new (if !NULL) onto listpos
+	 */
+
+	newline = realloc(listpos->data, strlen(listpos->data) + strlen(firstline->data) + 1);
+	if(!newline)
+		longjmp(allocerr, 1);
+	listpos->data = newline;
+
+	newlen = strlen(firstline->data);
+
+	memmove(newline + padx + newlen, newline + padx, strlen(newline + padx) + 1);
+	memcpy(newline + padx, firstline->data, newlen);
+
+	list_free(firstline);
+
+	if(new)
+		buffer_insertlistafter(buffer, listpos, new);
 
 	buffer_modified(buffer) = 1;
-	padx = startx + enteredlen - 1;
-	if(padx < 0)
-		padx = 0;
+	padx += newlen - 1;
 }
 
 /* returns nlines */

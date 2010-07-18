@@ -87,6 +87,10 @@ int main(int argc, const char **argv)
 
 	if((af = setjmp(allocerr))){
 		const char *from = NULL;
+
+		if(lastbuffer)
+			command_dumpbuffer(lastbuffer);
+
 		switch(af){
 			case ALLOC_UMALLOC:   from = "umalloc.c"; break;
 			case ALLOC_BUFFER_C:  from = "buffer.c"; break;
