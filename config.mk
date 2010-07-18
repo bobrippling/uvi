@@ -7,7 +7,7 @@ ifeq (${DEBUG},1)
 	CFLAGS  = -g
 	LDFLAGS = -g -lncurses
 else
-	CC      = tcc
+	CC      = cc
 	CFLAGS  = -Wall -Os
 	LDFLAGS = -lncurses
 endif
