@@ -601,10 +601,24 @@ static void insert(int append)
 
 	list_free(firstline);
 
-	if(new)
+	if(new){
+		/* cut off the bit after firstline->data and append to last */
+		struct list *last = list_gettail(new);
+		char *pos = newline + padx + newlen, *realloced;
+
+		realloced = realloc(last->data, strlen(last->data) + strlen(pos) + 1);
+		if(!realloced)
+			longjmp(allocerr, 1);
+		last->data = realloced;
+
+		strcat(realloced, pos);
+		*pos = '\0';
+
 		buffer_insertlistafter(buffer, listpos, new);
+	}
 
 	buffer_modified(buffer) = 1;
+
 	padx += newlen - 1;
 }
 
