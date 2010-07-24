@@ -14,5 +14,6 @@ enum allocfail
 
 extern jmp_buf allocerr;
 void *umalloc(size_t);
+char *ustrdup(const char *);
 
 #endif
