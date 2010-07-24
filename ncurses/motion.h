@@ -35,6 +35,9 @@ struct motion
 
 		MOTION_MARK,           /* ' */
 
+		MOTION_FIND,           /* f */
+		MOTION_TIL,            /* t */
+
 		MOTION_UNKNOWN
 	} motion;
 

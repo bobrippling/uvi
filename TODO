@@ -9,8 +9,7 @@ ncurses.c:
 	only syntax highlight what's on screen?
 	:e autocomplete?
 
-motions.c:
-	'f' and 't'
+	'u' (aka undo)
 
 command.c:
 	add range option to filters/pipes

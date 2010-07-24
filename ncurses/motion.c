@@ -50,6 +50,8 @@ char islinemotion(struct motion *m)
 		case MOTION_ABSOLUTE_RIGHT:
 		case MOTION_MARK:
 		case MOTION_NO_MOVE:
+		case MOTION_FIND:
+		case MOTION_TIL:
 			return 0;
 
 		case MOTION_DOWN:
@@ -107,6 +109,17 @@ void getmotion(void status(const char *, ...),
 
 			case 'g': m->motion = MOTION_ABSOLUTE_UP;     return;
 			case 'G': m->motion = MOTION_ABSOLUTE_DOWN;   return;
+
+			case 't':
+			case 'f':
+				m->extra = charfunc();
+				if(isprint(m->extra))
+					m->motion = c == 'f' ? MOTION_FIND : MOTION_TIL;
+				else{
+					m->motion = MOTION_UNKNOWN;
+					status("unknown character");
+				}
+				return;
 
 			case '\'':
 				c = charfunc();
@@ -190,7 +203,6 @@ char applymotion(struct motion *motion, struct bufferpos *pos,
 			return 1;
 
 		case MOTION_NOSPACE:
-		{
 			charpos = charstart;
 			while(isspace(*charpos))
 				charpos++;
@@ -199,7 +211,17 @@ char applymotion(struct motion *motion, struct bufferpos *pos,
 			else
 				*pos->x = 0;
 			return 1;
-		}
+
+		case MOTION_TIL:
+		case MOTION_FIND:
+			charpos++; /* search _after_ the current position */
+			while(*charpos && *charpos != motion->extra)
+				charpos++;
+
+			if(*charpos != '\0')
+				*pos->x = charpos - charstart - (motion->motion == MOTION_TIL);
+			return 1;
+
 
 		case MOTION_ABSOLUTE_RIGHT:
 			while(*charpos != '\0')
