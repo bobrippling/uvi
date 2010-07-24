@@ -158,7 +158,7 @@ insert:
 		{
 			if(s[1] == '!'){
 				char *cmd = s + 2;
-				while(*cmd == ' ')
+				while(isspace(*cmd))
 					cmd++;
 
 				if(!strlen(cmd))
@@ -183,12 +183,29 @@ insert:
 				if(s[2] != '!')
 					wrongfunc();
 				else{
-					/* TODO */
-					pfunc("!rw: TODO");
+					char *cmd = s + 3;
+					struct list *l;
+
+					while(isspace(*cmd))
+						cmd++;
+
+					l = pipe_readwrite(cmd, buffer_gethead(buffer));
+
+					if(l){
+						if(l->data){
+							buffer_replace(buffer, l);
+							buffer_modified(buffer) = 1;
+						}else{
+							list_free(l);
+							pfunc("%s: no output", cmd);
+						}
+					}else{
+						pfunc("pipe_readwrite() error: %s", strerror(errno));
+					}
 				}
 			}else{
 				char *cmd = s + 1;
-				while(*cmd == ' ')
+				while(isspace(*cmd))
 					cmd++;
 
 				if(!strlen(cmd))
@@ -219,7 +236,7 @@ insert:
 			if(s[1] == '!'){
 				/* write [TODO: range] to pipe */
 				char *cmd = s + 2;
-				while(*cmd == ' ')
+				while(isspace(*cmd))
 					cmd++;
 
 				if(!strlen(cmd))
@@ -481,7 +498,7 @@ static void command_e(char *s, buffer_t **b, int *y,
 		force = 1;
 	}
 
-	while(*fname == ' ')
+	while(isspace(*fname))
 		fname++;
 
 	if(!force && buffer_modified(buffer))

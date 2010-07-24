@@ -19,6 +19,8 @@ int buffer_write(buffer_t *);
 void buffer_free(buffer_t *);
 void buffer_free_nolist(buffer_t *); /* free(), leaving the list in memory */
 
+void buffer_replace(buffer_t *, struct list *);
+
 int buffer_nchars(buffer_t *);
 int buffer_nlines(buffer_t *);
 

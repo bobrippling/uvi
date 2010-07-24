@@ -266,6 +266,13 @@ void buffer_free(buffer_t *b)
 	}
 }
 
+void buffer_replace(buffer_t *b, struct list *l)
+{
+	list_free(b->lines);
+	b->lines = l;
+	b->changed = 1;
+}
+
 int buffer_nchars(buffer_t *b)
 {
 	struct list *l = list_gethead(b->lines);
