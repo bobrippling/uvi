@@ -13,9 +13,7 @@ motions.c:
 	'f' and 't'
 
 command.c:
-	filters/pipes:
-		:rw!cmd # filter through prog
-	regex search
+	add range option to filters/pipes
 
 regex:
 	simple (vi(1) - see '/'): ^$.[]*
