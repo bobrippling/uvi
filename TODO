@@ -11,6 +11,8 @@ ncurses.c:
 
 	'u' (aka undo)
 
+	SIGWINCH - handle
+
 command.c:
 	add range option to filters/pipes
 
