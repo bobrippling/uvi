@@ -35,16 +35,13 @@ struct list *pipe_read(const char *cmd)
 			return NULL;
 
 		case 0:
-		{
-			int devnull = open("/dev/null", O_WRONLY);
-
-			dup2(devnull, STDERR_FILENO);
-
 			close(fds[READ_FD]);
 			if(dup2(fds[WRITE_FD], STDOUT_FILENO) == -1)
 				exit(-1);
+
+			dup2(STDOUT_FILENO, STDERR_FILENO);
+
 			exit(system(cmd));
-		}
 
 		default:
 		{
@@ -75,7 +72,7 @@ int pipe_write(const char *cmd, struct list *l)
 		case 0:
 		{
 			int devnull = open("/dev/null", O_WRONLY);
-
+			dup2(devnull, STDOUT_FILENO);
 			dup2(devnull, STDERR_FILENO);
 
 			close(fds[WRITE_FD]);
@@ -115,20 +112,16 @@ struct list *pipe_readwrite(const char *cmd, struct list *l)
 			return NULL;
 
 		case 0:
-		{
-			int devnull = open("/dev/null", O_WRONLY);
-
-			dup2(devnull, STDERR_FILENO);
-
 			close(parent_to_child[WRITE_FD]);
 			close(child_to_parent[READ_FD]);
 
 			if(dup2(parent_to_child[READ_FD],  STDIN_FILENO ) == -1 ||
-				 dup2(child_to_parent[WRITE_FD], STDOUT_FILENO) == -1)
+				 dup2(child_to_parent[WRITE_FD], STDOUT_FILENO) == -1 ||
+				 dup2(STDOUT_FILENO, STDERR_FILENO) == -1)
+
 				exit(-1);
 
 			exit(system(cmd));
-		}
 
 		default:
 		{
