@@ -973,6 +973,7 @@ switch_start:
 
 			case CTRL_AND_g:
 				showpos();
+				viewchanged = 1;
 				break;
 
 			case 'O':
@@ -1021,6 +1022,7 @@ switch_start:
 				if(motion.motion != MOTION_UNKNOWN){
 					delete(&motion);
 					view_drawbuffer(buffer);
+					viewchanged = 1;
 					if(flag)
 						insert(0);
 					bufferchanged = 1;

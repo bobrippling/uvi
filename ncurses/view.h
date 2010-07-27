@@ -22,7 +22,6 @@ void view_termpad(void);
 void view_drawbuffer(buffer_t *);
 
 int  view_scroll(enum scroll);
-void view_refreshpad(void);
 
 void view_cursoronscreen(void);
 

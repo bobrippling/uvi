@@ -25,6 +25,8 @@ extern struct settings global_settings;
 #define MAX_Y (LINES - 1)
 #define PAD_HEIGHT_INC 16
 
+#define PAD_MAX_HEIGHT 2048
+
 static void resizepad(void);
 static void padyinrange(void);
 static void clippadx(void);
@@ -38,6 +40,8 @@ static int  view_actualx(int, int);
 #endif
 
 extern int padheight, padwidth, padtop, padleft, padx, pady;
+static int padlim_top = 0; /* actual index of the top of the pad:
+                              this is the index that is draw first */
 
 extern buffer_t *buffer;
 extern WINDOW *pad;
@@ -214,8 +218,22 @@ void view_cursoronscreen()
 
 static void view_updatecursor()
 {
+	/*
+	 * here's where the pad adjustment magic happens, kids
+	 */
+	int yactual = pady - padlim_top;
+
+	if(yactual + MAX_Y >= padheight || yactual < padlim_top){
+		/* need to alter the pad to contain lines further down */
+		if((padlim_top = pady - MAX_Y) < 0)
+			padlim_top = 0;
+
+		yactual = pady - padlim_top;
+		view_drawbuffer(buffer);
+	}
+
 	/* wmove takes care of pad{top,left} */
-	wmove(pad, pady, view_actualx(pady, padx));
+	wmove(pad, yactual, view_actualx(pady, padx));
 
 	/* check if any lines after padbottom need clearing */
 	if(padheight - padtop < MAX_Y){
@@ -226,7 +244,11 @@ static void view_updatecursor()
 		}
 	}
 
-	view_refreshpad();
+	wnoutrefresh(stdscr);
+	prefresh(pad,
+			padtop, padleft,   /* top left pad corner */
+			0, 0,              /* top left screen (pad positioning) */
+			MAX_Y - 1, MAX_X); /* bottom right of screen */
 }
 
 #if VIEW_COLOUR
@@ -296,7 +318,7 @@ static void checkcolour(const char *c, char *waitlen, char *colour_on,
 
 void view_drawbuffer(buffer_t *b)
 {
-	struct list *l = buffer_gethead(b);
+	struct list *l = buffer_getindex(b, padlim_top);
 	char keyword_on = 0;
 	int y = 0, size = buffer_nlines(b);
 #if VIEW_COLOUR
@@ -401,17 +423,6 @@ tilde:
 	if(global_settings.colour)
 		wcoloroff(COLOR_BLUE, A_BOLD);
 #endif
-
-	view_updatecursor();
-}
-
-void view_refreshpad()
-{
-	wnoutrefresh(stdscr);
-	prefresh(pad,
-			padtop, padleft,   /* top left pad corner */
-			0, 0,              /* top left screen (pad positioning) */
-			MAX_Y - 1, MAX_X); /* bottom right of screen */
 }
 
 void view_initpad()
@@ -426,7 +437,7 @@ void view_initpad()
 		start_color();
 		use_default_colors();
 		/* tells (n)curses that -1 means the default colour, so it can be used below in init_pair() */
-		/* init_color(COLOR_RED, 700, 0, 0); RGB are out of 1000                  */
+		/* init_color(COLOR_RED, 700, 0, 0); RGB are out of 1000 */
 		init_pair(COLOR_BLACK,   -1,            -1);
 		init_pair(COLOR_GREEN,   COLOR_GREEN,   -1);
 		init_pair(COLOR_WHITE,   COLOR_WHITE,   -1);
@@ -455,9 +466,13 @@ static void resizepad()
 	if(padheight < buffer_nlines(buffer) + MAX_Y)
 		padheight = buffer_nlines(buffer) + MAX_Y;
 
+	if(padheight > PAD_MAX_HEIGHT)
+		padheight = PAD_MAX_HEIGHT;
+
 	pad = newpad(padheight, padwidth);
 	if(!pad){
 		endwin();
+		fprintf(stderr, "newpad(%d, %d) failed\n", padheight, padwidth);
 		longjmp(allocerr, ALLOC_VIEW);
 	}
 }
