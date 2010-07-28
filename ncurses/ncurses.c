@@ -422,6 +422,8 @@ static enum gret gfunc(char *s, int size)
 		getyx(pad, y, x);
 		x -= padleft;
 		y -= padtop;
+		if(y > MAX_Y)
+			y = MAX_Y;
 		move(y, x);
 		clrtoeol();
 		/*wclrtoeol(pad);*/
