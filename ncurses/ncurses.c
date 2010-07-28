@@ -423,7 +423,7 @@ static enum gret gfunc(char *s, int size)
 		x -= padleft;
 		y -= padtop;
 		move(y, x);
-		/*clrtoeol();*/
+		clrtoeol();
 		/*wclrtoeol(pad);*/
 	}else{
 		/* probably a command */
@@ -485,7 +485,8 @@ exit:
 
 	if(gfunc_onpad){
 		waddnstr(pad, s, MAX_X);
-		waddch(pad, '\n');
+		if(s[count] != '\n')
+			waddch(pad, '\n');
 	}else{
 		addch('\n');
 		move(++y, 0);
@@ -494,7 +495,7 @@ exit:
 	if(gfunc_onpad){
 		++pady;
 		padx = 0;
-		view_cursoronscreen();
+		/*view_cursoronscreen();*/
 	}
 
 	return r;
