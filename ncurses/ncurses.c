@@ -408,7 +408,7 @@ static void shellout(const char *cmd)
 	if(ret != '\n' && ret != EOF)
 		while((ret = getchar()) != '\n' && ret != EOF);
 
-	refresh();
+	view_cursoronscreen();
 }
 
 static enum gret gfunc(char *s, int size)

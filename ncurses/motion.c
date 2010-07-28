@@ -303,7 +303,7 @@ char applymotion(struct motion *motion, struct bufferpos *pos,
 			if(buffer_nlines(pos->buffer) - si->padtop > si->padheight)
 				mid = si->padtop + si->padheight/2;
 			else{
-				mid = si->padtop + (buffer_nlines(pos->buffer) - si->padtop)/2;
+				mid = si->padtop + (buffer_nlines(pos->buffer) - si->padtop - 1)/2;
 				if(mid < 0)
 					mid = 0;
 			}
