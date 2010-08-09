@@ -16,6 +16,7 @@ ncurses.c:
 command.c:
 	add range option to filters/pipes
 	:x - :wq, but only write if changed
+	use $SHELL in shellout()
 
 regex:
 	simple (vi(1) - see '/'): ^$.[]*
