@@ -19,17 +19,10 @@ enum scroll
 
 void view_initpad(void);
 void view_termpad(void);
-void view_drawbuffer(buffer_t *);
 
-int  view_scroll(enum scroll);
+void view_scroll(enum scroll);
+void view_move(struct motion *);
 
 void view_cursoronscreen(void);
-
-void view_waddch(WINDOW *, int);
-void view_putcursor(int, int, int, int);
-
-int view_getactualx(int, int);
-
-void view_move(struct motion *);
 
 #endif
