@@ -2,6 +2,8 @@ ncurses.c:
 	bug: on newline tabs get displayed as the terminal pleases
 	bug: on backspace, if there was a tab the cursor shifts all over
 
+	change 'w' and 'b' to toggle between /\s/ and !/\s/ like gui textboxes
+
 	change tabs - access termios?
 		int ntabs = curpos / 8;
 		mov(ntabs * 8 + 8)
