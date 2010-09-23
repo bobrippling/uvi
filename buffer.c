@@ -54,7 +54,8 @@ int buffer_read(buffer_t **buffer, const char *fname)
 	int nread = 0, nlines = 0;
 	char *s, haseol = 1;
 
-	if(!f)
+	if(!f || ftell(f) == -1)
+		/* errno = EBADF; if non-seekable */
 		return -1;
 
 	b = buffer_new(NULL);
