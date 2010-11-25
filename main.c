@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <signal.h>
+#include <locale.h>
 
 #include "term.h"
 #include "ncurses/ncurses.h"
@@ -78,6 +79,11 @@ int main(int argc, const char **argv)
 	int (*main2)(const char *, char) = &ncurses_main;
 	const char *fname = NULL;
 	enum allocfail af;
+
+	if(setlocale(LC_CTYPE, "") == NULL){
+		fprintf(stderr, "%s: Locale not specified :(\n", *argv);
+		return 1;
+	}
 
 	global_settings.tabstop  = DEFAULT_TAB_STOP;
 	global_settings.colour   = 0;
