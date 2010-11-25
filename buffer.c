@@ -48,11 +48,16 @@ void buffer_setfilename(buffer_t *b, const char *s)
 int buffer_read(buffer_t **buffer, const char *fname)
 {
 #define b (*buffer)
-	FILE *f = fopen(fname, "r");
+	FILE *f;
 	struct list *tmp;
 	struct stat st;
 	int nread = 0, nlines = 0;
 	char *s, haseol = 1;
+
+	if(!strcmp(fname, "-"))
+		f = fopen("/dev/stdin", "r");
+	else
+		f = fopen(fname, "r");
 
 	if(!f)
 		return -1;

@@ -129,6 +129,7 @@ static int search(int next)
 				*pos = '\0';
 
 dosearch:
+			/* TODO: allow SIGINT to stop search */
 			while(l){
 				if((pos = strstr(l->data, searchstr))){
 					padx = pos - (char *)l->data;

@@ -20,7 +20,7 @@ enum scroll
 void view_initpad(void);
 void view_termpad(void);
 
-void view_scroll(enum scroll);
+int view_scroll(enum scroll);
 void view_move(struct motion *);
 
 void view_cursoronscreen(void);

@@ -48,6 +48,8 @@ extern WINDOW *pad;
 
 int view_scroll(enum scroll s)
 {
+	int ret = 0;
+
 	switch(s){
 		case SINGLE_DOWN:
 			if(padtop < buffer_nlines(buffer)-1){
