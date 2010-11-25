@@ -48,6 +48,7 @@ void buffer_setfilename(buffer_t *b, const char *s)
 int buffer_read(buffer_t **buffer, const char *fname)
 {
 #define b (*buffer)
+#define FCLOSE(f) do if(f != stdin) fclose(f); while(0)
 	FILE *f;
 	struct list *tmp;
 	struct stat st;
@@ -55,12 +56,22 @@ int buffer_read(buffer_t **buffer, const char *fname)
 	char *s, haseol = 1;
 
 	if(!strcmp(fname, "-"))
-		f = fopen("/dev/stdin", "r");
+		f = stdin;
 	else
 		f = fopen(fname, "r");
 
 	if(!f)
 		return -1;
+	else if(ftell(f) == -1){
+		/*
+		 * if ftell fails, errno = EBADF (non-seekable)
+		 * FIXME: don't seek when reading files, peek instead?
+		 */
+		const int e2 = errno;
+		FCLOSE(f);
+		errno = e2;
+		return -1;
+	}
 
 	b = buffer_new(NULL);
 	tmp = b->lines;
@@ -74,14 +85,14 @@ int buffer_read(buffer_t **buffer, const char *fname)
 			buffer_free(b);
 			b = NULL;
 
-			if(fclose(f) /* error */ && !eno)
+			if(f != stdin && fclose(f) /* error */ && !eno)
 				eno = errno;
 
 			errno = eno;
 			return -1;
 		}else if(thisread == 0){
 			/* assert(feof()) */
-			if(fclose(f)){
+			if(f != stdin && fclose(f)){
 				int eno = errno;
 
 				buffer_free(b);
