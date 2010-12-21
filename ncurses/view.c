@@ -23,28 +23,41 @@ extern struct settings global_settings;
 
 #define MAX_X (COLS - 1)
 #define MAX_Y (LINES - 1)
-#define PAD_HEIGHT_INC 16
 
-#define PAD_MAX_HEIGHT 2048
-
-static void resizepad(void);
-static void padyinrange(void);
 static void clippadx(void);
-
+static void padyinrange(void);
 static void view_updatecursor(void);
-static int  view_actualx(int, int);
 
-#if VIEW_COLOUR
-# define wcoloron( c, a)  (wattron( pad, COLOR_PAIR(c) | (a) ))
-# define wcoloroff(c, a)  (wattroff(pad, COLOR_PAIR(c) | (a) ))
+#ifdef USE_PAD
+# define PAD_HEIGHT_INC 16
+# define PAD_MAX_HEIGHT 2048
+static void resizepad(void);
+static int  view_actualx(int, int);
+#else
+void view_addch(int c);
 #endif
 
-extern int padheight, padwidth, padtop, padleft, padx, pady;
+#if VIEW_COLOUR
+# ifdef USE_PAD
+#  define wcoloron( c, a)  (wattron( pad, COLOR_PAIR(c) | (a) ))
+#  define wcoloroff(c, a)  (wattroff(pad, COLOR_PAIR(c) | (a) ))
+# else
+#  define wcoloron( c, a)  (attron( COLOR_PAIR(c) | (a) ))
+#  define wcoloroff(c, a)  (attroff(COLOR_PAIR(c) | (a) ))
+# endif
+#endif
+
+#ifdef USE_PAD
+extern int padheight, padwidth;
 static int padlim_top = 0; /* actual index of the top of the pad:
-                              this is the index that is draw first */
+                              this is the index that is drawn first */
+
+extern WINDOW *pad;
+#endif
+
+extern int padtop, padleft, padx, pady;
 
 extern buffer_t *buffer;
-extern WINDOW *pad;
 
 int view_scroll(enum scroll s)
 {
@@ -135,6 +148,7 @@ int view_scroll(enum scroll s)
 	}
 
 	view_updatecursor();
+	return ret;
 }
 
 static void padyinrange()
@@ -220,8 +234,13 @@ static void view_updatecursor()
 	/*
 	 * here's where the pad adjustment magic happens, kids
 	 */
+#ifdef USE_PAD
 	int yactual = pady - padlim_top;
+#else
+	int yactual = pady - padtop;
+#endif
 
+#ifdef USE_PAD
 	if(yactual + MAX_Y >= padheight || yactual < padlim_top){
 		/* need to alter the pad to contain lines further down */
 		if((padlim_top = pady - MAX_Y) < 0)
@@ -233,7 +252,11 @@ static void view_updatecursor()
 
 	/* wmove takes care of pad{top,left} */
 	wmove(pad, yactual, view_actualx(pady, padx));
+#else
+	move(yactual, view_actualx(pady, padx));
+#endif
 
+#ifdef USE_PAD
 	/* check if any lines after padbottom need clearing */
 	if(padheight - padtop < MAX_Y){
 		int y = padheight - padtop;
@@ -242,12 +265,17 @@ static void view_updatecursor()
 			clrtoeol();
 		}
 	}
+#endif
 
+#ifdef USE_PAD
 	wnoutrefresh(stdscr);
 	prefresh(pad,
 			padtop, padleft,   /* top left pad corner */
 			0, 0,              /* top left screen (pad positioning) */
 			MAX_Y - 1, MAX_X); /* bottom right of screen */
+#else
+	refresh();
+#endif
 }
 
 #if VIEW_COLOUR
@@ -317,9 +345,16 @@ static void checkcolour(const char *c, char *waitlen, char *colour_on,
 
 void view_drawbuffer(buffer_t *b)
 {
-	struct list *l = buffer_getindex(b, padlim_top);
+	struct list *l = buffer_getindex(b,
+#ifdef USE_PAD
+			padlim_top
+#else
+			padtop
+#endif
+			);
+
 	char keyword_on = 0;
-	int y = 0, size = buffer_nlines(b);
+	int y = 0;
 #if VIEW_COLOUR
 	char colour_on = 0, waitlen = 0, needcolouroff = 0;
 	unsigned int current_syntax = -1;
@@ -328,6 +363,9 @@ void view_drawbuffer(buffer_t *b)
 	KEYWORDS;
 #define KEYWORD_COUNT (sizeof(keyword)/sizeof(keyword[0]))
 
+#ifdef USE_PAD
+	int size = buffer_nlines(b);
+
 	if(size > padheight){
 		padheight = size + PAD_HEIGHT_INC;
 		resizepad();
@@ -335,11 +373,20 @@ void view_drawbuffer(buffer_t *b)
 
 	wclear(pad);
 	wmove(pad, 0, 0);
+#else
+	clear();
+#endif
+
 	if(!l || !l->data)
 		goto tilde;
 
 #if VIEW_COLOUR
+# ifdef USE_PAD
 	wattrset(pad, A_NORMAL); /* bit of a bodge */
+# else
+	attrset(A_NORMAL); /* bit of a bodge */
+#endif
+
 	if(global_settings.colour){
 		while(l){
 			char *c = l->data;
@@ -369,7 +416,11 @@ void view_drawbuffer(buffer_t *b)
 							break;
 						}
 
+#ifdef USE_PAD
 				view_waddch(pad, *c++);
+#else
+				view_addch(*c++);
+#endif
 			}
 
 			while(*c)
@@ -379,7 +430,11 @@ void view_drawbuffer(buffer_t *b)
 			checkcolour(newline, &waitlen, &colour_on,
 					&current_syntax, &needcolouroff);
 
+#ifdef USE_PAD
 			waddch(pad, '\n');
+#else
+			addch('\n');
+#endif
 			y++;
 			l = l->next;
 		}
@@ -400,12 +455,21 @@ void view_drawbuffer(buffer_t *b)
 				else
 					len++;
 
+#ifdef USE_PAD
 				view_waddch(pad, *pos++);
+#else
+				view_addch(*pos++);
+#endif
 			}
 		}else
+#ifdef USE_PAD
 			waddnstr(pad, l->data, MAX_X - 1);
-
 		waddch(pad, '\n');
+#else
+			addnstr(l->data, MAX_X - 1);
+		addch('\n');
+#endif
+
 		y++;
 		l = l->next;
 	}
@@ -416,14 +480,20 @@ tilde:
 	if(global_settings.colour)
 		wcoloron(COLOR_BLUE, A_BOLD);
 #endif
+#ifdef USE_PAD
 	while(++y <= padheight)
 		waddstr(pad, "~\n");
+#else
+	while(++y <= MAX_Y)
+		addstr("~\n");
+#endif
 #if VIEW_COLOUR
 	if(global_settings.colour)
 		wcoloroff(COLOR_BLUE, A_BOLD);
 #endif
 }
 
+#ifdef USE_PAD
 void view_initpad()
 {
 	padheight = buffer_nlines(buffer) + PAD_HEIGHT_INC * 2;
@@ -452,11 +522,13 @@ void view_termpad()
 {
 	delwin(pad);
 }
+#endif
 
 /*
  * static funcs
  */
 
+#ifdef USE_PAD
 static void resizepad()
 {
 	if(pad)
@@ -475,6 +547,7 @@ static void resizepad()
 		longjmp(allocerr, ALLOC_VIEW);
 	}
 }
+#endif
 
 static void clippadx()
 {
@@ -489,18 +562,34 @@ static void clippadx()
 
 /* cursor/character adding positioning code */
 
+#ifdef USE_PAD
 void view_waddch(WINDOW *w, int c)/*, int offset)*/
+#else
+void view_addch(int c)
+#endif
 {
 	if(c == '\t'){
 		if(global_settings.showtabs){
+#ifdef USE_PAD
 			waddstr(w, "^I");
+#else
+			addstr("^I");
+#endif
 		}else{
 			c = global_settings.tabstop;
 			while(c--)
+#ifdef USE_PAD
 				waddch(w, ' ');
+#else
+				addch(' ');
+#endif
 		}
 	}else
+#ifdef USE_PAD
 		waddch(w, c);
+#else
+		addch(c);
+#endif
 }
 
 void view_move(struct motion *m)
