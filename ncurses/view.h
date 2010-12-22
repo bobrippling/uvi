@@ -17,11 +17,20 @@ enum scroll
 	CURSOR_BOTTOM
 };
 
+#ifdef USE_PAD
 void view_initpad(void);
 void view_termpad(void);
 
-int view_scroll(enum scroll);
+void view_waddch(WINDOW *, int c);
+#else
+void view_addch(int c);
+#endif
+
+void view_drawbuffer(buffer_t *b);
+
+int  view_scroll(enum scroll);
 void view_move(struct motion *);
+int  view_getactualx(int y, int x);
 
 void view_cursoronscreen(void);
 

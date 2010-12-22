@@ -92,8 +92,12 @@ static void showpos(void);
 
 /* extern'd for view.c */
 buffer_t *buffer;
+#ifdef USE_PAD
 WINDOW *pad;
-int padheight, padwidth, padtop, padleft, padx, pady;
+int padheight, padwidth;
+#endif
+
+int padtop, padleft, padx, pady;
 
 static int gfunc_onpad = 0, pfunc_wantconfimation = 0;
 #define SEARCH_STR_SIZE 256
@@ -198,7 +202,11 @@ void tilde(int rep)
 		else
 			*pos = tolower(*pos);
 
+#ifdef USE_PAD
 		mvwaddch(pad, pady, view_getactualx(pady, padx), *pos);
+#else
+		mvaddch(pady, view_getactualx(pady, padx), *pos);
+#endif
 
 		/**pos ^= (1 << 5); * flip bit 100000 = 6 */
 
@@ -303,8 +311,10 @@ static void nc_toggle(char up)
 
 static void nc_down()
 {
+#ifdef USE_PAD
 	view_termpad();
 	pad = NULL;
+#endif
 	endwin();
 }
 
@@ -420,7 +430,11 @@ static enum gret gfunc(char *s, int size)
 
 	/* if we're on a pad, draw over the top of it, onto stdscr */
 	if(gfunc_onpad){
+#ifdef USE_PAD
 		getyx(pad, y, x);
+#else
+		getyx(stdscr, y, x);
+#endif
 		x -= padleft;
 		y -= padtop;
 		if(y > MAX_Y)
@@ -462,7 +476,11 @@ static enum gret gfunc(char *s, int size)
 				if(isprint(c) || c == '\t'){
 					s[count++] = c;
 
+#ifdef USE_PAD
 					view_waddch(stdscr, c);
+#else
+					view_addch(c);
+#endif
 					wrefresh(stdscr);
 					x++;
 
@@ -487,9 +505,17 @@ exit:
 		s[count] = '\0';
 
 	if(gfunc_onpad){
+#ifdef USE_PAD
 		waddnstr(pad, s, MAX_X);
+#else
+		addnstr(s, MAX_X);
+#endif
 		if(s[count] != '\n')
+#ifdef USE_PAD
 			waddch(pad, '\n');
+#else
+			addch('\n');
+#endif
 	}else{
 		addch('\n');
 		move(++y, 0);
@@ -635,7 +661,11 @@ static int open(int before)
 	if(!before)
 		++pady;
 
+#ifdef USE_PAD
 	wmove(pad, pady, padx = 0);
+#else
+	move(pady, padx = 0);
+#endif
 	clrtoeol();
 
 	cur = buffer_getindex(buffer, pady);
@@ -887,7 +917,9 @@ int ncurses_main(const char *filename, char readonly)
 		oldinth = signal(SIGINT, &sigh);
 		oldsegh = signal(SIGSEGV, &sigh);
 	}
+#ifdef USE_PAD
 	view_initpad();
+#endif
 
 	do{
 		int flag = 0, resetmultiple = 1;
@@ -1145,7 +1177,9 @@ exit_while:
 
 	nc_down();
 fin:
+#ifdef USE_PAD
 	view_termpad();
+#endif
 	buffer_free(buffer);
 	command_free();
 
