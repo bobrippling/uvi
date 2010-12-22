@@ -1012,6 +1012,8 @@ switch_start:
 				SET_DOT();
 				break;
 
+			case 'S':
+				ungetch('c');
 			case 'c':
 				flag = 1;
 			case 'd':
