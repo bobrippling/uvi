@@ -116,6 +116,8 @@ int command_run(
 	lim.start = *curline;
 	lim.end		= buffer_nlines(buffer);
 
+	fprintf(stderr, "command_run(\"%s\", ...)\n", in);
+
 	s = parserange(in, &rng, &lim, qfunc, pfunc);
 	/* from this point on, s/in/s/g */
 	if(!s)
@@ -126,6 +128,7 @@ int command_run(
 		return 1;
 	}
 
+	fprintf(stderr, "\tswitch(%c)\n", *s);
 	switch(*s){
 		case '\0':
 			wrongfunc();

@@ -8,7 +8,7 @@
 #include <locale.h>
 
 #include "term.h"
-#include "ncurses/ncurses.h"
+#include "view/ncurses.h"
 
 #include "range.h"
 #include "buffer.h"

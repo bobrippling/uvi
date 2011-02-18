@@ -6,7 +6,6 @@
 #define VARS_MAX_TABSTOP 8
 #define VIEW_COLOUR      1
 
-
 #if VIEW_COLOUR
 
 /*
@@ -71,7 +70,7 @@
 
 struct settings
 {
-	char tabstop, showtabs;
+	char tabstop, showtabs, autoindent;
 #if VIEW_COLOUR
 	char colour;
 #endif

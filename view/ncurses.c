@@ -61,8 +61,6 @@ static void sigh(int);
 /* I/O */
 #define pfunc status
 static void wrongfunc(void);
-static int  qfunc(const char *, ...);
-static enum gret gfunc(char *, int);
 static void shellout(const char *);
 static int  nc_getch(void);
 
@@ -92,17 +90,14 @@ static void showpos(void);
 
 /* extern'd for view.c */
 buffer_t *buffer;
-#ifdef USE_PAD
-WINDOW *pad;
-int padheight, padwidth;
-#endif
+int padx, pady;
+int padtop;
 
-int padtop, padleft, padx, pady;
-
-static int gfunc_onpad = 0, pfunc_wantconfimation = 0;
+static int pfunc_wantconfimation = 0;
 #define SEARCH_STR_SIZE 256
 static char searchstr[SEARCH_STR_SIZE] = { 0 };
 
+static int gfunc_onpad = 0;
 extern int debug;
 
 static int search(int next)
@@ -338,7 +333,7 @@ static void nc_up()
 
 		/*ESCDELAY = 25; * duh **/
 
-		pady = padx = padtop = padleft = 0;
+		pady = padx = 0;
 
 		init = 1;
 	}
@@ -387,7 +382,7 @@ static void showpos()
 			i, 100.0f * (float)(1 + pady) /(float)i);
 }
 
-static int qfunc(const char *s, ...)
+int qfunc(const char *s, ...)
 {
 	va_list l;
 	int c;
@@ -422,118 +417,9 @@ static void shellout(const char *cmd)
 	view_cursoronscreen();
 }
 
-static enum gret gfunc(char *s, int size)
-{
-	/*return getnstr(s, len) == OK ? s : NULL; */
-	int x, y, c, count = 0;
-	enum gret r;
-
-	/* if we're on a pad, draw over the top of it, onto stdscr */
-	if(gfunc_onpad){
-#ifdef USE_PAD
-		getyx(pad, y, x);
-#else
-		getyx(stdscr, y, x);
-#endif
-		x -= padleft;
-		y -= padtop;
-		if(y > MAX_Y)
-			y = MAX_Y;
-		move(y, x);
-		clrtoeol();
-		/*wclrtoeol(pad);*/
-	}else{
-		/* probably a command */
-		clrtoeol();
-
-		getyx(stdscr, y, x);
-	}
-
-	do
-		switch((c = nc_getch())){
-			case C_ESC:
-				r = g_LAST;
-				goto exit;
-
-			case C_NEWLINE:
-			case '\n':
-				r = g_CONTINUE;
-				goto exit;
-
-			case '\b': /* backspace */
-				if(!count){
-					r = g_EOF;
-					goto exit;
-				}
-				count--;
-				if(gfunc_onpad)
-					move(y, view_getactualx(y, --x));
-				else
-					move(y, --x);
-				break;
-
-			default:
-				if(isprint(c) || c == '\t'){
-					s[count++] = c;
-
-#ifdef USE_PAD
-					view_waddch(stdscr, c);
-#else
-					view_addch(c);
-#endif
-					wrefresh(stdscr);
-					x++;
-
-					if(count >= size - 1){
-						s[count] = '\0';
-						r = g_CONTINUE;
-						goto exit;
-					}
-				}else{
-					unknownchar(c);
-					r = g_LAST;
-					goto exit;
-				}
-		}
-	while(1);
-
-exit:
-	if(count < size - 1){
-		s[count]   = '\n';
-		s[count+1] = '\0';
-	}else
-		s[count] = '\0';
-
-	if(gfunc_onpad){
-#ifdef USE_PAD
-		waddnstr(pad, s, MAX_X);
-#else
-		addnstr(s, MAX_X);
-#endif
-		if(s[count] != '\n')
-#ifdef USE_PAD
-			waddch(pad, '\n');
-#else
-			addch('\n');
-#endif
-	}else{
-		addch('\n');
-		move(++y, 0);
-	}
-
-	if(gfunc_onpad){
-		++pady;
-		padx = 0;
-		/*view_cursoronscreen();*/
-	}
-
-	return r;
-}
-
 static int nc_getch()
 {
 	int c;
-
 
 #if NC_RAW
 get:
@@ -935,7 +821,9 @@ int ncurses_main(const char *filename, char readonly)
 			ungetch(nc_getch());
 		}
 		if(bufferchanged){
+#ifdef USE_PAD
 			view_drawbuffer(buffer);
+#endif
 			bufferchanged = 0;
 			viewchanged = 1;
 		}
@@ -1059,7 +947,9 @@ switch_start:
 				}
 				if(motion.motion != MOTION_UNKNOWN){
 					delete(&motion);
+#ifdef USE_PAD
 					view_drawbuffer(buffer);
+#endif
 					viewchanged = 1;
 					if(flag)
 						insert(0);

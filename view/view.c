@@ -1,29 +1,3 @@
-/*
- * view.c handles displaying the buffer,
- * as opposed to ncurses.c, which handles
- * user i/o and commands
- */
-#include <ncurses.h>
-#include <math.h>
-#include <string.h>
-#include <setjmp.h>
-#include <stdlib.h>
-#include <ctype.h>
-
-#include "../util/list.h"
-#include "../range.h"
-#include "../buffer.h"
-#include "motion.h"
-#include "view.h"
-#include "../util/alloc.h"
-
-#include "../config.h"
-
-extern struct settings global_settings;
-
-#define MAX_X (COLS - 1)
-#define MAX_Y (LINES - 1)
-
 static void clippadx(void);
 static void padyinrange(void);
 static void view_updatecursor(void);
@@ -236,8 +210,6 @@ static void view_updatecursor()
 	 */
 #ifdef USE_PAD
 	int yactual = pady - padlim_top;
-#else
-	int yactual = pady - padtop;
 #endif
 
 #ifdef USE_PAD
@@ -252,8 +224,6 @@ static void view_updatecursor()
 
 	/* wmove takes care of pad{top,left} */
 	wmove(pad, yactual, view_actualx(pady, padx));
-#else
-	move(yactual, view_actualx(pady, padx));
 #endif
 
 #ifdef USE_PAD
@@ -264,6 +234,24 @@ static void view_updatecursor()
 			move(y++, 0);
 			clrtoeol();
 		}
+	}
+#else
+	/* redraw */
+	{
+		struct list *l;
+		int y;
+
+		move(0, 0);
+
+		for(y = 0, l = buffer_getindex(buffer, pady); l && y < MAX_Y; l = l->next, y++){
+			addnstr((char *)l->data, MAX_X);
+			addch('\n');
+		}
+
+		for(; y < MAX_Y; y++)
+			addstr("~\n");
+
+		move(pady - padtop, view_actualx(pady, padx));
 	}
 #endif
 
@@ -278,7 +266,7 @@ static void view_updatecursor()
 #endif
 }
 
-#if VIEW_COLOUR
+#if VIEW_COLOUR && USE_PAD
 static void checkcolour(const char *, char *const,
 		char *constconst, unsigned int *, char *);
 
@@ -343,15 +331,10 @@ static void checkcolour(const char *c, char *waitlen, char *colour_on,
 }
 #endif
 
+#ifdef USE_PAD
 void view_drawbuffer(buffer_t *b)
 {
-	struct list *l = buffer_getindex(b,
-#ifdef USE_PAD
-			padlim_top
-#else
-			padtop
-#endif
-			);
+	struct list *l = buffer_getindex(b, padlim_top);
 
 	char keyword_on = 0;
 	int y = 0;
@@ -363,7 +346,6 @@ void view_drawbuffer(buffer_t *b)
 	KEYWORDS;
 #define KEYWORD_COUNT (sizeof(keyword)/sizeof(keyword[0]))
 
-#ifdef USE_PAD
 	int size = buffer_nlines(b);
 
 	if(size > padheight){
@@ -373,19 +355,12 @@ void view_drawbuffer(buffer_t *b)
 
 	wclear(pad);
 	wmove(pad, 0, 0);
-#else
-	clear();
-#endif
 
 	if(!l || !l->data)
 		goto tilde;
 
 #if VIEW_COLOUR
-# ifdef USE_PAD
 	wattrset(pad, A_NORMAL); /* bit of a bodge */
-# else
-	attrset(A_NORMAL); /* bit of a bodge */
-#endif
 
 	if(global_settings.colour){
 		while(l){
@@ -416,11 +391,7 @@ void view_drawbuffer(buffer_t *b)
 							break;
 						}
 
-#ifdef USE_PAD
 				view_waddch(pad, *c++);
-#else
-				view_addch(*c++);
-#endif
 			}
 
 			while(*c)
@@ -430,11 +401,7 @@ void view_drawbuffer(buffer_t *b)
 			checkcolour(newline, &waitlen, &colour_on,
 					&current_syntax, &needcolouroff);
 
-#ifdef USE_PAD
 			waddch(pad, '\n');
-#else
-			addch('\n');
-#endif
 			y++;
 			l = l->next;
 		}
@@ -455,20 +422,11 @@ void view_drawbuffer(buffer_t *b)
 				else
 					len++;
 
-#ifdef USE_PAD
 				view_waddch(pad, *pos++);
-#else
-				view_addch(*pos++);
-#endif
 			}
 		}else
-#ifdef USE_PAD
 			waddnstr(pad, l->data, MAX_X - 1);
 		waddch(pad, '\n');
-#else
-			addnstr(l->data, MAX_X - 1);
-		addch('\n');
-#endif
 
 		y++;
 		l = l->next;
@@ -480,20 +438,14 @@ tilde:
 	if(global_settings.colour)
 		wcoloron(COLOR_BLUE, A_BOLD);
 #endif
-#ifdef USE_PAD
 	while(++y <= padheight)
 		waddstr(pad, "~\n");
-#else
-	while(++y <= MAX_Y)
-		addstr("~\n");
-#endif
 #if VIEW_COLOUR
 	if(global_settings.colour)
 		wcoloroff(COLOR_BLUE, A_BOLD);
 #endif
 }
 
-#ifdef USE_PAD
 void view_initpad()
 {
 	padheight = buffer_nlines(buffer) + PAD_HEIGHT_INC * 2;

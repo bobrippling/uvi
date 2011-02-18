@@ -26,12 +26,17 @@ void view_waddch(WINDOW *, int c);
 void view_addch(int c);
 #endif
 
+#ifdef USE_PAD
 void view_drawbuffer(buffer_t *b);
+#endif
 
 int  view_scroll(enum scroll);
 void view_move(struct motion *);
 int  view_getactualx(int y, int x);
 
 void view_cursoronscreen(void);
+
+int  qfunc(const char *, ...);
+enum gret gfunc(char *, int);
 
 #endif

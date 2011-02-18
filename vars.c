@@ -9,13 +9,14 @@
 #include "buffer.h"
 #include "vars.h"
 
-#define S_READONLY "ro"
-#define S_MODIFIED "modified"
-#define S_EOL      "eol"
-#define S_TABSTOP  "ts"
-#define S_SHOWTABS "st"
+#define S_READONLY     "ro"
+#define S_MODIFIED     "modified"
+#define S_EOL          "eol"
+#define S_TABSTOP      "ts"
+#define S_SHOWTABS     "st"
+#define S_AUTOINDENT   "ai"
 #if VIEW_COLOUR
-#define S_COLOUR   "colour"
+#define S_COLOUR       "colour"
 #endif
 
 extern struct settings global_settings;
@@ -48,6 +49,7 @@ char vars_isbool(enum vartype v)
 		case VARS_MODIFIED:
 		case VARS_EOL:
 		case VARS_SHOWTABS:
+		case VARS_AUTOINDENT:
 #if VIEW_COLOUR
 		case VARS_COLOUR:
 			return 1;
@@ -70,6 +72,7 @@ char vars_isbuffervar(enum vartype t)
 		case VARS_UNKNOWN:
 		case VARS_TABSTOP:
 		case VARS_SHOWTABS:
+		case VARS_AUTOINDENT:
 #if VIEW_COLOUR
 		case VARS_COLOUR:
 #endif
@@ -89,6 +92,7 @@ char *vars_bufferget(enum vartype t, buffer_t *b)
 			return &buffer_eol(b);
 		case VARS_SHOWTABS:
 		case VARS_TABSTOP:
+		case VARS_AUTOINDENT:
 #if VIEW_COLOUR
 		case VARS_COLOUR:
 #endif
@@ -106,6 +110,9 @@ char *vars_settingget(enum vartype t)
 
 		case VARS_SHOWTABS:
 			return &global_settings.showtabs;
+
+		case VARS_AUTOINDENT:
+			return &global_settings.autoindent;
 
 #if VIEW_COLOUR
 		case VARS_COLOUR:
@@ -142,6 +149,8 @@ const char *vars_tostring(enum vartype v)
 			return S_EOL;
 		case VARS_TABSTOP:
 			return S_TABSTOP;
+		case VARS_AUTOINDENT:
+			return S_AUTOINDENT;
 #if VIEW_COLOUR
 		case VARS_COLOUR:
 			return S_COLOUR;
