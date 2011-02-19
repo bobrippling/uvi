@@ -1,4 +1,3 @@
-/* kill */
 #define _POSIX_SOURCE
 #include <ncurses.h>
 #include <errno.h>
@@ -26,43 +25,12 @@
 #include "../vars.h"
 #include "marks.h"
 
-#include "ncurses.h"
-
 extern struct settings global_settings;
 
-#define NCURSES_DEBUG_SHOW_UNKNOWN	0
-#define NCURSES_DEBUG_SHOWXY				0
-
-#define NC_RAW				0
-
-#define CTRL_AND(c)		((c) & 037)
-#define CTRL_AND_g		8
-#define C_ESC					27
-#define C_EOF					4
-#define C_DEL					127
-#define C_BACKSPACE		263
-#define C_ASCIIDEL		7
-#define C_CTRL_C			3
-#define C_CTRL_Z			26
-#define C_TAB					9
-#define C_NEWLINE			'\r'
-
-#if VIEW_COLOUR
-#define coloron(i)   (attron(COLOR_PAIR(i)))
-#define coloroff(i)  (attroff(COLOR_PAIR(i)))
-#endif
+#define CTRL_AND(c)  ((c) & 037)
 #define iswordchar(c) (isalnum(c) || c == '_')
 
-static void nc_up(void);
-static void nc_down(void);
-static void nc_toggle(char up);
 static void sigh(int);
-
-/* I/O */
-#define pfunc status
-static void wrongfunc(void);
-static void shellout(const char *);
-static int  nc_getch(void);
 
 /* text altering */
 static void insert(int);
@@ -81,12 +49,7 @@ static int  search(int);
 static void unknownchar(int);
 static char iseditchar(int);
 
-static void status(const char *, ...);
-static void vstatus(const char *, va_list);
 static void showpos(void);
-
-#define MAX_X (COLS - 1)
-#define MAX_Y (LINES - 1)
 
 /* extern'd for view.c */
 buffer_t *buffer;
@@ -103,45 +66,46 @@ extern int debug;
 static int search(int next)
 {
 	char *pos;
-	int y = pady + 1;
+	int done = 0, i = 0;
 	struct list *l = buffer_getindex(buffer, y);
 
 	if(next){
 		if(*searchstr)
 			goto dosearch;
 		else{
-			status("no previous search");
+			gui_status("no previous search");
 			return 0;
 		}
 	}
 
-	gfunc_onpad = 0;
-	mvaddch(MAX_Y, 0, '/');
-	switch(gfunc(searchstr, SEARCH_STR_SIZE)){
-		case g_LAST:
-		case g_EOF:
-			status("search aborted");
-			break;
+	gui_addch(gui_maxy(), 0, '/');
+	while(!done){
+		if(gui_readchar(searchstr, SEARCH_STR_SIZE, i) == gui_ESC)
+			done = 1; /* TODO: return to initial position */
+		else{
+			struct list *s = l;
+			int y = 0;
 
-		case g_CONTINUE:
-			if((pos = strchr(searchstr, '\n')))
-				*pos = '\0';
+			/* FIXME: check for backspace */
+			gui_addchar(gui_maxy(), strlen(searchstr), searchstr[i++]);
 
-dosearch:
 			/* TODO: allow SIGINT to stop search */
-			while(l){
+			if((pos = strchr(searchstr, '\n'))){
+				*pos = '\0';
+				done = 1;
+			}
+
+			while(s){
 				if((pos = strstr(l->data, searchstr))){
-					padx = pos - (char *)l->data;
-					pady = y;
-					view_cursoronscreen();
-					return 1;
+					int x = pos - (char *)s->data;
+					gui_cursor(x, y);
+					break;
 				}
 
 				y++;
 				l = l->next;
 			}
-			status("\"%s\" not found", searchstr);
-			break;
+		}
 	}
 
 	return 0;
@@ -197,11 +161,7 @@ void tilde(int rep)
 		else
 			*pos = tolower(*pos);
 
-#ifdef USE_PAD
-		mvwaddch(pad, pady, view_getactualx(pady, padx), *pos);
-#else
 		mvaddch(pady, view_getactualx(pady, padx), *pos);
-#endif
 
 		/**pos ^= (1 << 5); * flip bit 100000 = 6 */
 
@@ -213,7 +173,8 @@ void tilde(int rep)
 		pos++;
 	}
 
-	view_cursoronscreen();
+	gui_cursor(gui_x() + 1, gui_y());
+
 	buffer_modified(buffer) = 1;
 }
 
@@ -223,14 +184,14 @@ void showgirl(unsigned int page)
 	int len;
 
 	if(page > 9){
-		status("invalid man page");
+		gui_status("invalid man page");
 		return;
 	}
 
 	wordend = wordstart = line + padx;
 
 	if(!iswordchar(*wordstart)){
-		status("invalid word");
+		gui_status("invalid word");
 		return;
 	}
 
@@ -261,26 +222,19 @@ void replace(int n)
 	struct list *cur = buffer_getindex(buffer, pady);
 	char *s = cur->data;
 
-	if(n <= 0)
-		n = 1;
-
-	c = nc_getch();
-
 	if(*s == '\0')
 		return;
-	else if(n > (signed)strlen(s + padx))
+
+	if(n <= 0)
+		n = 1;
+	else if(n > (signed)strlen(s + gui_x()))
 		return;
 
+	c = gui_getchar();
 
-	if(isprint(c)){
-		buffer_modified(buffer) = 1;
-
-		while(n--)
-			s[padx + n] = c;
-
-	}else if(c == '\n'){
+	if(c == '\n'){
 		/* delete n chars, and insert 1 line */
-		char *off = s + padx + n-1;
+		char *off = s + gui_x() + n-1;
 		char *cpy = umalloc(strlen(off));
 
 		buffer_modified(buffer) = 1;
@@ -290,96 +244,24 @@ void replace(int n)
 
 		buffer_insertafter(buffer, cur, cpy);
 
-		pady++;
-		padx = 0;
-	}else
-		unknownchar(c);
-}
+		gui_move(0, gui_y() + 1);
+	}else{
+		int x = gui_x();
+		buffer_modified(buffer) = 1;
 
-static void nc_toggle(char up)
-{
-	if(up)
-		nc_up();
-	else
-		endwin();
-}
-
-static void nc_down()
-{
-#ifdef USE_PAD
-	view_termpad();
-	pad = NULL;
-#endif
-	endwin();
-}
-
-static void nc_up()
-{
-	static char init = 0;
-
-	if(!init){
-		initscr();
-		noecho();
-		cbreak();
-#if NC_RAW
-		raw(); /* use raw() to intercept ^C, ^Z */
-#endif
-
-		/* halfdelay() for main-loop style timeout */
-
-		nonl();
-		intrflush(stdscr, FALSE);
-		keypad(stdscr, TRUE);
-
-		/*ESCDELAY = 25; * duh **/
-
-		pady = padx = 0;
-
-		init = 1;
+		while(n--)
+			s[x + n] = c;
 	}
-
-	refresh();
-}
-
-static void vstatus(const char *s, va_list l)
-{
-	if(strchr(s, '\n') || pfunc_wantconfimation)
-		/*
-		 * print a bunch of lines,
-		 * and tell main() to wait for input from the user
-		 */
-		move(pfunc_wantconfimation++, 0);
-	else
-		move(MAX_Y, 0);
-
-	clrtoeol();
-#if VIEW_COLOUR
-	if(global_settings.colour)
-		coloron(COLOR_RED);
-#endif
-	vwprintw(stdscr, s, l);
-#if VIEW_COLOUR
-	if(global_settings.colour)
-		coloroff(COLOR_RED);
-#endif
-}
-
-void status(const char *s, ...)
-{
-	va_list l;
-	va_start(l, s);
-	vstatus(s, l);
-	va_end(l);
 }
 
 static void showpos()
 {
 	const int i = buffer_nlines(buffer);
 
-	status("\"%s\"%s %d/%d %.2f%%",
+	gui_status("\"%s\"%s %d/%d %.2f%%",
 			buffer_filename(buffer),
-			buffer_modified(buffer) ? " [Modified]" : "", 1 + pady,
-			i, 100.0f * (float)(1 + pady) /(float)i);
+			buffer_modified(buffer) ? " [Modified]" : "", 1 + gui_x(),
+			i, 100.0f * (float)(1 + gui_y()) /(float)i);
 }
 
 int qfunc(const char *s, ...)
@@ -388,10 +270,10 @@ int qfunc(const char *s, ...)
 	int c;
 
 	va_start(l, s);
-	vstatus(s, l);
+	gui_vstatus(s, l);
 	va_end(l);
 
-	c = nc_getch();
+	c = gui_getchar();
 	return c == '\n' || tolower(c) == 'y';
 }
 
@@ -399,7 +281,7 @@ static void shellout(const char *cmd)
 {
 	int ret;
 
-	endwin();
+	gui_down();
 	ret = system(cmd);
 
 	if(ret == -1)
@@ -414,62 +296,17 @@ static void shellout(const char *cmd)
 	if(ret != '\n' && ret != EOF)
 		while((ret = getchar()) != '\n' && ret != EOF);
 
-	view_cursoronscreen();
-}
-
-static int nc_getch()
-{
-	int c;
-
-#if NC_RAW
-get:
-#endif
-	c = getch();
-	switch(c){
-#if NC_RAW
-		case C_CTRL_C:
-			sigh(SIGINT);
-			break;
-
-		case C_CTRL_Z:
-			nc_down();
-			raise(SIGSTOP);
-			nc_up();
-			goto get;
-#endif
-
-		/* TODO: CTRL_AND('v') */
-
-		case 0:
-		case -1:
-		case C_EOF:
-			return CTRL_AND('d');
-
-		case C_DEL:
-		case C_BACKSPACE:
-		case C_ASCIIDEL:
-			return '\b';
-
-		case C_NEWLINE:
-			return '\n';
-
-		case C_TAB:
-			return '\t';
-	}
-
-	return c;
+	gui_up();
 }
 
 static void wrongfunc(void)
 {
-	move(MAX_Y, 0);
-	clrtoeol();
-	addch('?');
+	gui_status("?");
 }
 
 static void unknownchar(int c)
 {
-	status("unrecognised character #%d", c);
+	gui_status("unrecognised character #%d", c);
 }
 
 
@@ -481,19 +318,14 @@ static void insert(int append)
 	int savepadx;
 	int newlen;
 
-	gfunc_onpad = 1;
-
-	if(append && *(char *)listpos->data != '\0'){
+	if(append && *(char *)listpos->data != '\0')
 		padx++;
-		view_cursoronscreen();
-	}
 
-	savepadx = padx;
 	firstline = new = command_readlines(&gfunc);
-	padx = savepadx;
-	pady--;
 
 	new = new->next;
+
+	/* XXX got to here */
 
 	/* snip */
 	firstline->next = NULL;
@@ -547,11 +379,7 @@ static int open(int before)
 	if(!before)
 		++pady;
 
-#ifdef USE_PAD
-	wmove(pad, pady, padx = 0);
-#else
 	move(pady, padx = 0);
-#endif
 	clrtoeol();
 
 	cur = buffer_getindex(buffer, pady);
@@ -686,7 +514,7 @@ static void join(int ntimes)
 		ntimes = 1;
 
 	if(pady + ntimes >= buffer_nlines(buffer)){
-		status("can't join %d line%s", ntimes,
+		gui_status("can't join %d line%s", ntimes,
 				ntimes > 1 ? "s" : "");
 		return;
 	}
@@ -803,27 +631,21 @@ int ncurses_main(const char *filename, char readonly)
 		oldinth = signal(SIGINT, &sigh);
 		oldsegh = signal(SIGSEGV, &sigh);
 	}
-#ifdef USE_PAD
-	view_initpad();
-#endif
 
 	do{
 		int flag = 0, resetmultiple = 1;
 
 #if NCURSES_DEBUG_SHOWXY
-		status("at (%d, %d): %c", padx, pady, ((char *)buffer_getindex(buffer, pady)->data)[padx]);
+		gui_status("at (%d, %d): %c", padx, pady, ((char *)buffer_getindex(buffer, pady)->data)[padx]);
 		view_updatecursor();
 #endif
 		if(pfunc_wantconfimation){
-			status("---");
+			gui_status("---");
 			pfunc_wantconfimation = 0;
-			status("press any key...");
+			gui_status("press any key...");
 			ungetch(nc_getch());
 		}
 		if(bufferchanged){
-#ifdef USE_PAD
-			view_drawbuffer(buffer);
-#endif
 			bufferchanged = 0;
 			viewchanged = 1;
 		}
@@ -864,7 +686,7 @@ int ncurses_main(const char *filename, char readonly)
 switch_start:
 		c = nc_getch();
 		if(iseditchar(c) && buffer_readonly(buffer)){
-			status(READ_ONLY_ERR);
+			gui_status(READ_ONLY_ERR);
 			view_cursoronscreen();
 			continue;
 		}
@@ -892,7 +714,7 @@ switch_start:
 				if(validmark(c))
 					mark_set(c, pady, padx);
 				else
-					status("invalid mark");
+					gui_status("invalid mark");
 				break;
 
 			case CTRL_AND_g:
@@ -947,9 +769,6 @@ switch_start:
 				}
 				if(motion.motion != MOTION_UNKNOWN){
 					delete(&motion);
-#ifdef USE_PAD
-					view_drawbuffer(buffer);
-#endif
 					viewchanged = 1;
 					if(flag)
 						insert(0);
@@ -1067,9 +886,6 @@ exit_while:
 
 	nc_down();
 fin:
-#ifdef USE_PAD
-	view_termpad();
-#endif
 	buffer_free(buffer);
 	command_free();
 
