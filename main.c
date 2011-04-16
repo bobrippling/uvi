@@ -70,7 +70,7 @@ void bail(const int sig)
 	else
 		write(STDERR_FILENO, "..?\n", 1);
 
-	exit(sig);
+	exit(sig + 128);
 }
 
 int main(int argc, const char **argv)
@@ -92,7 +92,7 @@ int main(int argc, const char **argv)
 	signal(SIGHUP, &bail);
 
 	if((af = setjmp(allocerr))){
-		const char *from = NULL;
+		const char *from = "(unknown)";
 
 		if(lastbuffer)
 			command_dumpbuffer(lastbuffer);
@@ -108,7 +108,7 @@ int main(int argc, const char **argv)
 		}
 
 		fprintf(stderr, PROG_NAME" panic! longjmp bail from %s: malloc(): %s\n",
-				from, errno ?  strerror(errno) : "(no error code)");
+				from, errno ? strerror(errno) : "(no error code)");
 		return 1;
 	}
 
@@ -142,8 +142,6 @@ int main(int argc, const char **argv)
 						fprintf(stderr, "unknown option: \"%s\"\n", argv[i]);
 						usage(*argv);
 				}
-			}else if(!strcmp(argv[i], "--help")){
-				usage(*argv);
 			}else{
 				fprintf(stderr, "invalid option: \"%s\"\n", argv[i]);
 				usage(*argv);
