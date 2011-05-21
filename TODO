@@ -22,3 +22,5 @@ command.c:
 
 regex:
 	simple (vi(1) - see '/'): ^$.[]*
+
+copy vim - change attributes on stdin (tcsetattr), so it works with poormanseperation.sh
