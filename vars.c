@@ -2,12 +2,11 @@
 #include <setjmp.h>
 #include <string.h>
 
-#include "config.h"
-
 #include "util/alloc.h"
 #include "range.h"
 #include "buffer.h"
 #include "vars.h"
+#include "global.h"
 
 #define S_READONLY     "ro"
 #define S_MODIFIED     "modified"
@@ -19,20 +18,14 @@
 #define S_COLOUR       "colour"
 #endif
 
-extern struct settings global_settings;
-
-char vars_set(enum vartype t, buffer_t *b, const char v)
+int vars_set(enum vartype t, buffer_t *b, int v)
 {
-	char *p = vars_bufferget(t, b);
+	int *p = vars_bufferget(t, b);
 	if(!p){
 		p = vars_settingget(t);
 		if(!p)
 			return 0;
 	}
-
-	if(t == VARS_TABSTOP)
-		if(v > VARS_MAX_TABSTOP)
-			return 0;
 
 	*p = v;
 
@@ -42,7 +35,7 @@ char vars_set(enum vartype t, buffer_t *b, const char v)
 	return 1;
 }
 
-char vars_isbool(enum vartype v)
+int vars_isbool(enum vartype v)
 {
 	switch(v){
 		case VARS_READONLY:
@@ -62,7 +55,7 @@ char vars_isbool(enum vartype v)
 	return -1;
 }
 
-char vars_isbuffervar(enum vartype t)
+int vars_isbuffervar(enum vartype t)
 {
 	switch(t){
 	 case VARS_READONLY:
@@ -81,7 +74,7 @@ char vars_isbuffervar(enum vartype t)
 	return 0;
 }
 
-char *vars_bufferget(enum vartype t, buffer_t *b)
+int *vars_bufferget(enum vartype t, buffer_t *b)
 {
 	switch(t){
 		case VARS_READONLY:
@@ -102,8 +95,10 @@ char *vars_bufferget(enum vartype t, buffer_t *b)
 	return NULL;
 }
 
-char *vars_settingget(enum vartype t)
+int *vars_settingget(enum vartype t)
 {
+	extern struct settings global_settings;
+
 	switch(t){
 		case VARS_TABSTOP:
 			return &global_settings.tabstop;
@@ -128,9 +123,9 @@ char *vars_settingget(enum vartype t)
 	return NULL;
 }
 
-char *vars_get(enum vartype t, buffer_t *b)
+int *vars_get(enum vartype t, buffer_t *b)
 {
-	char *p = vars_bufferget(t, b);
+	int *p = vars_bufferget(t, b);
 	if(!p)
 		return vars_settingget(t);
 	return p;

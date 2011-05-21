@@ -2,16 +2,18 @@
 #define BUFFER_H
 
 typedef struct
-	{
-		struct list *lines;
-		/* TODO: jump list to lines->gethead(), etc */
+{
+	struct list *lines;
+	/* TODO: jump list to lines->gethead(), etc */
 
-		char *fname,
-					changed /* INTERNAL bool */,
-					readonly, modified, eol;
+	char *fname;
+	int changed; /* internal bool for list consistency */
+	int readonly;
+	int modified;
+	int eol;
 
-		int nlines;
-	} buffer_t;
+	int nlines;
+} buffer_t;
 
 buffer_t *buffer_new(char *);
 int buffer_read(buffer_t **, const char *);

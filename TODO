@@ -22,3 +22,6 @@ command.c:
 
 regex:
 	simple (vi(1) - see '/'): ^$.[]*
+
+
+binary file handling - '\0' for e.g

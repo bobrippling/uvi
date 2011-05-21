@@ -1,36 +1,18 @@
 include config.mk
 
-VERBOSE ?= 0
-
-ifeq (${VERBOSE},1)
-	Q =
-else
-	Q = @
-endif
-
-OBJS = main.o term.o buffer.o range.o command.o vars.o \
+OBJS = main.o buffer.o range.o command.o vars.o \
 	util/list.o util/alloc.o util/io.o util/pipe.o \
-	view/view_raw.o view/ncurses.o view/motion.o \
-	view/marks.o
+	gui/gui.o gui/motion.o gui/marks.o gui/base.o \
+	global.o
 
 
 uvi: ${OBJS} config.mk
-	@echo LD $@
-	$Q${LD} -o $@ ${OBJS} ${LDFLAGS}
+	${LD} -o $@ ${OBJS} ${LDFLAGS}
 
 %.o:%.c
-	@echo CC $@
-	$Q${CC} ${CFLAGS} -c -o $@ $<
-
-
-options:
-	@echo "CC      = ${CC}"
-	@echo "CFLAGS  = ${CFLAGS}"
-	@echo "LDFLAGS = ${LDFLAGS}"
-	@echo "PREFIX  = ${PREFIX}"
+	${CC} ${CFLAGS} -c -o $@ $<
 
 clean:
-	${Q}rm -f *.o util/*.o ncurses/*.o uvi
+	${Q}rm -f uvi `find -iname \*.o`
 
-.PHONY: clean options
-
+.PHONY: clean

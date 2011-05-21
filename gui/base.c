@@ -1,78 +1,73 @@
-#define _POSIX_SOURCE
 #include <ncurses.h>
+#include <string.h>
+#include <stdlib.h>
+#if 0
 #include <errno.h>
 #include <ctype.h>
-#include <string.h>
 #include <sys/types.h>
 #include <signal.h>
 #include <setjmp.h>
 #include <unistd.h>
 #include <limits.h>
-/* system */
-#include <stdlib.h>
 #include <sys/wait.h>
 
-#include "../config.h"
+#include "../main.h"
+#include "../vars.h"
+#include "marks.h"
+#endif
 
 #include "../range.h"
 #include "../buffer.h"
 #include "../command.h"
 #include "../util/list.h"
-#include "../main.h"
+#include "../global.h"
 #include "motion.h"
-#include "view.h"
 #include "../util/alloc.h"
-#include "../vars.h"
-#include "marks.h"
-
-extern struct settings global_settings;
 
 #define CTRL_AND(c)  ((c) & 037)
 #define iswordchar(c) (isalnum(c) || c == '_')
+#define REPEAT_FUNC(nam) static void nam(unsigned int)
 
 static void sigh(int);
 
 /* text altering */
-static void insert(int);
 static int  open(int); /* as in, 'o' & 'O' */
+static void shift(unsigned int, int);
 static void delete(struct motion *);
-static void join(int);
-static void shift(unsigned int, char);
-static void tilde(int);
-static void replace(int);
+static void insert(int insert /* bool */);
+REPEAT_FUNC(join);
+REPEAT_FUNC(tilde);
+REPEAT_FUNC(replace);
+static void shellout(const char *cmd);
 
 /* extra */
 static int  colon(void);
-static void showgirl(unsigned int);
 static int  search(int);
+REPEAT_FUNC(showgirl);
 
 static void unknownchar(int);
 static char iseditchar(int);
 
 static void showpos(void);
 
-/* extern'd for view.c */
-buffer_t *buffer;
-int padx, pady;
-int padtop;
 
-static int pfunc_wantconfimation = 0;
+static buffer_t *buffer;
 #define SEARCH_STR_SIZE 256
 static char searchstr[SEARCH_STR_SIZE] = { 0 };
 
-static int gfunc_onpad = 0;
-extern int debug;
 
 static int search(int next)
 {
 	char *pos;
 	int done = 0, i = 0;
-	struct list *l = buffer_getindex(buffer, y);
+	struct list *l = buffer_gethead(buffer); /* FIXME: start at curpos */
+
 
 	if(next){
-		if(*searchstr)
+		if(*searchstr){
+			done = 1; /* exit immediately */
 			goto dosearch;
-		else{
+		}else{
 			gui_status("no previous search");
 			return 0;
 		}
@@ -80,11 +75,11 @@ static int search(int next)
 
 	gui_addch(gui_maxy(), 0, '/');
 	while(!done){
-		if(gui_readchar(searchstr, SEARCH_STR_SIZE, i) == gui_ESC)
+		if(gui_readchar(searchstr, SEARCH_STR_SIZE, i))
 			done = 1; /* TODO: return to initial position */
 		else{
-			struct list *s = l;
-			int y = 0;
+			struct list *s;
+			int y;
 
 			/* FIXME: check for backspace */
 			gui_addchar(gui_maxy(), strlen(searchstr), searchstr[i++]);
@@ -95,7 +90,8 @@ static int search(int next)
 				done = 1;
 			}
 
-			while(s){
+dosearch:
+			for(y = 0, s = l; s; s = s->next){
 				if((pos = strstr(l->data, searchstr))){
 					int x = pos - (char *)s->data;
 					gui_cursor(x, y);
@@ -103,7 +99,6 @@ static int search(int next)
 				}
 
 				y++;
-				l = l->next;
 			}
 		}
 	}
@@ -111,9 +106,9 @@ static int search(int next)
 	return 0;
 }
 
-void shift(unsigned int nlines, char indent)
+void shift(unsigned int nlines, int indent)
 {
-	struct list *l = buffer_getindex(buffer, pady);
+	struct list *l = buffer_getindex(buffer, global_y);
 
 	if(!nlines)
 		nlines = 1;
@@ -126,7 +121,7 @@ void shift(unsigned int nlines, char indent)
 			char *new = realloc(data, len + 1);
 
 			if(!new)
-				longjmp(allocerr, 1);
+				die("realloc()");
 
 			l->data = new;
 
@@ -150,10 +145,11 @@ void shift(unsigned int nlines, char indent)
 	buffer_modified(buffer) = 1;
 }
 
-void tilde(int rep)
+void tilde(unsigned int rep)
 {
-	char *data = (char *)buffer_getindex(buffer, pady)->data,
-			*pos = data + padx;
+	char *data = (char *)buffer_getindex(buffer, gui_x())->data;
+	char *pos = data + global_x;
+	const int len = strlen(data);
 
 	while(rep--){
 		if(islower(*pos))
@@ -161,34 +157,25 @@ void tilde(int rep)
 		else
 			*pos = tolower(*pos);
 
-		mvaddch(pady, view_getactualx(pady, padx), *pos);
+		/* *pos ^= (1 << 5); * flip bit 100000 = 6 */
 
-		/**pos ^= (1 << 5); * flip bit 100000 = 6 */
-
-		if(padx < (signed)strlen(data))
-			padx++;
-		else
+		if(!*++pos)
 			break;
-
-		pos++;
 	}
 
-	gui_cursor(gui_x() + 1, gui_y());
+	gui_cursor(gui_x() + pos - data, gui_y());
 
 	buffer_modified(buffer) = 1;
 }
 
 void showgirl(unsigned int page)
 {
-	char *line = buffer_getindex(buffer, pady)->data, *wordstart, *wordend, *word;
+	char *const line = buffer_getindex(buffer, global_y)->data;
+	char *wordstart, *wordend, *word;
+	char save;
 	int len;
 
-	if(page > 9){
-		gui_status("invalid man page");
-		return;
-	}
-
-	wordend = wordstart = line + padx;
+	wordend = wordstart = line + gui_x();
 
 	if(!iswordchar(*wordstart)){
 		gui_status("invalid word");
@@ -203,31 +190,35 @@ void showgirl(unsigned int page)
 
 	len = wordend - wordstart;
 
-	word = umalloc(len + 7);
-	if(page)
-		sprintf(word, "man %d ", page);
-	else
-		strcpy(word, "man ");
+	word = umalloc(len += 8);
+	len--;
+	strncpy(word, wordstart, len);
+	word[len] = '\0'; /* TODO test */
 
-	strncat(word, wordstart, len);
-	word[len + 6] = '\0';
+	save = wordend[1];
+	wordend[1] = '\0';
+	if(page)
+		snprintf(word, len, "man %d %s", page, wordstart);
+	else
+		snprintf(word, len, "man %s", wordstart);
+	wordend[1] = save;
 
 	shellout(word);
 	free(word);
 }
 
-void replace(int n)
+void replace(unsigned int n)
 {
 	int c;
-	struct list *cur = buffer_getindex(buffer, pady);
+	struct list *cur = buffer_getindex(buffer, gui_y());
 	char *s = cur->data;
 
-	if(*s == '\0')
+	if(!*s)
 		return;
 
 	if(n <= 0)
 		n = 1;
-	else if(n > (signed)strlen(s + gui_x()))
+	else if(n > strlen(s + gui_x()))
 		return;
 
 	c = gui_getchar();
@@ -237,21 +228,20 @@ void replace(int n)
 		char *off = s + gui_x() + n-1;
 		char *cpy = umalloc(strlen(off));
 
-		buffer_modified(buffer) = 1;
-
 		memset(off - n + 1, '\0', n);
 		strcpy(cpy, off + 1);
 
 		buffer_insertafter(buffer, cur, cpy);
 
-		gui_move(0, gui_y() + 1);
+		gui_cursor(0, gui_y() + 1);
 	}else{
 		int x = gui_x();
-		buffer_modified(buffer) = 1;
 
 		while(n--)
 			s[x + n] = c;
 	}
+
+	buffer_modified(buffer) = 1;
 }
 
 static void showpos()
@@ -312,114 +302,104 @@ static void unknownchar(int c)
 
 static void insert(int append)
 {
-	struct list *listpos = buffer_getindex(buffer, pady),
-							*new, *firstline;
-	char *newline;
-	int savepadx;
-	int newlen;
+	struct list *listpos = buffer_getindex(buffer, gui_x());
+	struct list *new;
+	char *after, *generic_str_ptr;
 
-	if(append && *(char *)listpos->data != '\0')
-		padx++;
+	if(append)
+		gui_setx(gui_x() + 1);
 
-	firstline = new = command_readlines(&gfunc);
+	generic_str_ptr = after = listpos->data + gui_x();
+	after = ustrdup(after);
+	*generic_str_ptr = '\0';
 
-	new = new->next;
+	{
+#define BUFFER_SIZE 128
+		struct list *l = list_new(NULL);
+		char buffer[BUFFER_SIZE];
+		int loop = 1;
 
-	/* XXX got to here */
+		do
+			switch(gfunc(buffer, BUFFER_SIZE)){
+				case g_EOF:
+					loop = 0;
+					break;
+
+				case g_LAST:
+					/* add this buffer, then bail out */
+					loop = 0;
+				case g_CONTINUE:
+				{
+					char *nl = strchr(buffer, '\n');
+
+					if(nl){
+						char *s = umalloc(strlen(buffer)); /* no need for +1 - \n is removed */
+						*nl = '\0';
+						strcpy(s, buffer);
+						list_append(l, s);
+					}else{
+						int size = BUFFER_SIZE;
+						char *s = NULL, *insert;
+
+						do{
+							char *tmp;
+
+							size *= 2;
+							if(!(tmp = realloc(s, size))){
+								free(s);
+								die("realloc()");
+							}
+							s = tmp;
+							insert = s + size - BUFFER_SIZE;
+
+							strcpy(insert, buffer);
+							if((tmp = strchr(insert, '\n'))){
+								*tmp = '\0';
+								break;
+							}
+						}while(gfunc(buffer, BUFFER_SIZE) == g_CONTINUE);
+						break;
+					}
+				}
+			}
+		while(loop);
+
+		if(!l->data){
+			/* EOF straight away */
+			l->data = umalloc(sizeof(char));
+			*(char *)l->data = '\0';
+		}
+
+		return l;
+	}
+
 
 	/* snip */
 	firstline->next = NULL;
 	if(new)
 		new->prev = NULL;
 
-	/*
-	 * insert firstline->data into (pady, padx)
-	 * then append new (if !NULL) onto listpos
-	 */
+	listpos->data = ustrcat(&listpos->data, new->data);
 
-	newline = realloc(listpos->data, strlen(listpos->data) + strlen(firstline->data) + 1);
-	if(!newline)
-		longjmp(allocerr, 1);
-	listpos->data = newline;
-
-	newlen = strlen(firstline->data);
-
-	memmove(newline + padx + newlen, newline + padx, strlen(newline + padx) + 1);
-	memcpy(newline + padx, firstline->data, newlen);
-
-	list_free(firstline);
-
-	if(new){
-		/* cut off the bit after firstline->data and append to last */
-		struct list *last = list_gettail(new);
-		char *pos = newline + padx + newlen, *realloced;
-
-		realloced = realloc(last->data, strlen(last->data) + strlen(pos) + 1);
-		if(!realloced)
-			longjmp(allocerr, 1);
-		last->data = realloced;
-
-		strcat(realloced, pos);
-		*pos = '\0';
-
-		buffer_insertlistafter(buffer, listpos, new);
-	}
+	if(new)
+		list_insertlistafter(listpos, new);
 
 	buffer_modified(buffer) = 1;
 
-	padx += newlen - 1;
+	gui_setx(gui_x() + strlen(after));
 }
 
-/* returns nlines */
-static int open(int before)
+static void open(int before)
 {
-	struct list *cur, *new;
-	int nlines;
-
-	if(!before)
-		++pady;
-
-	move(pady, padx = 0);
-	clrtoeol();
-
-	cur = buffer_getindex(buffer, pady);
-	/*
-	 * if !before, then pady has been ++'d,
-	 * this means pady is after what we want, hence
-	 * hence why buffer_insertlistafter() isn't used below
-	 */
-
-	gfunc_onpad = 1;
-	new = command_readlines(&gfunc);
-
-	nlines = list_count(new);
+	struct list *here;
 
 	if(before)
-		buffer_insertlistbefore(buffer, cur, new);
-	else{
-		if(!cur){
-			/*
-			 * we are appending to the end of the file, hence
-			 * line pady doesn't exist yet
-			 */
-			buffer_appendlist(buffer, new);
-			pady = buffer_nlines(buffer) - 1;
-		}else
-			/* Here is what i was talking about before w.r.t. buffer_insertlistafter() */
-			buffer_insertlistbefore(buffer, cur, new);
-	}
+		gui_sety(gui_y() - 1);
 
-	if(pady > 0){
-		if(cur) /* cur is null if we added to the last line */
-			pady--; /* stay on the line(s) we just inserted */
-		else if(pady > MAX_Y)
-			/* last line - shift the pad up if needed */
-			padtop++;
-	}
+	here = buffer_getindex(buffer, gui_y());
 
-	buffer_modified(buffer) = 1;
-
-	return nlines;
+	list_insertafter(here, ustrdup(""));
+	insert(0);
 }
 
 static void delete(struct motion *mparam)
@@ -603,7 +583,7 @@ static char iseditchar(int c)
 	return 0;
 }
 
-int ncurses_main(const char *filename, char readonly)
+int gui_main(const char *filename, char readonly)
 {
 	int c, bufferchanged = 1, viewchanged = 1, ret = 0, multiple = 0,
 			prevcmd = '\0', prevmultiple = 0;
