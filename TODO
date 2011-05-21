@@ -15,6 +15,8 @@ ncurses.c:
 
 	SIGWINCH - handle
 
+	^Vx[0-9]+ = hex char insert - ^Vx1 inserts '\x01'
+
 command.c:
 	add range option to filters/pipes
 	:x - :wq, but only write if changed
@@ -24,3 +26,5 @@ regex:
 	simple (vi(1) - see '/'): ^$.[]*
 
 copy vim - change attributes on stdin (tcsetattr), so it works with poormanseperation.sh
+
+binary file handling - '\0' for e.g

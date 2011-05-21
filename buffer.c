@@ -18,10 +18,6 @@
 #include "util/list.h"
 #include "util/io.h"
 
-#include "config.h"
-
-extern struct settings global_settings;
-
 static char canwrite(mode_t, uid_t, gid_t);
 
 buffer_t *buffer_new(char *p)

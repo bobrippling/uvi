@@ -1,154 +1,106 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <ctype.h>
+#include <stdarg.h>
 #include <string.h>
 
-#include "../util/list.h"
 #include "../range.h"
+#include "../util/list.h"
 #include "../buffer.h"
 #include "motion.h"
+#include "gui.h"
 #include "marks.h"
+#include "../global.h"
 
 #define iswordpart(c) (isalnum(c) || (c) == '_')
 
+static struct builtin_motion
+builtin_motions[] = {
+	[MOTION_FORWARD_LETTER]  = { 1, 0 },
+	[MOTION_BACKWARD_LETTER] = { 1, 0 },
+
+	[MOTION_FORWARD_WORD]    = { 1, 0 },
+	[MOTION_BACKWARD_WORD]   = { 1, 0 },
+
+	[MOTION_LINE_START]      = { 0, 0 },
+
+	[MOTION_DOWN]            = { 0, 1 },
+	[MOTION_UP]              = { 0, 1 },
+
+	[MOTION_SCREEN_TOP]      = { 0, 1 },
+	[MOTION_SCREEN_MIDDLE]   = { 0, 1 },
+	[MOTION_SCREEN_BOTTOM]   = { 0, 1 },
+
+	[MOTION_PARA_PREV]       = { 0, 1 },
+	[MOTION_PARA_NEXT]       = { 0, 1 },
+
+	[MOTION_PAREN_MATCH]     = { 0, 0 },
+
+	[MOTION_ABSOLUTE_LEFT]   = { 0, 0 },
+	[MOTION_ABSOLUTE_RIGHT]  = { 0, 0 },
+	[MOTION_ABSOLUTE_UP]     = { 0, 1 },
+	[MOTION_ABSOLUTE_DOWN]   = { 0, 1 },
+
+	[MOTION_MARK]            = { 0, 0 },
+
+	[MOTION_FIND]            = { 0, 0 },
+	[MOTION_TIL]             = { 0, 0 }
+};
 
 /* for percent() */
 static char bracketdir(char);
 static char bracketrev(char);
 static void percent(struct bufferpos *);
 
-/*
- * is this motion a 'til' motion, i.e.
- * should we go up to but not including
- * the final char of the motion (when deleting)
- */
-char istilmotion(struct motion *m)
-{
-	switch(m->motion){
-		case MOTION_FORWARD_LETTER:
-		case MOTION_BACKWARD_LETTER:
-		case MOTION_FORWARD_WORD:
-		case MOTION_BACKWARD_WORD:
-			return 1;
 
-		default:
-			break;
-	}
-	return 0;
-}
-
-char islinemotion(struct motion *m)
-{
-	switch(m->motion){
-		case MOTION_FORWARD_LETTER:
-		case MOTION_BACKWARD_LETTER:
-		case MOTION_FORWARD_WORD:
-		case MOTION_BACKWARD_WORD:
-		case MOTION_NOSPACE:
-		case MOTION_PAREN_MATCH:
-		case MOTION_ABSOLUTE_LEFT:
-		case MOTION_ABSOLUTE_RIGHT:
-		case MOTION_MARK:
-		case MOTION_NO_MOVE:
-		case MOTION_FIND:
-		case MOTION_TIL:
-			return 0;
-
-		case MOTION_DOWN:
-		case MOTION_UP:
-		case MOTION_SCREEN_TOP:
-		case MOTION_SCREEN_MIDDLE:
-		case MOTION_SCREEN_BOTTOM:
-		case MOTION_PARA_PREV:
-		case MOTION_PARA_NEXT:
-		case MOTION_ABSOLUTE_UP:
-		case MOTION_ABSOLUTE_DOWN:
-		case MOTION_LINE:
-			return 1;
-
-		case MOTION_UNKNOWN:
-			break;
-	}
-	return 0;
-}
-
-void getmotion(void status(const char *, ...),
-		int (*charfunc)(void), struct motion *m)
+int getmotion(struct motion *m)
 {
 	int c;
 
-/*
- * s/^ *\([^,]*\), *\/\* \(.\).*$/\t\t\tcase '\2': m->motion = \1; return;/
- */
-
 	/* m->ntimes is already initialised */
 
-	do
-		switch((c = charfunc())){
-			case 'l': m->motion = MOTION_FORWARD_LETTER;  return;
-			case 'h': m->motion = MOTION_BACKWARD_LETTER; return;
-			case 'w': m->motion = MOTION_FORWARD_WORD;    return;
-			case 'b': m->motion = MOTION_BACKWARD_WORD;   return;
-
-			case '^': m->motion = MOTION_NOSPACE;         return;
-
-			case 'j': m->motion = MOTION_DOWN;            return;
-			case 'k': m->motion = MOTION_UP;              return;
-
-			case 'H': m->motion = MOTION_SCREEN_TOP;      return;
-			case 'M': m->motion = MOTION_SCREEN_MIDDLE;   return;
-			case 'L': m->motion = MOTION_SCREEN_BOTTOM;   return;
-
-			case '{': m->motion = MOTION_PARA_PREV;       return;
-			case '}': m->motion = MOTION_PARA_NEXT;       return;
-
-			case '%': m->motion = MOTION_PAREN_MATCH;     return;
-
-			case '0': m->motion = MOTION_ABSOLUTE_LEFT;   return;
-			case '$': m->motion = MOTION_ABSOLUTE_RIGHT;  return;
-
-			case 'g': m->motion = MOTION_ABSOLUTE_UP;     return;
-			case 'G': m->motion = MOTION_ABSOLUTE_DOWN;   return;
-
-			case 't':
-			case 'f':
-				m->extra = charfunc();
+	do{
+		c = gui_getch();
+		m->motion = c;
+		switch(c){
+			case MOTION_FIND:
+			case MOTION_TIL:
+				m->extra = gui_getch();
 				if(isprint(m->extra))
 					m->motion = c == 'f' ? MOTION_FIND : MOTION_TIL;
 				else{
-					m->motion = MOTION_UNKNOWN;
-					status("unknown character");
+					gui_status("unknown character");
+					return 1;
 				}
-				return;
+				return 0;
 
 			case '\'':
-				c = charfunc();
+				c = gui_getch();
 				if(validmark(c)){
 					if(mark_isset(c)){
 						m->motion = MOTION_MARK;
 						m->extra = c;
 					}else{
-						status("mark not set");
-						m->motion = MOTION_UNKNOWN;
+						gui_status("mark not set");
+						return 1;
 					}
 				}else{
-					status("invalid mark");
-					m->motion = MOTION_UNKNOWN;
+					gui_status("invalid mark");
+					return 1;
 				}
-				return;
+				return 0;
 
 			default:
 				if('0' <= c && c <= '9' && m->ntimes < INT_MAX/10){
 					m->ntimes = m->ntimes * 10 + c - '0';
 				}else{
-					m->motion = MOTION_UNKNOWN;
-					return;
+					return 1;
 				}
 		}
-	while(1);
+	}while(1);
 }
 
-char applymotion(struct motion *motion, struct bufferpos *pos,
+int applymotion(struct motion *motion, struct bufferpos *pos,
 		struct screeninfo *si)
 {
 	/*
@@ -158,12 +110,12 @@ char applymotion(struct motion *motion, struct bufferpos *pos,
 	 *
 	 * and by char i mean iswordpart()
 	 */
-	char *const charstart = buffer_getindex(pos->buffer, *pos->y)->data;
+	char *const charstart = buffer_getindex(global_buffer, *pos->y)->data;
 	char *      charpos   = charstart + *pos->x;
 
 #define CLIPX() \
 	do{ \
-		int len = strlen(buffer_getindex(pos->buffer, *pos->y)->data) - 1; \
+		int len = strlen(buffer_getindex(global_buffer, *pos->y)->data) - 1; \
 \
 		if(len < 0) \
 			len = 0; \
@@ -173,27 +125,11 @@ char applymotion(struct motion *motion, struct bufferpos *pos,
 	}while(0)
 
 	switch(motion->motion){
-		case MOTION_UNKNOWN:
-			return 0;
-
-		case MOTION_NO_MOVE:
-			return 1;
-
-		case MOTION_LINE:
-		{
-			int n = motion->ntimes - 1;
-			if(n < 0)
-				n = 0;
-
-			*pos->y += n;
-			return 1;
-		}
-
 		case MOTION_MARK:
 			if(mark_get(motion->extra, pos->y, pos->x)){
 				/* buffer may have changed since mark was set... */
-				if(*pos->y >= buffer_nlines(pos->buffer))
-					*pos->y = buffer_nlines(pos->buffer)-1;
+				if(*pos->y >= buffer_nlines(global_buffer))
+					*pos->y = buffer_nlines(global_buffer)-1;
 				return 1;
 			}
 			return 0;
@@ -202,7 +138,7 @@ char applymotion(struct motion *motion, struct bufferpos *pos,
 			*pos->x = 0;
 			return 1;
 
-		case MOTION_NOSPACE:
+		case MOTION_LINE_START:
 			charpos = charstart;
 			while(isspace(*charpos))
 				charpos++;
@@ -274,7 +210,7 @@ char applymotion(struct motion *motion, struct bufferpos *pos,
 
 		case MOTION_DOWN:
 		{
-			int nlines = buffer_nlines(pos->buffer) - 1;
+			int nlines = buffer_nlines(global_buffer) - 1;
 			/* TODO: ntimes */;
 
 			if(nlines < 0)
@@ -289,8 +225,8 @@ char applymotion(struct motion *motion, struct bufferpos *pos,
 		}
 
 		case MOTION_SCREEN_TOP:
-			if(*pos->y != si->padtop){
-				*pos->y = si->padtop;
+			if(*pos->y != si->top){
+				*pos->y = si->top;
 				CLIPX();
 				return 1;
 			}
@@ -300,10 +236,10 @@ char applymotion(struct motion *motion, struct bufferpos *pos,
 		{
 			int mid;
 
-			if(buffer_nlines(pos->buffer) - si->padtop > si->padheight)
-				mid = si->padtop + si->padheight/2;
+			if(buffer_nlines(global_buffer) - si->top > si->height)
+				mid = si->top + si->height/2;
 			else{
-				mid = si->padtop + (buffer_nlines(pos->buffer) - si->padtop - 1)/2;
+				mid = si->top + (buffer_nlines(global_buffer) - si->top - 1)/2;
 				if(mid < 0)
 					mid = 0;
 			}
@@ -318,10 +254,10 @@ char applymotion(struct motion *motion, struct bufferpos *pos,
 		}
 
 		case MOTION_SCREEN_BOTTOM:
-			if(*pos->y != si->padtop + si->padheight - 1){
-				*pos->y = si->padtop + si->padheight - 1;
-				if(*pos->y >= buffer_nlines(pos->buffer))
-					*pos->y = buffer_nlines(pos->buffer)-1;
+			if(*pos->y != si->top + si->height - 1){
+				*pos->y = si->top + si->height - 1;
+				if(*pos->y >= buffer_nlines(global_buffer))
+					*pos->y = buffer_nlines(global_buffer)-1;
 				CLIPX();
 				return 1;
 			}
@@ -352,7 +288,7 @@ char applymotion(struct motion *motion, struct bufferpos *pos,
 			if(motion->ntimes)
 				goto MOTION_GOTO;
 
-			last = buffer_nlines(pos->buffer) - 1;
+			last = buffer_nlines(global_buffer) - 1;
 			if(last < 0)
 				last = 0;
 
@@ -368,7 +304,7 @@ char applymotion(struct motion *motion, struct bufferpos *pos,
 	return 0;
 MOTION_GOTO:
 	if(0 <= motion->ntimes &&
-			motion->ntimes <= buffer_nlines(pos->buffer)-1){
+			motion->ntimes <= buffer_nlines(global_buffer)-1){
 		*pos->y = motion->ntimes - 1;
 		CLIPX();
 		return 1;
@@ -378,17 +314,12 @@ MOTION_GOTO:
 
 static void percent(struct bufferpos *lp)
 {
-	struct list *listpos = buffer_getindex(lp->buffer, *lp->y);
-	char *line = listpos->data,
-			*pos = line + *lp->x, *opposite, dir,
-			bracket = '\0', revbracket = '\0', xychanged = 0;
-	int nest = 0, pady_save = *lp->y, padx_save = *lp->x;
-
-#define restorepadxy() do{ \
-												*lp->x = padx_save; \
-												*lp->y = pady_save; \
-												/*status("matching bracket not found");*/ \
-												}while(0)
+	struct list *listpos = buffer_getindex(global_buffer, *lp->y);
+	char *line = listpos->data;
+	char *pos = line + *lp->x, *opposite;
+	int dir;
+	char bracket = '\0', revbracket = '\0';
+	int nest = 0;
 
 	while(pos >= line && !bracket)
 		if((revbracket = bracketrev(*pos))){
@@ -419,23 +350,19 @@ static void percent(struct bufferpos *lp)
 			if(listpos->prev){
 				listpos = listpos->prev;
 				--*lp->y;
-				xychanged = 1;
 
 				line = listpos->data;
 				opposite = line + strlen(line) - 1;
 			}else{
-				restorepadxy();
 				return;
 			}
 		}else if(!*opposite){
 			if(listpos->next){
 				listpos = listpos->next;
 				++*lp->y;
-				xychanged = 1;
 
 				opposite = line = listpos->data;
 			}else{
-				restorepadxy();
 				return;
 			}
 		}else
@@ -444,7 +371,7 @@ static void percent(struct bufferpos *lp)
 
 	if(opposite)
 		*lp->x = opposite - line;
-#undef restorepadxy
+#undef restorexy
 }
 
 static char bracketdir(char b)

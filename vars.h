@@ -15,14 +15,14 @@ enum vartype
 	VARS_UNKNOWN
 } vars_gettype(const char *);
 
-char vars_set(enum vartype, buffer_t *, const char);
+int vars_set(enum vartype, buffer_t *, int);
 
-char vars_isbuffervar(enum vartype);
-char vars_isbool(enum vartype);
+int vars_isbuffervar(enum vartype);
+int vars_isbool(enum vartype);
 
-char *vars_bufferget(enum vartype, buffer_t *);
-char *vars_settingget(enum vartype);
-char *vars_get(enum vartype, buffer_t *);
+int *vars_bufferget(enum vartype, buffer_t *);
+int *vars_settingget(enum vartype);
+int *vars_get(enum vartype, buffer_t *);
 
 
 const char *vars_tostring(enum vartype);
