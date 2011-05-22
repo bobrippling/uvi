@@ -25,7 +25,6 @@
 #include "gui.h"
 #include "marks.h"
 
-#define CTRL_AND(c)  ((c) & 037)
 #define iswordchar(c) (isalnum(c) || c == '_')
 #define REPEAT_FUNC(nam) static void nam(unsigned int)
 
@@ -52,7 +51,6 @@ static char iseditchar(int);
 static void showpos(void);
 
 
-static buffer_t *buffer;
 #define SEARCH_STR_SIZE 256
 static char searchstr[SEARCH_STR_SIZE] = { 0 };
 
@@ -61,7 +59,7 @@ static int search(int next)
 {
 	char *pos;
 	int done = 0, i = 0;
-	struct list *l = buffer_gethead(buffer); /* FIXME: start at curpos */
+	struct list *l = buffer_gethead(global_buffer); /* FIXME: start at curpos */
 
 
 	if(next){
@@ -109,7 +107,7 @@ dosearch:
 
 void shift(unsigned int nlines, int indent)
 {
-	struct list *l = buffer_getindex(buffer, global_y);
+	struct list *l = buffer_getindex(global_buffer, global_y);
 
 	if(!nlines)
 		nlines = 1;
@@ -143,12 +141,12 @@ void shift(unsigned int nlines, int indent)
 		l = l->next;
 	}
 
-	buffer_modified(buffer) = 1;
+	buffer_modified(global_buffer) = 1;
 }
 
 void tilde(unsigned int rep)
 {
-	char *data = (char *)buffer_getindex(buffer, global_x)->data;
+	char *data = (char *)buffer_getindex(global_buffer, global_x)->data;
 	char *pos = data + global_x;
 	const int len = strlen(data);
 
@@ -166,12 +164,12 @@ void tilde(unsigned int rep)
 
 	gui_cursor(global_x + pos - data, global_y);
 
-	buffer_modified(buffer) = 1;
+	buffer_modified(global_buffer) = 1;
 }
 
 void showgirl(unsigned int page)
 {
-	char *const line = buffer_getindex(buffer, global_y)->data;
+	char *const line = buffer_getindex(global_buffer, global_y)->data;
 	char *wordstart, *wordend, *word;
 	char save;
 	int len;
@@ -211,7 +209,7 @@ void showgirl(unsigned int page)
 void replace(unsigned int n)
 {
 	int c;
-	struct list *cur = buffer_getindex(buffer, global_y);
+	struct list *cur = buffer_getindex(global_buffer, global_y);
 	char *s = cur->data;
 
 	if(!*s)
@@ -232,7 +230,7 @@ void replace(unsigned int n)
 		memset(off - n + 1, '\0', n);
 		strcpy(cpy, off + 1);
 
-		buffer_insertafter(buffer, cur, cpy);
+		buffer_insertafter(global_buffer, cur, cpy);
 
 		gui_cursor(0, global_y + 1);
 	}else{
@@ -242,16 +240,16 @@ void replace(unsigned int n)
 			s[x + n] = c;
 	}
 
-	buffer_modified(buffer) = 1;
+	buffer_modified(global_buffer) = 1;
 }
 
 static void showpos()
 {
-	const int i = buffer_nlines(buffer);
+	const int i = buffer_nlines(global_buffer);
 
 	gui_status("\"%s\"%s %d/%d %.2f%%",
-			buffer_filename(buffer),
-			buffer_modified(buffer) ? " [Modified]" : "", 1 + global_x,
+			buffer_filename(global_buffer),
+			buffer_modified(global_buffer) ? " [Modified]" : "", 1 + global_x,
 			i, 100.0f * (float)(1 + global_y) /(float)i);
 }
 
@@ -303,16 +301,19 @@ static void unknownchar(int c)
 
 static void insert(int append)
 {
-	char *after = NULL;
+	char *buf = umalloc(256);
 	if(append)
 		global_x++;
 
-	/* TODO */
+	if(gui_getstr(buf, 256)){
+		free(buf);
+		return;
+	}
 
+	buffer_insertafter(global_buffer, buffer_getindex(global_buffer, global_y), buf);
+	global_x += strlen(buf);
 
-	buffer_modified(buffer) = 1;
-
-	global_x += strlen(after);
+	buffer_modified(global_buffer) = 1;
 }
 
 static void open(int before)
@@ -322,7 +323,7 @@ static void open(int before)
 	if(before)
 		global_y--;
 
-	here = buffer_getindex(buffer, global_y);
+	here = buffer_getindex(global_buffer, global_y);
 
 	list_insertafter(here, ustrdup(""));
 	insert(0);
@@ -354,23 +355,23 @@ static void delete(struct motion *mparam)
 
 		if(islinemotion(mparam)){
 			/* delete lines between global_y and y, inclusive */
-			buffer_remove_range(buffer, &r);
-			if(global_y >= buffer_nlines(buffer))
-				global_y = buffer_nlines(buffer) - 1;
+			buffer_remove_range(global_buffer, &r);
+			if(global_y >= buffer_nlines(global_buffer))
+				global_y = buffer_nlines(global_buffer) - 1;
 		}else{
-			char *data = buffer_getindex(buffer, global_y)->data, forwardmotion = 1;
+			char *data = buffer_getindex(global_buffer, global_y)->data, forwardmotion = 1;
 			int oldlen = strlen(data);
 
 			if(r.start < r.end){
 				/* lines to remove */
 				r.start++;
-				buffer_remove_range(buffer, &r);
+				buffer_remove_range(global_buffer, &r);
 
 				/* join line global_y with line y */
 				join(1);
 				x += oldlen;
 
-				data = buffer_getindex(buffer, global_y)->data;
+				data = buffer_getindex(global_buffer, global_y)->data;
 			}
 
 			/* global_x should be left-most */
@@ -406,12 +407,12 @@ static void delete(struct motion *mparam)
 		}
 	}
 
-	buffer_modified(buffer) = 1;
+	buffer_modified(global_buffer) = 1;
 }
 
 static void join(unsigned int ntimes)
 {
-	struct list *jointhese, *l, *cur = buffer_getindex(buffer, global_y);
+	struct list *jointhese, *l, *cur = buffer_getindex(global_buffer, global_y);
 	struct range r;
 	char *alloced;
 	int len = 0;
@@ -419,7 +420,7 @@ static void join(unsigned int ntimes)
 	if(ntimes == 0)
 		ntimes = 1;
 
-	if(global_y + ntimes >= buffer_nlines(buffer)){
+	if(global_y + ntimes >= buffer_nlines(global_buffer)){
 		gui_status("can't join %d line%s", ntimes,
 				ntimes > 1 ? "s" : "");
 		return;
@@ -428,7 +429,7 @@ static void join(unsigned int ntimes)
 	r.start = global_y + 1; /* extract the next line(s) */
 	r.end   = r.start + ntimes;
 
-	jointhese = buffer_extract_range(buffer, &r);
+	jointhese = buffer_extract_range(global_buffer, &r);
 
 	for(l = jointhese; l; l = l->next)
 		len += strlen(l->data);
@@ -444,7 +445,7 @@ static void join(unsigned int ntimes)
 
 	list_free(jointhese);
 
-	buffer_modified(buffer) = 1;
+	buffer_modified(global_buffer) = 1;
 }
 
 static int colon()
@@ -599,8 +600,8 @@ int gui_main(const char *filename, char readonly)
 
 switch_start:
 		c = gui_getch();
-		if(iseditchar(c) && buffer_readonly(buffer)){
-			gui_status("buffer is read-only");
+		if(iseditchar(c) && buffer_readonly(global_buffer)){
+			gui_status("global_buffer is read-only");
 			continue;
 		}
 
@@ -792,7 +793,7 @@ exit_while:
 
 	gui_term();
 fin:
-	buffer_free(buffer);
+	buffer_free(global_buffer);
 
 	/*
 	 * apparently this uses uninitialised memory

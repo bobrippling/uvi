@@ -33,4 +33,6 @@ void gui_move(struct motion *);
 
 void gui_refresh(void);
 
+#define CTRL_AND(c)  ((c) & 037)
+
 #endif

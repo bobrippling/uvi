@@ -1,6 +1,8 @@
 #include <ncurses.h>
 #include <unistd.h>
 #include <string.h>
+#include <errno.h>
+#include <signal.h>
 
 #include "../range.h"
 #include "../util/list.h"
@@ -86,12 +88,18 @@ int gui_getch()
 {
 	int c;
 
+restart:
 	switch(read(0, &c, 1)){
 		case -1:
+			if(errno == EINTR)
+				goto restart;
 			die("read()");
-		case  0:
+		case 0:
 			return EOF;
 	}
+
+	if(c == CTRL_AND('c'))
+		raise(SIGINT);
 
 	return c;
 }

@@ -26,6 +26,7 @@ void die(const char *s)
 
 void sigh(const int sig)
 {
+	gui_term();
 	fprintf(stderr, "We get signal %d\n", sig);
 	exit(sig + 128);
 }
@@ -40,7 +41,10 @@ int main(int argc, const char **argv)
 		return 1;
 	}
 
-	signal(SIGHUP, &sigh);
+	signal(SIGHUP,  &sigh);
+	signal(SIGINT,  &sigh);
+	signal(SIGTERM, &sigh);
+	signal(SIGQUIT, &sigh);
 
 	for(i = 1; i < argc; i++)
 		if(argv_options && *argv[i] == '-'){
