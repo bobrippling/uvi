@@ -4,6 +4,7 @@
 int  gui_init();
 void gui_term();
 
+int gui_getstr(char *s, int size);
 int gui_getch();
 
 void gui_status( const char *, ...);

@@ -31,6 +31,14 @@ buffer_t *buffer_new(char *p)
 	return b;
 }
 
+buffer_t *buffer_new_empty()
+{
+	char *s = umalloc(sizeof(char));
+	*s = '\0';
+
+	return buffer_new(s);
+}
+
 void buffer_setfilename(buffer_t *b, const char *s)
 {
 	free(b->fname);

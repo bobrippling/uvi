@@ -5,6 +5,8 @@
 #include <string.h>
 
 #include "main.h"
+#include "range.h"
+#include "buffer.h"
 #include "global.h"
 
 static void usage(const char *);

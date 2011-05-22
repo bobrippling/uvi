@@ -9,8 +9,6 @@
 #include "gui.h"
 #include "../global.h"
 
-static int max_x, max_y;
-
 typedef struct
 {
 	const char *const start, *const end;
@@ -48,16 +46,21 @@ int gui_init()
 			init_pair(COLOR_YELLOW,  COLOR_YELLOW,  -1);
 		}
 
-		getmaxyx(stdscr, max_y, max_x);
+		getmaxyx(stdscr, global_max_y, global_max_x);
 	}
 
 	refresh();
 	return 0;
 }
 
-void gui_lstatus(const char *s, va_list l)
+void gui_term()
 {
-	move(max_y, 0);
+	endwin();
+}
+
+void gui_statusl(const char *s, va_list l)
+{
+	move(global_max_y, 0);
 
 	clrtoeol();
 #ifdef VIEW_COLOUR
@@ -102,14 +105,14 @@ void gui_refresh()
 	y = 0;
 	for(
 			l = buffer_getindex(global_buffer, global_top);
-			l && y < max_y;
+			l && y < global_max_y;
 			l = l->next, y++){
 
-		addnstr((char *)l->data, max_x);
+		addnstr((char *)l->data, global_max_x);
 		addch('\n');
 	}
 
-	for(; y < max_y; y++)
+	for(; y < global_max_y; y++)
 		addstr("~\n");
 
 	move(global_y - global_top, global_x);
@@ -133,7 +136,7 @@ void gui_addch(int c)
 
 int gui_getstr(char *s, int size)
 {
-	return !(getnstr(s, size) == OK);
+	return getnstr(s, size) == OK ? 0 : 1;
 }
 
 void gui_move(struct motion *m)
@@ -144,10 +147,17 @@ void gui_move(struct motion *m)
 	bp.x = &global_x;
 	bp.y = &global_y;
 	si.top = global_top;
-	si.height = max_y;
+	si.height = global_max_y;
 
-	if(applymotion(m, &bp, &si))
-		view_cursoronscreen();
+	applymotion(m, &bp, &si);
+}
+
+void gui_cursor(int x, int y)
+{
+	global_x = x;
+	global_y = y;
+	move(y, x);
+	refresh();
 }
 
 static int clip_x()
@@ -168,7 +178,7 @@ int gui_scroll(enum scroll s)
 
 				if(global_y <= global_top){
 					global_y = global_top;
-					clipx();
+					clip_x();
 				}
 				ret = 1;
 			}
@@ -178,16 +188,16 @@ int gui_scroll(enum scroll s)
 			if(global_top){
 				global_top--;
 
-				if(global_y >= global_top + max_y){
-					global_y = global_top + max_y - 1;
-					clipx();
+				if(global_y >= global_top + global_max_y){
+					global_y = global_top + global_max_y - 1;
+					clip_x();
 				}
 				ret = 1;
 			}
 			break;
 
 		case PAGE_UP:
-			global_top -= max_y;
+			global_top -= global_max_y;
 			if(global_top < 0)
 				global_top = 0;
 
@@ -195,10 +205,10 @@ int gui_scroll(enum scroll s)
 			break;
 
 		case PAGE_DOWN:
-			global_top += max_y;
+			global_top += global_max_y;
 			ret = buffer_nlines(global_buffer) - 1;
 
-			if(global_top + max_y > ret)
+			if(global_top + global_max_y > ret)
 				clear();
 
 			if(global_top > ret)
@@ -208,16 +218,16 @@ int gui_scroll(enum scroll s)
 			break;
 
 		case HALF_UP:
-			global_top -= max_y / 2;
+			global_top -= global_max_y / 2;
 			if(global_top < 0)
 				global_top = 0;
 			ret = 1;
 			break;
 
 		case HALF_DOWN:
-			global_top += max_y / 2;
+			global_top += global_max_y / 2;
 			ret = buffer_nlines(global_buffer) - 1;
-			if(global_top + max_y > ret)
+			if(global_top + global_max_y > ret)
 				clear();
 			if(global_top > ret)
 				global_top = ret;
@@ -229,12 +239,12 @@ int gui_scroll(enum scroll s)
 			break;
 
 		case CURSOR_BOTTOM:
-			if((global_top = global_y - max_y + 1) < 0)
+			if((global_top = global_y - global_max_y + 1) < 0)
 				global_top = 0;
 			break;
 
 		case CURSOR_MIDDLE:
-			if((global_top = global_y - max_y / 2) < 2)
+			if((global_top = global_y - global_max_y / 2) < 2)
 				global_top = 0;
 			break;
 	}
@@ -313,7 +323,7 @@ void gui_drawbuffer(buffer_t *b)
 				int len = 0;
 				char *pos = l->data;
 
-				while(len < max_x && *pos){
+				while(len < global_max_x && *pos){
 					if(*pos == '\t')
 						if(global_settings.showtabs)
 							len += 2;
@@ -325,7 +335,7 @@ void gui_drawbuffer(buffer_t *b)
 					gui_addch(*pos++);
 				}
 			}else
-				addnstr(l->data, max_x - 1);
+				addnstr(l->data, global_max_x - 1);
 			addch('\n');
 
 			y++;
@@ -339,7 +349,7 @@ tilde:
 		coloron(COLOR_BLUE, A_BOLD);
 #endif
 
-	while(++y <= max_y)
+	while(++y <= global_max_y)
 		addstr("~\n");
 
 #if 0

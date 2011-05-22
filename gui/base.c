@@ -1,19 +1,18 @@
 #include <ncurses.h>
 #include <string.h>
 #include <stdlib.h>
-#if 0
 #include <errno.h>
+#include <limits.h>
+#if 0
 #include <ctype.h>
 #include <sys/types.h>
 #include <signal.h>
 #include <setjmp.h>
 #include <unistd.h>
-#include <limits.h>
 #include <sys/wait.h>
 
 #include "../main.h"
 #include "../vars.h"
-#include "marks.h"
 #endif
 
 #include "../range.h"
@@ -23,6 +22,8 @@
 #include "../global.h"
 #include "motion.h"
 #include "../util/alloc.h"
+#include "gui.h"
+#include "marks.h"
 
 #define CTRL_AND(c)  ((c) & 037)
 #define iswordchar(c) (isalnum(c) || c == '_')
@@ -31,7 +32,7 @@
 static void sigh(int);
 
 /* text altering */
-static int  open(int); /* as in, 'o' & 'O' */
+static void open(int); /* as in, 'o' & 'O' */
 static void shift(unsigned int, int);
 static void delete(struct motion *);
 static void insert(int insert /* bool */);
@@ -73,16 +74,16 @@ static int search(int next)
 		}
 	}
 
-	gui_addch(gui_maxy(), 0, '/');
+	gui_addch(global_max_y, 0, '/');
 	while(!done){
-		if(gui_readchar(searchstr, SEARCH_STR_SIZE, i))
+		if((searchstr[i] = gui_getch()) == EOF)
 			done = 1; /* TODO: return to initial position */
 		else{
 			struct list *s;
 			int y;
 
 			/* FIXME: check for backspace */
-			gui_addchar(gui_maxy(), strlen(searchstr), searchstr[i++]);
+			gui_addch(global_max_y, strlen(searchstr), searchstr[i++]);
 
 			/* TODO: allow SIGINT to stop search */
 			if((pos = strchr(searchstr, '\n'))){
@@ -147,7 +148,7 @@ void shift(unsigned int nlines, int indent)
 
 void tilde(unsigned int rep)
 {
-	char *data = (char *)buffer_getindex(buffer, gui_x())->data;
+	char *data = (char *)buffer_getindex(buffer, global_x)->data;
 	char *pos = data + global_x;
 	const int len = strlen(data);
 
@@ -163,7 +164,7 @@ void tilde(unsigned int rep)
 			break;
 	}
 
-	gui_cursor(gui_x() + pos - data, gui_y());
+	gui_cursor(global_x + pos - data, global_y);
 
 	buffer_modified(buffer) = 1;
 }
@@ -175,7 +176,7 @@ void showgirl(unsigned int page)
 	char save;
 	int len;
 
-	wordend = wordstart = line + gui_x();
+	wordend = wordstart = line + global_x;
 
 	if(!iswordchar(*wordstart)){
 		gui_status("invalid word");
@@ -210,7 +211,7 @@ void showgirl(unsigned int page)
 void replace(unsigned int n)
 {
 	int c;
-	struct list *cur = buffer_getindex(buffer, gui_y());
+	struct list *cur = buffer_getindex(buffer, global_y);
 	char *s = cur->data;
 
 	if(!*s)
@@ -218,14 +219,14 @@ void replace(unsigned int n)
 
 	if(n <= 0)
 		n = 1;
-	else if(n > strlen(s + gui_x()))
+	else if(n > strlen(s + global_x))
 		return;
 
-	c = gui_getchar();
+	c = gui_getch();
 
 	if(c == '\n'){
 		/* delete n chars, and insert 1 line */
-		char *off = s + gui_x() + n-1;
+		char *off = s + global_x + n-1;
 		char *cpy = umalloc(strlen(off));
 
 		memset(off - n + 1, '\0', n);
@@ -233,9 +234,9 @@ void replace(unsigned int n)
 
 		buffer_insertafter(buffer, cur, cpy);
 
-		gui_cursor(0, gui_y() + 1);
+		gui_cursor(0, global_y + 1);
 	}else{
-		int x = gui_x();
+		int x = global_x;
 
 		while(n--)
 			s[x + n] = c;
@@ -250,8 +251,8 @@ static void showpos()
 
 	gui_status("\"%s\"%s %d/%d %.2f%%",
 			buffer_filename(buffer),
-			buffer_modified(buffer) ? " [Modified]" : "", 1 + gui_x(),
-			i, 100.0f * (float)(1 + gui_y()) /(float)i);
+			buffer_modified(buffer) ? " [Modified]" : "", 1 + global_x,
+			i, 100.0f * (float)(1 + global_y) /(float)i);
 }
 
 int qfunc(const char *s, ...)
@@ -260,10 +261,10 @@ int qfunc(const char *s, ...)
 	int c;
 
 	va_start(l, s);
-	gui_vstatus(s, l);
+	gui_statusl(s, l);
 	va_end(l);
 
-	c = gui_getchar();
+	c = gui_getch();
 	return c == '\n' || tolower(c) == 'y';
 }
 
@@ -271,7 +272,7 @@ static void shellout(const char *cmd)
 {
 	int ret;
 
-	gui_down();
+	gui_term();
 	ret = system(cmd);
 
 	if(ret == -1)
@@ -286,7 +287,7 @@ static void shellout(const char *cmd)
 	if(ret != '\n' && ret != EOF)
 		while((ret = getchar()) != '\n' && ret != EOF);
 
-	gui_up();
+	gui_init();
 }
 
 static void wrongfunc(void)
@@ -302,91 +303,16 @@ static void unknownchar(int c)
 
 static void insert(int append)
 {
-	struct list *listpos = buffer_getindex(buffer, gui_x());
-	struct list *new;
-	char *after, *generic_str_ptr;
-
+	char *after = NULL;
 	if(append)
-		gui_setx(gui_x() + 1);
+		global_x++;
 
-	generic_str_ptr = after = listpos->data + gui_x();
-	after = ustrdup(after);
-	*generic_str_ptr = '\0';
+	/* TODO */
 
-	{
-#define BUFFER_SIZE 128
-		struct list *l = list_new(NULL);
-		char buffer[BUFFER_SIZE];
-		int loop = 1;
-
-		do
-			switch(gfunc(buffer, BUFFER_SIZE)){
-				case g_EOF:
-					loop = 0;
-					break;
-
-				case g_LAST:
-					/* add this buffer, then bail out */
-					loop = 0;
-				case g_CONTINUE:
-				{
-					char *nl = strchr(buffer, '\n');
-
-					if(nl){
-						char *s = umalloc(strlen(buffer)); /* no need for +1 - \n is removed */
-						*nl = '\0';
-						strcpy(s, buffer);
-						list_append(l, s);
-					}else{
-						int size = BUFFER_SIZE;
-						char *s = NULL, *insert;
-
-						do{
-							char *tmp;
-
-							size *= 2;
-							if(!(tmp = realloc(s, size))){
-								free(s);
-								die("realloc()");
-							}
-							s = tmp;
-							insert = s + size - BUFFER_SIZE;
-
-							strcpy(insert, buffer);
-							if((tmp = strchr(insert, '\n'))){
-								*tmp = '\0';
-								break;
-							}
-						}while(gfunc(buffer, BUFFER_SIZE) == g_CONTINUE);
-						break;
-					}
-				}
-			}
-		while(loop);
-
-		if(!l->data){
-			/* EOF straight away */
-			l->data = umalloc(sizeof(char));
-			*(char *)l->data = '\0';
-		}
-
-		return l;
-	}
-
-
-	/* snip */
-	firstline->next = NULL;
-	if(new)
-		new->prev = NULL;
-
-	listpos->data = ustrcat(&listpos->data, new->data);
-
-	if(new)
-		list_insertlistafter(listpos, new);
 
 	buffer_modified(buffer) = 1;
 
-	gui_setx(gui_x() + strlen(after));
+	global_x += strlen(after);
 }
 
 static void open(int before)
@@ -394,9 +320,9 @@ static void open(int before)
 	struct list *here;
 
 	if(before)
-		gui_sety(gui_y() - 1);
+		global_y--;
 
-	here = buffer_getindex(buffer, gui_y());
+	here = buffer_getindex(buffer, global_y);
 
 	list_insertafter(here, ustrdup(""));
 	insert(0);
@@ -406,33 +332,33 @@ static void delete(struct motion *mparam)
 {
 	struct bufferpos topos;
 	struct screeninfo si;
-	int x = padx, y = pady;
+	int x = global_x, y = global_y;
+	extern int max_y;
 
-	topos.buffer = buffer;
 	topos.x = &x;
 	topos.y = &y;
-	si.padtop = padtop;
-	si.padheight = MAX_Y;
+	si.top = global_top;
+	si.height = global_max_y;
 
 	if(applymotion(mparam, &topos, &si)){
 		struct range r;
 
-		if(pady > y){
+		if(global_y > y){
 			int t = y;
-			y = pady;
-			pady = t;
+			y = global_y;
+			global_y = t;
 		}
 
-		r.start = pady;
+		r.start = global_y;
 		r.end   = y;
 
 		if(islinemotion(mparam)){
-			/* delete lines between pady and y, inclusive */
+			/* delete lines between global_y and y, inclusive */
 			buffer_remove_range(buffer, &r);
-			if(pady >= buffer_nlines(buffer))
-				pady = buffer_nlines(buffer) - 1;
+			if(global_y >= buffer_nlines(buffer))
+				global_y = buffer_nlines(buffer) - 1;
 		}else{
-			char *data = buffer_getindex(buffer, pady)->data, forwardmotion = 1;
+			char *data = buffer_getindex(buffer, global_y)->data, forwardmotion = 1;
 			int oldlen = strlen(data);
 
 			if(r.start < r.end){
@@ -440,24 +366,24 @@ static void delete(struct motion *mparam)
 				r.start++;
 				buffer_remove_range(buffer, &r);
 
-				/* join line pady with line y */
+				/* join line global_y with line y */
 				join(1);
 				x += oldlen;
 
-				data = buffer_getindex(buffer, pady)->data;
+				data = buffer_getindex(buffer, global_y)->data;
 			}
 
-			/* padx should be left-most */
-			if(padx > x){
+			/* global_x should be left-most */
+			if(global_x > x){
 				int t = x;
-				x = padx;
-				padx = t;
+				x = global_x;
+				global_x = t;
 				forwardmotion = 0;
 			}
 
 			{
 				char *linestart = data;
-				char *curpos    = linestart + padx;
+				char *curpos    = linestart + global_x;
 				char *xpos      = linestart + x;
 
 				if(forwardmotion){
@@ -471,11 +397,11 @@ static void delete(struct motion *mparam)
 					}
 				}
 
-				/* remove the chars between padx and x, inclusive */
+				/* remove the chars between global_x and x, inclusive */
 				memmove(curpos, xpos, strlen(xpos) + 1);
 
-				if(padx >= x)
-					padx = x;
+				if(global_x >= x)
+					global_x = x;
 			}
 		}
 	}
@@ -483,9 +409,9 @@ static void delete(struct motion *mparam)
 	buffer_modified(buffer) = 1;
 }
 
-static void join(int ntimes)
+static void join(unsigned int ntimes)
 {
-	struct list *jointhese, *l, *cur = buffer_getindex(buffer, pady);
+	struct list *jointhese, *l, *cur = buffer_getindex(buffer, global_y);
 	struct range r;
 	char *alloced;
 	int len = 0;
@@ -493,13 +419,13 @@ static void join(int ntimes)
 	if(ntimes == 0)
 		ntimes = 1;
 
-	if(pady + ntimes >= buffer_nlines(buffer)){
+	if(global_y + ntimes >= buffer_nlines(buffer)){
 		gui_status("can't join %d line%s", ntimes,
 				ntimes > 1 ? "s" : "");
 		return;
 	}
 
-	r.start = pady + 1; /* extract the next line(s) */
+	r.start = global_y + 1; /* extract the next line(s) */
 	r.end   = r.start + ntimes;
 
 	jointhese = buffer_extract_range(buffer, &r);
@@ -509,7 +435,7 @@ static void join(int ntimes)
 
 	alloced = realloc(cur->data, strlen(cur->data) + len + 1);
 	if(!alloced)
-		longjmp(allocerr, 1);
+		die("realloc()");
 
 	cur->data = alloced;
 	for(l = jointhese; l; l = l->next)
@@ -524,28 +450,19 @@ static void join(int ntimes)
 static int colon()
 {
 #define BUF_SIZE 128
-	char in[BUF_SIZE], *c;
+	char in[BUF_SIZE];
 	int ret;
+	extern int max_y;
 
-	(void)mvaddch(MAX_Y, 0, ':');
-	gfunc_onpad = 0;
+	mvaddch(global_max_y, 0, ':');
 
-	switch(gfunc(in, BUF_SIZE)){
-		case g_CONTINUE:
-			c = strchr(in, '\n');
+	if(!gui_getstr(in, BUF_SIZE)){
+		char *c = strchr(in, '\n');
 
-			if(c)
-				*c = '\0';
+		if(c)
+			*c = '\0';
 
-			ret = command_run(in,
-					&pady, &buffer, &wrongfunc, &pfunc,
-					&gfunc, &qfunc, &shellout, &nc_toggle);
-
-			return ret;
-
-		case g_LAST: /* esc means cancel in this sense */
-		case g_EOF:
-			break;
+		return command_run(in);
 	}
 
 	return 1;
@@ -554,8 +471,8 @@ static int colon()
 
 static void sigh(int sig)
 {
-	nc_down();
-	bail(sig);
+	gui_term();
+	exit(127 + sig);
 }
 
 static char iseditchar(int c)
@@ -583,48 +500,65 @@ static char iseditchar(int c)
 	return 0;
 }
 
+void readfile(const char *filename, int forcereadonly)
+{
+	if(filename){
+		int nread = buffer_read(&global_buffer, filename);
+
+		if(nread == -1){
+			global_buffer = buffer_new_empty();
+			buffer_setfilename(global_buffer, filename);
+
+			if(errno != ENOENT)
+				/*
+				 * end up here on failed read:
+				 * open empty file and continue
+				 */
+				gui_status("\"%s\" [%s]", filename, errno ? strerror(errno) : "unknown error - binary file?");
+			else
+				/* something like "./uvi file_that_doesn\'t_exist */
+				goto newfile;
+
+		}else{
+			/* end up here on successful read */
+			if(forcereadonly)
+				buffer_readonly(global_buffer) = 1;
+
+			if(nread == 0)
+				gui_status("(empty file)%s", buffer_readonly(global_buffer) ? " [read only]" : "");
+			else
+				gui_status("%s%s: %dC, %dL%s", filename,
+						buffer_readonly(global_buffer) ? " [read only]" : "",
+						buffer_nchars(global_buffer), buffer_nlines(global_buffer),
+						buffer_eol(global_buffer) ? "" : " [noeol]");
+		}
+	}else{
+newfile:
+		/* new file */
+		global_buffer = buffer_new_empty();
+		gui_status("(new file)");
+	}
+}
+
+
 int gui_main(const char *filename, char readonly)
 {
-	int c, bufferchanged = 1, viewchanged = 1, ret = 0, multiple = 0,
-			prevcmd = '\0', prevmultiple = 0;
-	void (*oldinth)(int), (*oldsegh)(int);
+	int c, bufferchanged = 1, viewchanged = 1, ret = 0, multiple = 0;
+	int prevcmd = '\0', prevmultiple = 0;
 	struct motion motion;
 
-	if(!isatty(STDIN_FILENO))
-		fputs(PROG_NAME": warning: input is not a terminal\n", stderr);
-	if(!isatty(STDOUT_FILENO))
-		fputs(PROG_NAME": warning: output is not a terminal\n", stderr);
+	if(!isatty(0))
+		fputs("uvi: warning: input is not a terminal\n", stderr);
+	if(!isatty(1))
+		fputs("uvi: warning: output is not a terminal\n", stderr);
 
-	nc_up();
+	gui_init();
+	readfile(filename, readonly);
 
-	if(!(buffer = command_readfile(filename, readonly, pfunc))){
-		/* TODO: leave ncurses up, with empty buffer */
-		nc_down();
-		fprintf(stderr, PROG_NAME": %s: ", filename);
-		perror(NULL);
-		ret = 1;
-		goto fin;
-	}
-
-	/* have to be after buffer's been initialised */
-	if(!debug){
-		oldinth = signal(SIGINT, &sigh);
-		oldsegh = signal(SIGSEGV, &sigh);
-	}
 
 	do{
 		int flag = 0, resetmultiple = 1;
 
-#if NCURSES_DEBUG_SHOWXY
-		gui_status("at (%d, %d): %c", padx, pady, ((char *)buffer_getindex(buffer, pady)->data)[padx]);
-		view_updatecursor();
-#endif
-		if(pfunc_wantconfimation){
-			gui_status("---");
-			pfunc_wantconfimation = 0;
-			gui_status("press any key...");
-			ungetch(nc_getch());
-		}
 		if(bufferchanged){
 			bufferchanged = 0;
 			viewchanged = 1;
@@ -634,7 +568,7 @@ int gui_main(const char *filename, char readonly)
 			 * cursor must be updated before
 			 * the pad is refreshed
 			 */
-			view_cursoronscreen();
+			gui_refresh();
 			viewchanged = 0;
 		}
 		/*
@@ -649,7 +583,7 @@ int gui_main(const char *filename, char readonly)
 						multiple = multiple * 10 + c - '0'; \
 						resetmultiple = 0; \
 					}else \
-						pfunc("range too large"); \
+						gui_status("range too large"); \
 						/*resetmultiple = 1;*/ \
 				while(0)
 
@@ -664,10 +598,9 @@ int gui_main(const char *filename, char readonly)
 				}while(0)
 
 switch_start:
-		c = nc_getch();
+		c = gui_getch();
 		if(iseditchar(c) && buffer_readonly(buffer)){
-			gui_status(READ_ONLY_ERR);
-			view_cursoronscreen();
+			gui_status("buffer is read-only");
 			continue;
 		}
 
@@ -686,18 +619,18 @@ switch_start:
 					multiple = prevmultiple;
 					goto switch_start;
 				}else
-					pfunc("no previous command");
+					gui_status("no previous command");
 				break;
 
 			case 'm':
-				c = nc_getch();
-				if(validmark(c))
-					mark_set(c, pady, padx);
+				c = gui_getch();
+				if(mark_valid(c))
+					mark_set(c, global_y, global_x);
 				else
 					gui_status("invalid mark");
 				break;
 
-			case CTRL_AND_g:
+			case CTRL_AND('g'):
 				showpos();
 				viewchanged = 1;
 				break;
@@ -711,13 +644,8 @@ switch_start:
 				break;
 
 			case 'X':
-				SET_MOTION(MOTION_BACKWARD_LETTER); /* TODO: test */
-				delete(&motion);
-				bufferchanged = 1;
-				SET_DOT();
-				break;
 			case 'x':
-				SET_MOTION(MOTION_NO_MOVE);
+				SET_MOTION(c == 'X' ? MOTION_BACKWARD_LETTER : MOTION_FORWARD_LETTER);
 				delete(&motion);
 				bufferchanged = 1;
 				SET_DOT();
@@ -739,27 +667,27 @@ switch_start:
 			case 'c':
 				flag = 1;
 			case 'd':
-				c = nc_getch();
+				c = gui_getch();
 				if(c == 'd' || c == 'c'){
 					/* allow dd or cc (or dc or cd... but yeah) */
-					SET_MOTION(MOTION_LINE);
+					SET_MOTION(MOTION_DOWN);
+					motion.ntimes--;
 				}else{
 					ungetch(c);
-					getmotion(&status, &nc_getch, &motion);
+					if(getmotion(&motion))
+						break;
 				}
-				if(motion.motion != MOTION_UNKNOWN){
-					delete(&motion);
-					viewchanged = 1;
-					if(flag)
-						insert(0);
-					bufferchanged = 1;
-					SET_DOT();
-				}
+				delete(&motion);
+				viewchanged = 1;
+				if(flag)
+					insert(0);
+				bufferchanged = 1;
+				SET_DOT();
 				break;
 
 			case 'A':
 				SET_MOTION(MOTION_ABSOLUTE_RIGHT);
-				view_move(&motion);
+				gui_move(&motion);
 			case 'a':
 				flag = 1;
 			case 'i':
@@ -769,8 +697,8 @@ case_i:
 				SET_DOT();
 				break;
 			case 'I':
-				SET_MOTION(MOTION_NOSPACE);
-				view_move(&motion);
+				SET_MOTION(MOTION_LINE_START);
+				gui_move(&motion);
 				goto case_i;
 
 			case 'J':
@@ -786,22 +714,22 @@ case_i:
 				break;
 
 			case CTRL_AND('f'):
-				viewchanged = view_scroll(PAGE_DOWN);
+				viewchanged = gui_scroll(PAGE_DOWN);
 				break;
 			case CTRL_AND('b'):
-				viewchanged = view_scroll(PAGE_UP);
+				viewchanged = gui_scroll(PAGE_UP);
 				break;
 			case CTRL_AND('d'):
-				viewchanged = view_scroll(HALF_DOWN);
+				viewchanged = gui_scroll(HALF_DOWN);
 				break;
 			case CTRL_AND('u'):
-				viewchanged = view_scroll(HALF_UP);
+				viewchanged = gui_scroll(HALF_UP);
 				break;
 			case CTRL_AND('e'):
-				viewchanged = view_scroll(SINGLE_DOWN);
+				viewchanged = gui_scroll(SINGLE_DOWN);
 				break;
 			case CTRL_AND('y'):
-				viewchanged = view_scroll(SINGLE_UP);
+				viewchanged = gui_scroll(SINGLE_UP);
 				break;
 
 			case 'n':
@@ -829,20 +757,20 @@ case_i:
 
 			case 'z':
 				/* screen move - vim's zz, zt & zb */
-				switch(nc_getch()){
+				switch(gui_getch()){
 					case 'z':
-						view_scroll(CURSOR_MIDDLE);
+						gui_scroll(CURSOR_MIDDLE);
 						break;
 					case 't':
-						view_scroll(CURSOR_TOP);
+						gui_scroll(CURSOR_TOP);
 						break;
 					case 'b':
-						view_scroll(CURSOR_BOTTOM);
+						gui_scroll(CURSOR_BOTTOM);
 						break;
 				}
 				break;
 
-			case C_ESC:
+			case CTRL_AND('['):
 				break;
 
 			default:
@@ -851,10 +779,8 @@ case_i:
 				else{
 					ungetch(c);
 					motion.ntimes = multiple;
-					getmotion(&status, &nc_getch, &motion);
-
-					if(motion.motion != MOTION_UNKNOWN)
-						view_move(&motion);
+					if(!getmotion(&motion))
+						gui_move(&motion);
 				}
 		}
 
@@ -864,10 +790,9 @@ case_i:
 
 exit_while:
 
-	nc_down();
+	gui_term();
 fin:
 	buffer_free(buffer);
-	command_free();
 
 	/*
 	 * apparently this uses uninitialised memory

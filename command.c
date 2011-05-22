@@ -15,11 +15,13 @@
 #include "vars.h"
 #include "util/alloc.h"
 #include "util/pipe.h"
+#include "global.h"
 
 #define LEN(x) (sizeof(x) / sizeof(x[0]))
 
 int cmd_r(int argc, char **argv, struct range *rng)
 {
+#if 0
 	if(s[1] == '!'){
 		char *cmd = s + 2;
 		while(isspace(*cmd))
@@ -90,6 +92,7 @@ int cmd_r(int argc, char **argv, struct range *rng)
 		}
 	}
 	break;
+#endif
 }
 
 int cmd_w(int argc, char **argv, struct range *rng)
@@ -97,6 +100,7 @@ int cmd_w(int argc, char **argv, struct range *rng)
 	/* brace for spaghetti */
 	char bail = 0, edit = 0, *fname;
 
+#if 0
 	if(s[1] == '!'){
 		/* write [TODO: range] to pipe */
 		char *cmd = s + 2;
@@ -215,11 +219,13 @@ vars_fname:
 		break;
 
 	s[1] = '\0';
+#endif
 }
 
 
 int cmd_q(int argc, char **argv, struct range *rng)
 {
+#if 0
 	if(flag)
 		return 0;
 
@@ -240,10 +246,12 @@ int cmd_q(int argc, char **argv, struct range *rng)
 		}
 	}
 	break;
+#endif
 }
 
 int cmd_bang(int argc, char **argv, struct range *rng)
 {
+#if 0
 	case '!':
 		if(HAVE_RANGE)
 			wrongfunc();
@@ -263,10 +271,12 @@ int cmd_bang(int argc, char **argv, struct range *rng)
 			}
 		}
 		break;
+#endif
 }
 
 int cmd_e(int argc, char **argv, struct range *rng)
 {
+#if 0
 	char force = 0, *fname = s + 1;
 
 	if(s[1] == '!'){
@@ -292,6 +302,7 @@ int cmd_e(int argc, char **argv, struct range *rng)
 			*y = nlines - 1;*/
 		*y = 0;
 	}
+#endif
 }
 
 int command_run(char *in)
@@ -300,18 +311,24 @@ int command_run(char *in)
 	struct range lim, rng;
 	char *s, *iter, *last;
 	char **argv;
-	int argc
+	int argc;
 	int i;
 	struct
 	{
 		const char *nam;
 		int (*f)(int argc, char **argv, struct range *rng);
 	} funcs[] = {
-
+#define CMD(x) { #x, cmd_##x }
+		CMD(r),
+		CMD(w),
+		CMD(q),
+		CMD(e),
+		{ "!", cmd_bang }
+#undef CMD
 	};
 
 	lim.start = global_y;
-	lim.end		= buffer_nlines(buffer);
+	lim.end		= buffer_nlines(global_buffer);
 
 	s = parserange(in, &rng, &lim);
 
@@ -319,8 +336,8 @@ int command_run(char *in)
 		return 1;
 	else if(HAVE_RANGE && *s == '\0'){
 		/* just a number, move to that line */
-		*curline = rng.start - 1; /* -1, because they enter between 1 & $ */
-		return 1;
+		global_y = rng.start - 1; /* -1, because they enter between 1 & $ */
+		return 0;
 	}
 
 	argc = i = 0;
@@ -340,61 +357,6 @@ int command_run(char *in)
 			return funcs[i].f(argc, argv, &rng);
 
 	return 1;
-}
-
-
-buffer_t *command_readfile(const char *filename, char forcereadonly, void (*const pfunc)(const char *, ...))
-{
-  buffer_t *buffer;
-	if(filename){
-		int nread = buffer_read(&buffer, filename);
-
-		if(nread < 0){
-			buffer = newemptybuffer();
-			buffer_setfilename(buffer, filename);
-
-			if(errno != ENOENT){
-				/*
-				 * end up here on failed read:
-				 * open empty file and continue
-				 */
-				pfunc("\"%s\" [%s]", filename, errno ? strerror(errno) : "unknown error - binary file?");
-				buffer_readonly(buffer) = 1;
-			}else
-				/* something like "./uvi file_that_doesn\'t_exist */
-				goto newfile;
-
-		}else{
-			/* end up here on successful read */
-			if(forcereadonly)
-				buffer_readonly(buffer) = 1;
-
-			if(nread == 0)
-				pfunc("(empty file)%s", buffer_readonly(buffer) ? " [read only]" : "");
-			else
-				pfunc("%s%s: %dC, %dL%s", filename,
-						buffer_readonly(buffer) ? " [read only]" : "",
-						buffer_nchars(buffer), buffer_nlines(buffer),
-						buffer_eol(buffer) ? "" : " [noeol]");
-		}
-
-	}else{
-		/* new file */
-		buffer = newemptybuffer();
-newfile:
-		pfunc("(new file)");
-	}
-
-	lastbuffer = buffer;
-  return buffer;
-}
-
-static buffer_t *newemptybuffer
-{
-	char *s = umalloc(sizeof(char));
-	*s = '\0';
-
-	return buffer_new(s);
 }
 
 void command_dumpbuffer(buffer_t *b)
@@ -492,7 +454,7 @@ static void parse_setget(buffer_t *b, char isset, /* is this "set" or "get"? */
 						else
 							vars_set(type, b, val);
 					}else{
-						char *p = vars_get(type, b);
+						int *p = vars_get(type, b);
 						if(p)
 							pfunc("%s: %d");
 						else

@@ -47,6 +47,9 @@ builtin_motions[] = {
 	[MOTION_TIL]             = { 0, 0 }
 };
 
+int islinemotion(struct motion *m) { return builtin_motions[m->motion].is_line; }
+int istilmotion( struct motion *m) { return builtin_motions[m->motion].is_til; }
+
 /* for percent() */
 static char bracketdir(char);
 static char bracketrev(char);
