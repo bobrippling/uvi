@@ -8,7 +8,7 @@
 #include "vars.h"
 #include "global.h"
 
-#define LEN(x) (sizeof(x) / sizeof(x[0]))
+#define LEN(x) ((sizeof(x) / sizeof(x[0])))
 
 static struct
 {
@@ -24,15 +24,13 @@ static struct
 	[VARS_AUTOINDENT] = { "ai",       1, &global_settings.autoindent },
 };
 
-int vars_set(enum vartype t, buffer_t *b, int v)
+void vars_set(enum vartype t, buffer_t *b, int v)
 {
 	int *p = vars_get(t, b);
 
 	*p = v;
 	if(t == VARS_EOL)
 		buffer_modified(b) = 1;
-
-	return 1;
 }
 
 int vars_isbool(enum vartype t)
@@ -77,7 +75,7 @@ const char *vars_tostring(enum vartype t)
 
 enum vartype vars_gettype(const char *s)
 {
-	int i;
+	unsigned int i;
 	for(i = 0; i < LEN(vars); i++)
 		if(vars[i].nam && !strcmp(vars[i].nam, s))
 			return i;

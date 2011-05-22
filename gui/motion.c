@@ -131,6 +131,9 @@ int applymotion(struct motion *motion, struct bufferpos *pos,
 	char *      charpos   = charstart + *pos->x;
 
 	switch(motion->motion){
+		case MOTION_NOMOVE:
+			return 0;
+
 		case MOTION_MARK:
 			return mark_get(motion->extra, pos->y, pos->x);
 

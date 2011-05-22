@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <limits.h>
+#include <ctype.h>
+#include <unistd.h>
 
 #include "../range.h"
 #include "../buffer.h"
@@ -13,6 +15,7 @@
 #include "../util/alloc.h"
 #include "gui.h"
 #include "marks.h"
+#include "../main.h"
 
 #define iswordchar(c) (isalnum(c) || c == '_')
 #define REPEAT_FUNC(nam) static void nam(unsigned int)
@@ -31,7 +34,6 @@ static int  colon(void);
 static int  search(int);
 REPEAT_FUNC(showgirl);
 
-static void unknownchar(int);
 static char iseditchar(int);
 
 static void showpos(void);
@@ -58,7 +60,7 @@ static int search(int next)
 		}
 	}
 
-	gui_mvaddch(global_max_y, 0, '/');
+	gui_mvaddch(gui_max_y(), 0, '/');
 	while(!done){
 		if((searchstr[i] = gui_getch()) == EOF)
 			done = 1; /* TODO: return to initial position */
@@ -67,7 +69,7 @@ static int search(int next)
 			int y;
 
 			/* FIXME: check for backspace */
-			gui_mvaddch(global_max_y, strlen(searchstr), searchstr[i++]);
+			gui_mvaddch(gui_max_y(), strlen(searchstr), searchstr[i++]);
 
 			/* TODO: allow SIGINT to stop search */
 			if((pos = strchr(searchstr, '\n'))){
@@ -79,7 +81,7 @@ dosearch:
 			for(y = 0, s = l; s; s = s->next){
 				if((pos = strstr(l->data, searchstr))){
 					int x = pos - (char *)s->data;
-					gui_cursor(x, y);
+					gui_move(x, y);
 					break;
 				}
 
@@ -93,7 +95,7 @@ dosearch:
 
 void shift(unsigned int nlines, int indent)
 {
-	struct list *l = buffer_getindex(global_buffer, global_y);
+	struct list *l = buffer_getindex(global_buffer, gui_y());
 
 	if(!nlines)
 		nlines = 1;
@@ -132,9 +134,8 @@ void shift(unsigned int nlines, int indent)
 
 void tilde(unsigned int rep)
 {
-	char *data = (char *)buffer_getindex(global_buffer, global_x)->data;
-	char *pos = data + global_x;
-	const int len = strlen(data);
+	char *data = (char *)buffer_getindex(global_buffer, gui_x())->data;
+	char *pos = data + gui_x();
 
 	while(rep--){
 		if(islower(*pos))
@@ -148,19 +149,19 @@ void tilde(unsigned int rep)
 			break;
 	}
 
-	gui_cursor(global_x + pos - data, global_y);
+	gui_move(gui_x() + pos - data, gui_y());
 
 	buffer_modified(global_buffer) = 1;
 }
 
 void showgirl(unsigned int page)
 {
-	char *const line = buffer_getindex(global_buffer, global_y)->data;
+	char *const line = buffer_getindex(global_buffer, gui_y())->data;
 	char *wordstart, *wordend, *word;
 	char save;
 	int len;
 
-	wordend = wordstart = line + global_x;
+	wordend = wordstart = line + gui_x();
 
 	if(!iswordchar(*wordstart)){
 		gui_status("invalid word");
@@ -188,14 +189,14 @@ void showgirl(unsigned int page)
 		snprintf(word, len, "man %s", wordstart);
 	wordend[1] = save;
 
-	shellout(word);
+	shellout(word, NULL);
 	free(word);
 }
 
 void replace(unsigned int n)
 {
 	int c;
-	struct list *cur = buffer_getindex(global_buffer, global_y);
+	struct list *cur = buffer_getindex(global_buffer, gui_y());
 	char *s = cur->data;
 
 	if(!*s)
@@ -203,14 +204,14 @@ void replace(unsigned int n)
 
 	if(n <= 0)
 		n = 1;
-	else if(n > strlen(s + global_x))
+	else if(n > strlen(s + gui_x()))
 		return;
 
 	c = gui_getch();
 
 	if(c == '\n'){
 		/* delete n chars, and insert 1 line */
-		char *off = s + global_x + n-1;
+		char *off = s + gui_x() + n-1;
 		char *cpy = umalloc(strlen(off));
 
 		memset(off - n + 1, '\0', n);
@@ -218,9 +219,9 @@ void replace(unsigned int n)
 
 		buffer_insertafter(global_buffer, cur, cpy);
 
-		gui_cursor(0, global_y + 1);
+		gui_move(0, gui_y() + 1);
 	}else{
-		int x = global_x;
+		int x = gui_x();
 
 		while(n--)
 			s[x + n] = c;
@@ -236,47 +237,23 @@ static void showpos()
 	gui_status("\"%s\"%s %d/%d %.2f%%",
 			buffer_filename(global_buffer),
 			buffer_modified(global_buffer) ? " [Modified]" : "",
-			1 + global_y, i,
-			100.0f * (float)(1 + global_y) /(float)i);
+			1 + gui_y(), i,
+			100.0f * (float)(1 + gui_y()) /(float)i);
 }
-
-int qfunc(const char *s, ...)
-{
-	va_list l;
-	int c;
-
-	va_start(l, s);
-	gui_statusl(s, l);
-	va_end(l);
-
-	c = gui_getch();
-	return c == '\n' || tolower(c) == 'y';
-}
-
-static void wrongfunc(void)
-{
-	gui_status("?");
-}
-
-static void unknownchar(int c)
-{
-	gui_status("unrecognised character #%d", c);
-}
-
 
 static void insert(int append)
 {
 	char *buf = umalloc(256);
 	if(append)
-		global_x++;
+		gui_move(gui_y(), gui_x() + 1);
 
 	if(gui_getstr(buf, 256)){
 		free(buf);
 		return;
 	}
 
-	buffer_insertafter(global_buffer, buffer_getindex(global_buffer, global_y), buf);
-	global_x += strlen(buf);
+	buffer_insertafter(global_buffer, buffer_getindex(global_buffer, gui_y()), buf);
+	gui_move(gui_y(), gui_x() + strlen(buf));
 
 	buffer_modified(global_buffer) = 1;
 }
@@ -286,9 +263,9 @@ static void open(int before)
 	struct list *here;
 
 	if(before)
-		global_y--;
+		gui_move(gui_y() - 1, gui_x());
 
-	here = buffer_getindex(global_buffer, global_y);
+	here = buffer_getindex(global_buffer, gui_y());
 
 	list_insertafter(here, ustrdup(""));
 	insert(0);
@@ -298,33 +275,32 @@ static void delete(struct motion *mparam)
 {
 	struct bufferpos topos;
 	struct screeninfo si;
-	int x = global_x, y = global_y;
-	extern int max_y;
+	int x = gui_x(), y = gui_y();
 
 	topos.x = &x;
 	topos.y = &y;
-	si.top = global_top;
-	si.height = global_max_y;
+	si.top = gui_top();
+	si.height = gui_max_y();
 
 	if(applymotion(mparam, &topos, &si)){
 		struct range r;
 
-		if(global_y > y){
-			int t = y;
-			y = global_y;
-			global_y = t;
-		}
-
-		r.start = global_y;
+		r.start = gui_y();
 		r.end   = y;
 
+		if(r.start > r.end){
+			int t = r.start;
+			r.start = r.end;
+			r.end = t;
+		}
+
+
 		if(islinemotion(mparam)){
-			/* delete lines between global_y and y, inclusive */
+			/* delete lines between gui_y() and y, inclusive */
 			buffer_remove_range(global_buffer, &r);
-			if(global_y >= buffer_nlines(global_buffer))
-				global_y = buffer_nlines(global_buffer) - 1;
+			gui_clip();
 		}else{
-			char *data = buffer_getindex(global_buffer, global_y)->data, forwardmotion = 1;
+			char *data = buffer_getindex(global_buffer, gui_y())->data, forwardmotion = 1;
 			int oldlen = strlen(data);
 
 			if(r.start < r.end){
@@ -332,24 +308,24 @@ static void delete(struct motion *mparam)
 				r.start++;
 				buffer_remove_range(global_buffer, &r);
 
-				/* join line global_y with line y */
+				/* join line r.end with line y */
 				join(1);
 				x += oldlen;
 
-				data = buffer_getindex(global_buffer, global_y)->data;
+				data = buffer_getindex(global_buffer, gui_y())->data;
 			}
 
-			/* global_x should be left-most */
-			if(global_x > x){
+			/* should be left-most */
+			if(gui_x() > x){
 				int t = x;
-				x = global_x;
-				global_x = t;
+				x = gui_x();
+				gui_move(gui_y(), t);
 				forwardmotion = 0;
 			}
 
 			{
 				char *linestart = data;
-				char *curpos    = linestart + global_x;
+				char *curpos    = linestart + gui_x();
 				char *xpos      = linestart + x;
 
 				if(forwardmotion){
@@ -363,11 +339,11 @@ static void delete(struct motion *mparam)
 					}
 				}
 
-				/* remove the chars between global_x and x, inclusive */
+				/* remove the chars between gui_x() and x, inclusive */
 				memmove(curpos, xpos, strlen(xpos) + 1);
 
-				if(global_x >= x)
-					global_x = x;
+				if(gui_x() >= x)
+					gui_move(gui_y(), x);
 			}
 		}
 	}
@@ -377,7 +353,7 @@ static void delete(struct motion *mparam)
 
 static void join(unsigned int ntimes)
 {
-	struct list *jointhese, *l, *cur = buffer_getindex(global_buffer, global_y);
+	struct list *jointhese, *l, *cur = buffer_getindex(global_buffer, gui_y());
 	struct range r;
 	char *alloced;
 	int len = 0;
@@ -385,13 +361,13 @@ static void join(unsigned int ntimes)
 	if(ntimes == 0)
 		ntimes = 1;
 
-	if(global_y + ntimes >= buffer_nlines(global_buffer)){
+	if(gui_y() + ntimes >= (unsigned)buffer_nlines(global_buffer)){
 		gui_status("can't join %d line%s", ntimes,
 				ntimes > 1 ? "s" : "");
 		return;
 	}
 
-	r.start = global_y + 1; /* extract the next line(s) */
+	r.start = gui_y() + 1; /* extract the next line(s) */
 	r.end   = r.start + ntimes;
 
 	jointhese = buffer_extract_range(global_buffer, &r);
@@ -417,9 +393,8 @@ static int colon()
 {
 #define BUF_SIZE 128
 	char in[BUF_SIZE];
-	int ret;
 
-	gui_mvaddch(global_max_y - 1, 0, ':');
+	gui_mvaddch(gui_max_y() - 1, 0, ':');
 	gui_clrtoeol();
 
 	if(!gui_getstr(in, sizeof in)){
@@ -472,7 +447,7 @@ int gui_main(const char *filename, char readonly)
 		fputs("uvi: warning: output is not a terminal\n", stderr);
 
 	gui_init();
-	readfile(filename, readonly);
+	global_buffer = readfile(filename, readonly);
 
 
 	do{
@@ -537,7 +512,7 @@ switch_start:
 			case 'm':
 				c = gui_getch();
 				if(mark_valid(c))
-					mark_set(c, global_y, global_x);
+					mark_set(c, gui_y(), gui_x());
 				else
 					gui_status("invalid mark");
 				break;
@@ -598,7 +573,7 @@ switch_start:
 
 			case 'A':
 				SET_MOTION(MOTION_ABSOLUTE_RIGHT);
-				gui_move(&motion);
+				gui_move_motion(&motion);
 			case 'a':
 				flag = 1;
 			case 'i':
@@ -609,7 +584,7 @@ case_i:
 				break;
 			case 'I':
 				SET_MOTION(MOTION_LINE_START);
-				gui_move(&motion);
+				gui_move_motion(&motion);
 				goto case_i;
 
 			case 'J':
@@ -691,7 +666,7 @@ case_i:
 					ungetch(c);
 					motion.ntimes = multiple;
 					if(!getmotion(&motion)){
-						gui_move(&motion);
+						gui_move_motion(&motion);
 						viewchanged = 1;
 					}
 				}
@@ -701,9 +676,7 @@ case_i:
 			multiple = 0;
 	}while(global_running);
 
-exit_while:
 	gui_term();
-fin:
 	buffer_free(global_buffer);
 
 	/*

@@ -1,10 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <string.h>
 #include <setjmp.h>
 #include <errno.h>
 #include <ctype.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 
 #include "range.h"
 #include "buffer.h"
@@ -16,273 +18,207 @@
 #include "util/alloc.h"
 #include "util/pipe.h"
 #include "global.h"
+#include "gui/motion.h"
+#include "gui/gui.h"
 
-#define LEN(x) (sizeof(x) / sizeof(x[0]))
+#define LEN(x) ((signed)(sizeof(x) / sizeof(x[0])))
+#define ARGV_TO_CMD(cmd) \
+	do{ \
+		int i; \
+		for(i = 0; i < argc - 1; i++) \
+			argv[i][strlen(argv[i])] = ' '; \
+	}while(0)
 
-void cmd_r(int argc, char **argv, struct range *rng)
+void cmd_r(int argc, char **argv, int force, struct range *rng)
 {
-#if 0
-	if(s[1] == '!'){
-		char *cmd = s + 2;
-		while(isspace(*cmd))
-			cmd++;
+	if(argc != 2){
+		gui_status("usage: r[!] cmd/file");
+		return;
+	}
 
-		if(!strlen(cmd))
-			pfunc("need command to read from");
-		else{
-			struct list *l = pipe_read(cmd);
-			if(!l)
-				pfunc("pipe error: %s", strerror(errno));
-			else if(l->data){
-				buffer_insertlistafter(buffer,
-						buffer_getindex(buffer, *curline),
-						l);
+	ARGV_TO_CMD();
 
-				buffer_modified(buffer) = 1;
-			}else{
-				list_free(l);
-				pfunc("%s: no output", cmd);
-			}
-		}
-	}else if(s[1] == 'w'){
-		/* rw!cmd command */
-		if(s[2] != '!')
-			wrongfunc();
-		else{
-			char *cmd = s + 3;
-			struct list *l;
+	if(force){
+		struct list *l = pipe_read(argv[1]);
+		if(!l)
+			gui_status("pipe error: %s", strerror(errno));
+		else if(l->data){
+			buffer_insertlistafter(
+					global_buffer,
+					buffer_getindex(global_buffer, gui_y()),
+					l);
 
-			while(isspace(*cmd))
-				cmd++;
-
-			l = pipe_readwrite(cmd, buffer_gethead(buffer));
-
-			if(l){
-				if(l->data){
-					buffer_replace(buffer, l);
-					buffer_modified(buffer) = 1;
-				}else{
-					list_free(l);
-					pfunc("%s: no output", cmd);
-				}
-			}else{
-				pfunc("pipe_readwrite() error: %s", strerror(errno));
-			}
+			buffer_modified(global_buffer) = 1;
+		}else{
+			list_free(l);
+			gui_status("%s: no output", argv[1]);
 		}
 	}else{
-		char *cmd = s + 1;
-		while(isspace(*cmd))
-			cmd++;
+		buffer_t *tmpbuf = readfile(argv[1], 0);
 
-		if(!strlen(cmd))
-			pfunc("need file to read from");
+		if(!tmpbuf)
+			gui_status("read: %s", strerror(errno));
 		else{
-			buffer_t *tmpbuf = command_readfile(cmd, 0, pfunc);
-			if(!tmpbuf)
-				pfunc("read: %s", strerror(errno));
-			else{
-				buffer_insertlistafter(buffer,
-						buffer_getindex(buffer, *curline),
-						buffer_gethead(tmpbuf));
+			buffer_insertlistafter(global_buffer,
+					buffer_getindex(global_buffer, gui_y()),
+					buffer_gethead(tmpbuf));
 
-				buffer_free_nolist(tmpbuf);
+			buffer_free_nolist(tmpbuf);
 
-				buffer_modified(buffer) = 1;
-			}
+			buffer_modified(global_buffer) = 1;
 		}
 	}
-	break;
-#endif
 }
 
-void cmd_w(int argc, char **argv, struct range *rng)
+void cmd_w(int argc, char **argv, int force, struct range *rng)
 {
-	/* brace for spaghetti */
-	char bail = 0, edit = 0, *fname;
+	enum { QUIT, EDIT, NONE } after = NONE;
+	int nw;
 
-#if 0
-	if(s[1] == '!'){
-		/* write [TODO: range] to pipe */
-		char *cmd = s + 2;
-		while(isspace(*cmd))
-			cmd++;
+	if(rng->start != -1 || rng->end != -1){
+usage:
+		gui_status("usage: w[qe][!] file");
+		return;
+	}else if(buffer_readonly(global_buffer)){
+		gui_status("buffer is read-only");
+		return;
+	}
 
-		if(!strlen(cmd))
-			pfunc("need command to pipe to");
-		else{
-			if(ui_toggle)
-				ui_toggle(0);
+	if(!strcmp(argv[0], "wq"))
+		after = QUIT;
+	else if(!strcmp(argv[0], "we"))
+		after = EDIT;
+	else if(strcmp(argv[0], "w"))
+		goto usage;
 
-			if(pipe_write(cmd, buffer_gethead(buffer)) == -1)
-				pfunc("pipe error: %s", strerror(errno));
 
-			if(ui_toggle){
-				int c;
-				fputs("Press enter to continue", stdout);
-				fflush(stdout);
+	if(argc == 2){
+		if(after != EDIT)
+			buffer_setfilename(global_buffer, argv[1]);
+	}else if(argc != 1)
+		goto usage;
 
-				c = getchar();
-				if(c != '\n' && c != EOF)
-					while((c = getchar()) != '\n' && c != EOF);
+
+	if(force && after == NONE){
+		/* write to pipe */
+		ARGV_TO_CMD();
+
+		shellout(argv[1], buffer_gethead(global_buffer));
+		return;
+	}
+
+
+	if(argc == 2){
+		if(!force){
+			struct stat st;
+
+			if(!stat(argv[1], &st)){
+				gui_status("not over-writing %s", argv[1]);
+				return;
 			}
-
-				ui_toggle(1);
 		}
-		break;
+
+		buffer_setfilename(global_buffer, argv[1]);
+	}
+	if(!buffer_hasfilename(global_buffer)){
+		gui_status("buffer has no filename");
+		return;
 	}
 
-	if(HAVE_RANGE){
-		wrongfunc();
-		break;
-	}else if(buffer_readonly(buffer)){
-		pfunc(READ_ONLY_ERR);
-		break;
+	nw = buffer_write(global_buffer);
+	if(nw == -1){
+		gui_status("Couldn't write \"%s\": %s", buffer_filename(global_buffer), strerror(errno));
+		return;
 	}
+	buffer_modified(global_buffer) = 0;
+	gui_status("\"%s\" %dL, %dC written", buffer_filename(global_buffer),
+			buffer_nlines(global_buffer) - !buffer_eol(global_buffer), nw);
 
-	switch(strlen(s)){
-		case 2:
-			if(s[1] == 'q')
-				flag = 1;
-			else{
-				wrongfunc();
-				bail = 1;
-			}
-		case 1:
+	switch(after){
+		case EDIT:
+			buffer_free(global_buffer);
+			global_buffer = readfile(argv[1], 0);
 			break;
 
-		default:
-			switch(s[1]){
-				case ' ':
-					fname = s + 2;
-					goto vars_fname;
-				case 'q':
-					flag = 1;
-					fname = s + 3;
-					if(s[2] != ' '){
-						bail = 1;
-						wrongfunc();
-						break;
-					}
-vars_fname:
-					if(strcmp(buffer_filename(buffer), fname)){
-						struct stat st;
-
-						if(stat(fname, &st)){
-							if(errno != ENOENT && !qfunc("couldn't stat %s: %s, write? ", fname, strerror(errno)))
-								return 1;
-						}else if(!qfunc("%s exists, write? ", fname))
-							return 1;
-					}
-
-					buffer_setfilename(buffer, fname);
-					break;
-
-				case 'e':
-					/*
-						* :we fname
-						* what we do is set a flag,
-						* write the file, then
-						* do the :e bit (pass it
-						* s + 1)
-						*/
-					edit = 1;
-					/* fname is for :e, later */
-					break;
-
-
-				default:
-					wrongfunc();
-					bail = 1;
-			}
-	}
-	if(bail)
-		break;
-
-	if(!buffer_hasfilename(buffer)){
-		pfunc("buffer has no filename (w[q] fname)");
-		break;
-	}else{
-		int nw = buffer_write(buffer);
-		if(nw == -1){
-			pfunc("Couldn't save \"%s\": %s", buffer_filename(buffer), strerror(errno));
+		case QUIT:
+			global_running = 0;
 			break;
-		}
-		buffer_modified(buffer) = 0;
-		pfunc("\"%s\" %dL, %dC written", buffer_filename(buffer),
-				buffer_nlines(buffer) - !buffer_eol(buffer), nw);
-	}
-	if(edit){
-		command_e(s + 1, b, curline, pfunc);
-		break;
-	}else if(!flag)
-		/* i.e. 'q' hasn't been passed */
-		break;
 
-	s[1] = '\0';
-#endif
-	gui_status("TODO :w");
+		case NONE:
+			break;
+	}
 }
 
 
-void cmd_q(int argc, char **argv, struct range *rng)
+void cmd_q(int argc, char **argv, int force, struct range *rng)
 {
 	if(argc != 1 || rng->start != -1 || rng->end != -1){
-usage:
 		gui_status("usage: q[!]");
 		return;
 	}
 
-	if(!strcmp(argv[0], "q!"))
-		global_running = 0;
-	else if(!strcmp(argv[0], "q"))
-		if(buffer_modified(global_buffer))
-			gui_status("unsaved");
-		else
-			global_running = 0;
+	if(!force && buffer_modified(global_buffer))
+		gui_status("unsaved");
 	else
-		goto usage;
+		global_running = 0;
 }
 
-void cmd_bang(int argc, char **argv, struct range *rng)
+void cmd_bang(int argc, char **argv, int force, struct range *rng)
 {
-	int i;
-
 	if(rng->start != -1 || rng->end != -1){
-		gui_status("TODO: :<range>!...");
+		/* rw!cmd command */
+		struct list *l;
+
+		if(argc < 2){
+			gui_status("usage: [range]!cmd");
+			return;
+		}
+
+		/* FIXME: more than one arg.. herpaderp */
+		l = pipe_readwrite(argv[1], buffer_gethead(global_buffer));
+
+		if(l){
+			if(l->data){
+				buffer_replace(global_buffer, l);
+				buffer_modified(global_buffer) = 1;
+			}else{
+				list_free(l);
+				gui_status("%s: no output", argv[1]);
+			}
+		}else{
+			gui_status("pipe_readwrite() error: %s", strerror(errno));
+		}
 		return;
 	}
 
-	for(i = 0; i < argc - 1; i++)
-		argv[i][strlen(argv[i])] = ' ';
+	ARGV_TO_CMD();
 
-	shellout(argv[0] + 1);
+	shellout(argv[1], NULL);
 }
 
-void cmd_e(int argc, char **argv, struct range *rng)
+void cmd_e(int argc, char **argv, int force, struct range *rng)
 {
-	int force = 0;
-
 	if(argc != 2){
-usage:
 		gui_status("usage: e[!] fname");
 		return;
 	}
-
-	if(!strcmp(argv[0], "e!"))
-		force = 1;
-	else if(strcmp(argv[0], "e"))
-		goto usage;
 
 	if(!force && buffer_modified(global_buffer)){
 		gui_status("unsaved");
 	}else{
 		buffer_free(global_buffer);
-		readfile(argv[1], 0);
+		global_buffer = readfile(argv[1], 0);
 		gui_clip();
 	}
 }
 
-void cmd_set(int argc, char **argv, struct range *rng)
+void cmd_new(int argc, char **argv, int force, struct range *rng)
+{
+	if(argc != 1)
+		gui_status("usage: new[!]");
+}
+
+void cmd_set(int argc, char **argv, int force, struct range *rng)
 {
 	enum vartype type = 0;
 	int i;
@@ -295,11 +231,17 @@ void cmd_set(int argc, char **argv, struct range *rng)
 
 	if(argc == 1){
 		/* set dump */
+
 		do
-			gui_status_add("%s: %d", vars_tostring(type), *vars_get(type, global_buffer));
+			if(vars_isbool(type))
+				gui_status_add("%s: %s", vars_tostring(type), *vars_get(type, global_buffer) ? "true" : "false");
+			else
+				gui_status_add("%s: %d", vars_tostring(type), *vars_get(type, global_buffer));
 		while(++type != VARS_UNKNOWN);
+
 		gui_status("any key to continue...");
 		gui_anykey();
+		gui_status("");
 		return;
 	}
 
@@ -333,14 +275,16 @@ void cmd_set(int argc, char **argv, struct range *rng)
 	}
 }
 
-void readfile(const char *filename, int ro)
+buffer_t *readfile(const char *filename, int ro)
 {
+	buffer_t *b = NULL;
+
 	if(filename){
-		int nread = buffer_read(&global_buffer, filename);
+		int nread = buffer_read(&b, filename);
 
 		if(nread == -1){
-			global_buffer = buffer_new_empty();
-			buffer_setfilename(global_buffer, filename);
+			b = buffer_new_empty();
+			buffer_setfilename(b, filename);
 
 			if(errno != ENOENT)
 				/*
@@ -355,30 +299,41 @@ void readfile(const char *filename, int ro)
 		}else{
 			/* end up here on successful read */
 			if(ro)
-				buffer_readonly(global_buffer) = 1;
+				buffer_readonly(b) = 1;
 
 			if(nread == 0)
-				gui_status("(empty file)%s", buffer_readonly(global_buffer) ? " [read only]" : "");
+				gui_status("(empty file)%s", buffer_readonly(b) ? " [read only]" : "");
 			else
 				gui_status("%s%s: %dC, %dL%s", filename,
-						buffer_readonly(global_buffer) ? " [read only]" : "",
-						buffer_nchars(global_buffer), buffer_nlines(global_buffer),
-						buffer_eol(global_buffer) ? "" : " [noeol]");
+						buffer_readonly(b) ? " [read only]" : "",
+						buffer_nchars(b), buffer_nlines(b),
+						buffer_eol(b) ? "" : " [noeol]");
 		}
 	}else{
 newfile:
 		/* new file */
-		global_buffer = buffer_new_empty();
+		b = buffer_new_empty();
 		gui_status("(new file)");
 	}
+	return b;
 }
 
-void shellout(const char *cmd)
+void shellout(const char *cmd, struct list *l)
 {
 	int ret;
 
 	gui_term();
-	ret = system(cmd);
+
+	if(l){
+		if(pipe_write(cmd, l) == -1){
+			int e = errno;
+			gui_init();
+			gui_status("pipe error: %s", strerror(e));
+			return;
+		}
+		ret = 0;
+	}else
+		ret = system(cmd);
 
 	if(ret == -1)
 		perror("system()");
@@ -400,7 +355,7 @@ void command_run(char *in)
 	static const struct
 	{
 		const char *nam;
-		void (*f)(int argc, char **argv, struct range *rng);
+		void (*f)(int argc, char **argv, int force, struct range *rng);
 	} funcs[] = {
 #define CMD(x) { #x, cmd_##x }
 		{ "!", cmd_bang },
@@ -417,10 +372,11 @@ void command_run(char *in)
 	char *s, *iter;
 	char **argv;
 	int argc;
+	int force = 0;
 	int found = 0;
 	int i;
 
-	lim.start = global_y;
+	lim.start = gui_y();
 	lim.end		= buffer_nlines(global_buffer);
 
 	s = parserange(in, &rng, &lim);
@@ -430,7 +386,7 @@ void command_run(char *in)
 		return;
 	}else if(HAVE_RANGE && *s == '\0'){
 		/* just a number, move to that line */
-		global_y = rng.start - 1; /* -1, because they enter between 1 & $ */
+		gui_move(rng.start - 1, gui_x());
 		return;
 	}
 
@@ -439,22 +395,29 @@ void command_run(char *in)
 
 	argc = 1;
 	for(iter = s; *iter; iter++)
-		if(*iter == ' ' && (iter > s ? iter[-1] != '\\' : 1))
+		if((*iter == ' ' || (!found && *iter == '!')) && (iter > s ? iter[-1] != '\\' : 1)){
 			argc++;
+			found = 1;
+		}
 
 	argv = umalloc(sizeof(*argv) * argc);
 	argv[0] = s;
-
-	i = 1;
+i = 1;
 	for(iter = s; *iter; iter++)
 		if(*iter == ' ' && (iter > s ? iter[-1] != '\\' : 1)){
 			argv[i++] = iter + 1;
 			*iter = '\0';
 		}
 
+	i = strlen(argv[0]);
+	if(argv[0][0] != '!' && argv[0][i-1] == '!'){
+		argv[0][i-1] = '\0';
+		force = 1;
+	}
+
 	for(i = 0; i < LEN(funcs); i++)
 		if(!strncmp(s, funcs[i].nam, strlen(funcs[i].nam))){
-			funcs[i].f(argc, argv, &rng);
+			funcs[i].f(argc, argv, force, &rng);
 			found = 1;
 			break;
 		}
@@ -465,7 +428,7 @@ void command_run(char *in)
 		gui_status("not an editor command: \"%s\"", s);
 }
 
-void command_dumpbuffer(buffer_t *b)
+void dumpbuffer(buffer_t *b)
 {
 	char dump_postfix[] = "_dump_a";
 	FILE *f;

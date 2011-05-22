@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "alloc.h"
+#include "../main.h"
 
 void *umalloc(size_t s)
 {

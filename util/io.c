@@ -7,6 +7,7 @@
 
 #include "alloc.h"
 #include "io.h"
+#include "../main.h"
 
 #define BUFFER_SIZE 128
 /* nearest 2^n, st > 80 */

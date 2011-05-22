@@ -1,18 +1,27 @@
 #ifndef GUI_H
 #define GUI_H
 
-int  gui_init();
-void gui_term();
+int  gui_init(void);
+void gui_term(void);
+int  gui_main(const char *filename, char readonly);
+
+int gui_x(void);
+int gui_y(void);
+int gui_max_x(void);
+int gui_max_y(void);
+int gui_top(void);
 
 void gui_addch(int c);
 void gui_mvaddch(int y, int x, int c);
 
 int gui_getstr(char *s, int size);
-int gui_getch();
-int gui_anykey();
+int gui_getch(void);
+int gui_anykey(void);
 
 void gui_status( const char *, ...);
 void gui_statusl(const char *, va_list);
+void gui_status_addl(const char *s, va_list l);
+void gui_status_add(const char *s, ...);
 
 void gui_clrtoeol(void);
 
@@ -35,7 +44,8 @@ enum scroll
 void gui_drawbuffer(buffer_t *b);
 
 int  gui_scroll(enum scroll);
-void gui_move(struct motion *);
+void gui_move(int y, int x);
+void gui_move_motion(struct motion *);
 void gui_clip(void);
 
 void gui_redraw(void);

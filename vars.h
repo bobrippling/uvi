@@ -15,7 +15,7 @@ enum vartype
 	VARS_UNKNOWN
 } vars_gettype(const char *);
 
-int vars_set(enum vartype, buffer_t *, int);
+void vars_set(enum vartype, buffer_t *, int);
 
 int vars_isbuffervar(enum vartype);
 int vars_isbool(enum vartype);

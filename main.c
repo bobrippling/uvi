@@ -3,11 +3,14 @@
 #include <signal.h>
 #include <locale.h>
 #include <string.h>
+#include <stdarg.h>
 
 #include "main.h"
 #include "range.h"
 #include "buffer.h"
 #include "global.h"
+#include "gui/motion.h"
+#include "gui/gui.h"
 
 static void usage(const char *);
 

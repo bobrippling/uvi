@@ -20,9 +20,9 @@ clean:
 # :r!for d in . util gui; do cc -MM $d/*.c | sed "s;^[^ \t];$d/&;"; done
 ./buffer.o: buffer.c util/alloc.h range.h buffer.h util/list.h util/io.h
 ./command.o: command.c range.h buffer.h command.h util/list.h vars.h \
- util/alloc.h util/pipe.h global.h
+ util/alloc.h util/pipe.h global.h gui/motion.h gui/gui.h
 ./global.o: global.c range.h buffer.h global.h
-./main.o: main.c main.h range.h buffer.h global.h
+./main.o: main.c main.h range.h buffer.h global.h gui/motion.h gui/gui.h
 ./range.o: range.c range.h
 ./vars.o: vars.c util/alloc.h range.h buffer.h vars.h global.h
 util/alloc.o: util/alloc.c util/alloc.h
@@ -31,7 +31,7 @@ util/list.o: util/list.c util/list.h util/alloc.h
 util/pipe.o: util/pipe.c util/list.h util/io.h util/pipe.h util/alloc.h
 gui/base.o: gui/base.c gui/../range.h gui/../buffer.h gui/../command.h \
  gui/../util/list.h gui/../global.h gui/motion.h gui/../util/alloc.h \
- gui/gui.h gui/marks.h
+ gui/gui.h gui/marks.h gui/../main.h
 gui/gui.o: gui/gui.c gui/../range.h gui/../util/list.h gui/../buffer.h \
  gui/motion.h gui/gui.h gui/../global.h gui/../config.h
 gui/marks.o: gui/marks.c gui/marks.h
