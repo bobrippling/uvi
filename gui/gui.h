@@ -4,6 +4,9 @@
 int  gui_init();
 void gui_term();
 
+void gui_addch(int c);
+void gui_mvaddch(int y, int x, int c);
+
 int gui_getstr(char *s, int size);
 int gui_getch();
 

@@ -104,6 +104,23 @@ restart:
 	return c;
 }
 
+int gui_getstr(char *s, int size)
+{
+	/*return getnstr(s, size) == OK ? 0 : 1;*/
+	while(size > 0){
+		int c = gui_getch();
+
+		if(c == EOF)
+			return 1;
+		else if(c == '\n')
+			return 0;
+
+		*s++ = c;
+		size--;
+		gui_addch(c);
+	}
+}
+
 void gui_refresh()
 {
 	struct list *l;
@@ -127,6 +144,12 @@ void gui_refresh()
 	refresh();
 }
 
+void gui_mvaddch(int y, int x, int c)
+{
+	move(y, x);
+	gui_addch(c);
+}
+
 void gui_addch(int c)
 {
 	if(c == '\t'){
@@ -140,11 +163,6 @@ void gui_addch(int c)
 		}
 	}else
 		addch(c);
-}
-
-int gui_getstr(char *s, int size)
-{
-	return getnstr(s, size) == OK ? 0 : 1;
 }
 
 void gui_move(struct motion *m)

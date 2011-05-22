@@ -72,7 +72,7 @@ static int search(int next)
 		}
 	}
 
-	gui_addch(global_max_y, 0, '/');
+	gui_mvaddch(global_max_y, 0, '/');
 	while(!done){
 		if((searchstr[i] = gui_getch()) == EOF)
 			done = 1; /* TODO: return to initial position */
@@ -81,7 +81,7 @@ static int search(int next)
 			int y;
 
 			/* FIXME: check for backspace */
-			gui_addch(global_max_y, strlen(searchstr), searchstr[i++]);
+			gui_mvaddch(global_max_y, strlen(searchstr), searchstr[i++]);
 
 			/* TODO: allow SIGINT to stop search */
 			if((pos = strchr(searchstr, '\n'))){

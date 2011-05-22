@@ -79,7 +79,7 @@ int getmotion(struct motion *m)
 
 			case '\'':
 				c = gui_getch();
-				if(validmark(c)){
+				if(mark_valid(c)){
 					if(mark_isset(c)){
 						m->motion = MOTION_MARK;
 						m->extra = c;
