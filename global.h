@@ -15,4 +15,6 @@ extern buffer_t *global_buffer;
 extern int global_top, global_y, global_x;
 extern int global_max_x, global_max_y;
 
+extern int global_running;
+
 #endif

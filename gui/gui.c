@@ -19,6 +19,14 @@ typedef struct
 
 #include "../config.h"
 
+static int clip_x();
+
+static void sigwinch(int sig)
+{
+	(void)sig;
+	getmaxyx(stdscr, global_max_y, global_max_x);
+}
+
 int gui_init()
 {
 	static char init = 0;
@@ -30,6 +38,7 @@ int gui_init()
 		noecho();
 		cbreak();
 		raw(); /* use raw() to intercept ^C, ^Z */
+		scrollok(stdscr, TRUE);
 
 		nonl();
 		intrflush(stdscr, FALSE);
@@ -48,7 +57,8 @@ int gui_init()
 			init_pair(COLOR_YELLOW,  COLOR_YELLOW,  -1);
 		}
 
-		getmaxyx(stdscr, global_max_y, global_max_x);
+		signal(SIGWINCH, sigwinch);
+		sigwinch(SIGWINCH);
 	}
 
 	refresh();
@@ -62,9 +72,9 @@ void gui_term()
 
 void gui_statusl(const char *s, va_list l)
 {
-	move(global_max_y, 0);
+	move(global_max_y - 1, 0);
+	gui_clrtoeol();
 
-	clrtoeol();
 #ifdef VIEW_COLOUR
 	if(global_settings.colour)
 		coloron(COLOR_RED);
@@ -84,19 +94,30 @@ void gui_status(const char *s, ...)
 	va_end(l);
 }
 
+void gui_status_addl(const char *s, va_list l)
+{
+	move(global_max_y - 1, 0);
+	vwprintw(stdscr, s, l);
+	scrl(1);
+}
+
+void gui_status_add(const char *s, ...)
+{
+	va_list l;
+	va_start(l, s);
+	gui_status_addl(s, l);
+	va_end(l);
+}
+
 int gui_getch()
 {
 	int c;
 
-restart:
-	switch(read(0, &c, 1)){
-		case -1:
-			if(errno == EINTR)
-				goto restart;
-			die("read()");
-		case 0:
-			return EOF;
-	}
+	refresh();
+
+	/* XXX: don't use read(), we need C's buffered i/o for ungetch() */
+	/* FIXME: check for EINTR? */
+	c = getch();
 
 	if(c == CTRL_AND('c'))
 		raise(SIGINT);
@@ -104,24 +125,62 @@ restart:
 	return c;
 }
 
+int gui_anykey()
+{
+	int c = gui_getch();
+	ungetch(c);
+	return c;
+}
+
+void gui_clrtoeol()
+{
+	clrtoeol();
+}
+
 int gui_getstr(char *s, int size)
 {
+	char *const start = s;
 	/*return getnstr(s, size) == OK ? 0 : 1;*/
 	while(size > 0){
-		int c = gui_getch();
+		int c;
 
-		if(c == EOF)
-			return 1;
-		else if(c == '\n')
-			return 0;
+		c = gui_getch();
 
-		*s++ = c;
-		size--;
-		gui_addch(c);
+		switch(c){
+			case EOF:
+				return 1;
+
+			case '\n':
+			case '\r':
+				*s = '\n';
+				return 0;
+
+			/* TODO: ^U, ^W, etc */
+
+			case '\b':
+			case '\177':
+				if(s > start){
+					s--;
+					size++;
+					gui_addch('\b');
+					break;
+				}
+				/* else fall through */
+
+			case CTRL_AND('['):
+				*start = '\0';
+				return 0;
+
+
+			default:
+				*s++ = c;
+				size--;
+				gui_addch(c);
+		}
 	}
 }
 
-void gui_refresh()
+void gui_redraw()
 {
 	struct list *l;
 	int y;
@@ -137,7 +196,7 @@ void gui_refresh()
 		addch('\n');
 	}
 
-	for(; y < global_max_y; y++)
+	for(; y < global_max_y - 1; y++)
 		addstr("~\n");
 
 	move(global_y - global_top, global_x);
@@ -169,13 +228,28 @@ void gui_move(struct motion *m)
 {
 	struct bufferpos bp;
 	struct screeninfo si;
+	int x = global_x, y = global_y;
 
-	bp.x = &global_x;
-	bp.y = &global_y;
-	si.top = global_top;
+	bp.x      = &x;
+	bp.y      = &y;
+	si.top    = global_top;
 	si.height = global_max_y;
 
-	applymotion(m, &bp, &si);
+	if(!applymotion(m, &bp, &si)){
+		global_x = x;
+		global_y = y;
+		gui_clip();
+	}
+}
+
+void gui_clip()
+{
+	int nl = buffer_nlines(global_buffer);
+
+	if(global_y > nl - 1)
+		global_y = nl - 1;
+
+	clip_x();
 }
 
 void gui_cursor(int x, int y)

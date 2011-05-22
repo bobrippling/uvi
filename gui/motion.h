@@ -32,6 +32,8 @@ enum motiontype
 
 	MOTION_FIND             = 'f',
 	MOTION_TIL              = 't',
+
+	MOTION_NOMOVE           =  0 /* used for dd, cc and x */
 };
 
 struct motion

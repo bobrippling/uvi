@@ -9,9 +9,12 @@ void gui_mvaddch(int y, int x, int c);
 
 int gui_getstr(char *s, int size);
 int gui_getch();
+int gui_anykey();
 
 void gui_status( const char *, ...);
 void gui_statusl(const char *, va_list);
+
+void gui_clrtoeol(void);
 
 enum scroll
 {
@@ -33,8 +36,9 @@ void gui_drawbuffer(buffer_t *b);
 
 int  gui_scroll(enum scroll);
 void gui_move(struct motion *);
+void gui_clip(void);
 
-void gui_refresh(void);
+void gui_redraw(void);
 
 #define CTRL_AND(c)  ((c) & 037)
 

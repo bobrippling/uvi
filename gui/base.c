@@ -3,17 +3,6 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <limits.h>
-#if 0
-#include <ctype.h>
-#include <sys/types.h>
-#include <signal.h>
-#include <setjmp.h>
-#include <unistd.h>
-#include <sys/wait.h>
-
-#include "../main.h"
-#include "../vars.h"
-#endif
 
 #include "../range.h"
 #include "../buffer.h"
@@ -28,8 +17,6 @@
 #define iswordchar(c) (isalnum(c) || c == '_')
 #define REPEAT_FUNC(nam) static void nam(unsigned int)
 
-static void sigh(int);
-
 /* text altering */
 static void open(int); /* as in, 'o' & 'O' */
 static void shift(unsigned int, int);
@@ -38,7 +25,6 @@ static void insert(int insert /* bool */);
 REPEAT_FUNC(join);
 REPEAT_FUNC(tilde);
 REPEAT_FUNC(replace);
-static void shellout(const char *cmd);
 
 /* extra */
 static int  colon(void);
@@ -249,8 +235,9 @@ static void showpos()
 
 	gui_status("\"%s\"%s %d/%d %.2f%%",
 			buffer_filename(global_buffer),
-			buffer_modified(global_buffer) ? " [Modified]" : "", 1 + global_x,
-			i, 100.0f * (float)(1 + global_y) /(float)i);
+			buffer_modified(global_buffer) ? " [Modified]" : "",
+			1 + global_y, i,
+			100.0f * (float)(1 + global_y) /(float)i);
 }
 
 int qfunc(const char *s, ...)
@@ -264,28 +251,6 @@ int qfunc(const char *s, ...)
 
 	c = gui_getch();
 	return c == '\n' || tolower(c) == 'y';
-}
-
-static void shellout(const char *cmd)
-{
-	int ret;
-
-	gui_term();
-	ret = system(cmd);
-
-	if(ret == -1)
-		perror("system()");
-	else if(WEXITSTATUS(ret))
-		printf("%s returned %d\n", cmd, WEXITSTATUS(ret));
-
-	fputs("Press enter to continue...", stdout);
-	fflush(stdout);
-	ret = getchar();
-
-	if(ret != '\n' && ret != EOF)
-		while((ret = getchar()) != '\n' && ret != EOF);
-
-	gui_init();
 }
 
 static void wrongfunc(void)
@@ -453,27 +418,21 @@ static int colon()
 #define BUF_SIZE 128
 	char in[BUF_SIZE];
 	int ret;
-	extern int max_y;
 
-	mvaddch(global_max_y, 0, ':');
+	gui_mvaddch(global_max_y - 1, 0, ':');
+	gui_clrtoeol();
 
-	if(!gui_getstr(in, BUF_SIZE)){
+	if(!gui_getstr(in, sizeof in)){
 		char *c = strchr(in, '\n');
 
 		if(c)
 			*c = '\0';
 
-		return command_run(in);
+		command_run(in);
 	}
 
 	return 1;
 #undef BUF_SIZE
-}
-
-static void sigh(int sig)
-{
-	gui_term();
-	exit(127 + sig);
 }
 
 static char iseditchar(int c)
@@ -500,47 +459,6 @@ static char iseditchar(int c)
 	}
 	return 0;
 }
-
-void readfile(const char *filename, int forcereadonly)
-{
-	if(filename){
-		int nread = buffer_read(&global_buffer, filename);
-
-		if(nread == -1){
-			global_buffer = buffer_new_empty();
-			buffer_setfilename(global_buffer, filename);
-
-			if(errno != ENOENT)
-				/*
-				 * end up here on failed read:
-				 * open empty file and continue
-				 */
-				gui_status("\"%s\" [%s]", filename, errno ? strerror(errno) : "unknown error - binary file?");
-			else
-				/* something like "./uvi file_that_doesn\'t_exist */
-				goto newfile;
-
-		}else{
-			/* end up here on successful read */
-			if(forcereadonly)
-				buffer_readonly(global_buffer) = 1;
-
-			if(nread == 0)
-				gui_status("(empty file)%s", buffer_readonly(global_buffer) ? " [read only]" : "");
-			else
-				gui_status("%s%s: %dC, %dL%s", filename,
-						buffer_readonly(global_buffer) ? " [read only]" : "",
-						buffer_nchars(global_buffer), buffer_nlines(global_buffer),
-						buffer_eol(global_buffer) ? "" : " [noeol]");
-		}
-	}else{
-newfile:
-		/* new file */
-		global_buffer = buffer_new_empty();
-		gui_status("(new file)");
-	}
-}
-
 
 int gui_main(const char *filename, char readonly)
 {
@@ -569,14 +487,9 @@ int gui_main(const char *filename, char readonly)
 			 * cursor must be updated before
 			 * the pad is refreshed
 			 */
-			gui_refresh();
+			gui_redraw();
 			viewchanged = 0;
 		}
-		/*
-		 * view.c handles cursor positioning
-		 * either way, cursor placement should be _before_
-		 * view_refreshpad
-		 */
 
 #define INC_MULTIPLE() \
 				do \
@@ -607,9 +520,7 @@ switch_start:
 
 		switch(c){
 			case ':':
-				if(!colon())
-					goto exit_while;
-
+				colon();
 				/* need to view_refresh_or_whatever() */
 				bufferchanged = 1;
 				break;
@@ -671,8 +582,7 @@ switch_start:
 				c = gui_getch();
 				if(c == 'd' || c == 'c'){
 					/* allow dd or cc (or dc or cd... but yeah) */
-					SET_MOTION(MOTION_DOWN);
-					motion.ntimes--;
+					SET_MOTION(MOTION_NOMOVE);
 				}else{
 					ungetch(c);
 					if(getmotion(&motion))
@@ -780,17 +690,18 @@ case_i:
 				else{
 					ungetch(c);
 					motion.ntimes = multiple;
-					if(!getmotion(&motion))
+					if(!getmotion(&motion)){
 						gui_move(&motion);
+						viewchanged = 1;
+					}
 				}
 		}
 
 		if(resetmultiple)
 			multiple = 0;
-	}while(1);
+	}while(global_running);
 
 exit_while:
-
 	gui_term();
 fin:
 	buffer_free(global_buffer);

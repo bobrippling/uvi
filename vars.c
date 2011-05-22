@@ -8,74 +8,49 @@
 #include "vars.h"
 #include "global.h"
 
-#define S_READONLY     "ro"
-#define S_MODIFIED     "modified"
-#define S_EOL          "eol"
-#define S_TABSTOP      "ts"
-#define S_SHOWTABS     "st"
-#define S_AUTOINDENT   "ai"
-#if VIEW_COLOUR
-#define S_COLOUR       "colour"
-#endif
+#define LEN(x) (sizeof(x) / sizeof(x[0]))
+
+static struct
+{
+	const char *nam;
+	int isbool;
+	int *val;
+} vars[] = {
+	[VARS_READONLY]   = { "ro",       1, NULL },
+	[VARS_MODIFIED]   = { "modified", 1, NULL },
+	[VARS_EOL]        = { "eol",      1, NULL },
+	[VARS_TABSTOP]    = { "ts",       0, &global_settings.tabstop },
+	[VARS_SHOWTABS]   = { "st",       1, &global_settings.showtabs },
+	[VARS_AUTOINDENT] = { "ai",       1, &global_settings.autoindent },
+};
 
 int vars_set(enum vartype t, buffer_t *b, int v)
 {
-	int *p = vars_bufferget(t, b);
-	if(!p){
-		p = vars_settingget(t);
-		if(!p)
-			return 0;
-	}
+	int *p = vars_get(t, b);
 
 	*p = v;
-
 	if(t == VARS_EOL)
 		buffer_modified(b) = 1;
 
 	return 1;
 }
 
-int vars_isbool(enum vartype v)
+int vars_isbool(enum vartype t)
 {
-	switch(v){
-		case VARS_READONLY:
-		case VARS_MODIFIED:
-		case VARS_EOL:
-		case VARS_SHOWTABS:
-		case VARS_AUTOINDENT:
-#if VIEW_COLOUR
-		case VARS_COLOUR:
-			return 1;
-#endif
-		case VARS_TABSTOP:
-			return 0;
-		case VARS_UNKNOWN:
-			break;
-	}
-	return -1;
+	return vars[t].isbool;
 }
 
 int vars_isbuffervar(enum vartype t)
 {
-	switch(t){
-	 case VARS_READONLY:
-		case VARS_MODIFIED:
-		case VARS_EOL:
-			return 1;
-		case VARS_UNKNOWN:
-		case VARS_TABSTOP:
-		case VARS_SHOWTABS:
-		case VARS_AUTOINDENT:
-#if VIEW_COLOUR
-		case VARS_COLOUR:
-#endif
-			break;
-	}
-	return 0;
+	return !vars[t].val;
 }
 
-int *vars_bufferget(enum vartype t, buffer_t *b)
+int *vars_get(enum vartype t, buffer_t *b)
 {
+	int *p = vars[t].val;
+	if(p)
+		return p;
+
 	switch(t){
 		case VARS_READONLY:
 			return &buffer_readonly(b);
@@ -83,13 +58,8 @@ int *vars_bufferget(enum vartype t, buffer_t *b)
 			return &buffer_modified(b);
 		case VARS_EOL:
 			return &buffer_eol(b);
-		case VARS_SHOWTABS:
-		case VARS_TABSTOP:
-		case VARS_AUTOINDENT:
-#if VIEW_COLOUR
-		case VARS_COLOUR:
-#endif
-		case VARS_UNKNOWN:
+
+		default:
 			break;
 	}
 	return NULL;
@@ -97,81 +67,19 @@ int *vars_bufferget(enum vartype t, buffer_t *b)
 
 int *vars_settingget(enum vartype t)
 {
-	extern struct settings global_settings;
-
-	switch(t){
-		case VARS_TABSTOP:
-			return &global_settings.tabstop;
-
-		case VARS_SHOWTABS:
-			return &global_settings.showtabs;
-
-		case VARS_AUTOINDENT:
-			return &global_settings.autoindent;
-
-#if VIEW_COLOUR
-		case VARS_COLOUR:
-			return &global_settings.colour;
-#endif
-
-		case VARS_READONLY:
-		case VARS_MODIFIED:
-		case VARS_EOL:
-		case VARS_UNKNOWN:
-			break;
-	}
-	return NULL;
+	return vars[t].val;
 }
 
-int *vars_get(enum vartype t, buffer_t *b)
+const char *vars_tostring(enum vartype t)
 {
-	int *p = vars_bufferget(t, b);
-	if(!p)
-		return vars_settingget(t);
-	return p;
-}
-
-const char *vars_tostring(enum vartype v)
-{
-	switch(v){
-		case VARS_SHOWTABS:
-			return S_SHOWTABS;
-		case VARS_READONLY:
-			return S_READONLY;
-		case VARS_MODIFIED:
-			return S_MODIFIED;
-		case VARS_EOL:
-			return S_EOL;
-		case VARS_TABSTOP:
-			return S_TABSTOP;
-		case VARS_AUTOINDENT:
-			return S_AUTOINDENT;
-#if VIEW_COLOUR
-		case VARS_COLOUR:
-			return S_COLOUR;
-#endif
-		case VARS_UNKNOWN:
-			break;
-	}
-	return NULL;
+	return vars[t].nam;
 }
 
 enum vartype vars_gettype(const char *s)
 {
-	if(!strcmp(S_READONLY, s))
-		return VARS_READONLY;
-	else if(!strcmp(S_SHOWTABS, s))
-		return VARS_SHOWTABS;
-	else if(!strcmp(S_MODIFIED, s))
-		return VARS_MODIFIED;
-	else if(!strcmp(S_EOL, s))
-		return VARS_EOL;
-	else if(!strcmp(S_TABSTOP, s))
-		return VARS_TABSTOP;
-#if VIEW_COLOUR
-	else if(!strcmp(S_COLOUR, s))
-		return VARS_COLOUR;
-#endif
-
+	int i;
+	for(i = 0; i < LEN(vars); i++)
+		if(vars[i].nam && !strcmp(vars[i].nam, s))
+			return i;
 	return VARS_UNKNOWN;
 }

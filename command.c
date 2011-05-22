@@ -19,7 +19,7 @@
 
 #define LEN(x) (sizeof(x) / sizeof(x[0]))
 
-int cmd_r(int argc, char **argv, struct range *rng)
+void cmd_r(int argc, char **argv, struct range *rng)
 {
 #if 0
 	if(s[1] == '!'){
@@ -95,7 +95,7 @@ int cmd_r(int argc, char **argv, struct range *rng)
 #endif
 }
 
-int cmd_w(int argc, char **argv, struct range *rng)
+void cmd_w(int argc, char **argv, struct range *rng)
 {
 	/* brace for spaghetti */
 	char bail = 0, edit = 0, *fname;
@@ -220,143 +220,249 @@ vars_fname:
 
 	s[1] = '\0';
 #endif
+	gui_status("TODO :w");
 }
 
 
-int cmd_q(int argc, char **argv, struct range *rng)
+void cmd_q(int argc, char **argv, struct range *rng)
 {
-#if 0
-	if(flag)
-		return 0;
-
-	if(HAVE_RANGE || strlen(s) > 2)
-		wrongfunc();
-	else{
-		switch(s[1]){
-			case '\0':
-				if(buffer_modified(buffer)){
-					pfunc("unsaved");
-					break;
-				}
-			case '!':
-				return 0;
-
-			default:
-				wrongfunc();
-		}
-	}
-	break;
-#endif
-}
-
-int cmd_bang(int argc, char **argv, struct range *rng)
-{
-#if 0
-	case '!':
-		if(HAVE_RANGE)
-			wrongfunc();
-		else{
-			if(!strcmp(s+1, "!"))
-				if(prevcmd)
-					shellout(prevcmd);
-				else
-					pfunc("no previous command");
-			else if(s[1] == '\0')
-				shellout("sh");
-			else{
-				free(prevcmd);
-				prevcmd = umalloc(strlen(s));
-				strcpy(prevcmd, s+1);
-				shellout(s + 1);
-			}
-		}
-		break;
-#endif
-}
-
-int cmd_e(int argc, char **argv, struct range *rng)
-{
-#if 0
-	char force = 0, *fname = s + 1;
-
-	if(s[1] == '!'){
-		fname = s + 2;
-		force = 1;
+	if(argc != 1 || rng->start != -1 || rng->end != -1){
+usage:
+		gui_status("usage: q[!]");
+		return;
 	}
 
-	while(isspace(*fname))
-		fname++;
-
-	if(!force && buffer_modified(buffer))
-		pfunc("unsaved");
-	else{
-		buffer_free(buffer);
-		if(strlen(fname))
-			buffer = command_readfile(fname, 0, pfunc);
-		else{
-			buffer = newemptybuffer();
-			pfunc("new empty buffer");
-		}
-
-		/*if(*y >= (nlines = buffer_nlines(buffer)))
-			*y = nlines - 1;*/
-		*y = 0;
-	}
-#endif
+	if(!strcmp(argv[0], "q!"))
+		global_running = 0;
+	else if(!strcmp(argv[0], "q"))
+		if(buffer_modified(global_buffer))
+			gui_status("unsaved");
+		else
+			global_running = 0;
+	else
+		goto usage;
 }
 
-int command_run(char *in)
+void cmd_bang(int argc, char **argv, struct range *rng)
 {
-#define HAVE_RANGE (s > in)
-	struct range lim, rng;
-	char *s, *iter, *last;
-	char **argv;
-	int argc;
 	int i;
-	struct
+
+	if(rng->start != -1 || rng->end != -1){
+		gui_status("TODO: :<range>!...");
+		return;
+	}
+
+	for(i = 0; i < argc - 1; i++)
+		argv[i][strlen(argv[i])] = ' ';
+
+	shellout(argv[0] + 1);
+}
+
+void cmd_e(int argc, char **argv, struct range *rng)
+{
+	int force = 0;
+
+	if(argc != 2){
+usage:
+		gui_status("usage: e[!] fname");
+		return;
+	}
+
+	if(!strcmp(argv[0], "e!"))
+		force = 1;
+	else if(strcmp(argv[0], "e"))
+		goto usage;
+
+	if(!force && buffer_modified(global_buffer)){
+		gui_status("unsaved");
+	}else{
+		buffer_free(global_buffer);
+		readfile(argv[1], 0);
+		gui_clip();
+	}
+}
+
+void cmd_set(int argc, char **argv, struct range *rng)
+{
+	enum vartype type = 0;
+	int i;
+
+	if(strcmp(argv[0], "set")){
+		gui_status("usage: set var [value]");
+		return;
+	}
+
+
+	if(argc == 1){
+		/* set dump */
+		do
+			gui_status_add("%s: %d", vars_tostring(type), *vars_get(type, global_buffer));
+		while(++type != VARS_UNKNOWN);
+		gui_status("any key to continue...");
+		gui_anykey();
+		return;
+	}
+
+	for(i = 1; i < argc; i++){
+		char *wordstart;
+		int bool, gotbool = 0;
+
+		if(!strncmp(wordstart = argv[1], "no", 2)){
+			bool = 0;
+			wordstart += 2;
+			gotbool = 1;
+		}else
+			bool = 1;
+
+		if((type = vars_gettype(wordstart)) == VARS_UNKNOWN){
+			gui_status("unknown variable \"%s\"", wordstart);
+			return;
+		}
+
+		if(vars_isbool(type)){
+			vars_set(type, global_buffer, bool);
+		}else if(gotbool){
+			gui_status("\"%s\" is not a bool", vars_tostring(type));
+			return;
+		}else{
+			if(++i == argc)
+				gui_status("need value for \"%s\"", vars_tostring(type));
+			else
+				vars_set(type, global_buffer, atoi(argv[i]));
+		}
+	}
+}
+
+void readfile(const char *filename, int ro)
+{
+	if(filename){
+		int nread = buffer_read(&global_buffer, filename);
+
+		if(nread == -1){
+			global_buffer = buffer_new_empty();
+			buffer_setfilename(global_buffer, filename);
+
+			if(errno != ENOENT)
+				/*
+				 * end up here on failed read:
+				 * open empty file and continue
+				 */
+				gui_status("\"%s\" [%s]", filename, errno ? strerror(errno) : "unknown error - binary file?");
+			else
+				/* something like "./uvi file_that_doesn\'t_exist */
+				goto newfile;
+
+		}else{
+			/* end up here on successful read */
+			if(ro)
+				buffer_readonly(global_buffer) = 1;
+
+			if(nread == 0)
+				gui_status("(empty file)%s", buffer_readonly(global_buffer) ? " [read only]" : "");
+			else
+				gui_status("%s%s: %dC, %dL%s", filename,
+						buffer_readonly(global_buffer) ? " [read only]" : "",
+						buffer_nchars(global_buffer), buffer_nlines(global_buffer),
+						buffer_eol(global_buffer) ? "" : " [noeol]");
+		}
+	}else{
+newfile:
+		/* new file */
+		global_buffer = buffer_new_empty();
+		gui_status("(new file)");
+	}
+}
+
+void shellout(const char *cmd)
+{
+	int ret;
+
+	gui_term();
+	ret = system(cmd);
+
+	if(ret == -1)
+		perror("system()");
+	else if(WEXITSTATUS(ret))
+		printf("%s returned %d\n", cmd, WEXITSTATUS(ret));
+
+	fputs("Press enter to continue...", stdout);
+	fflush(stdout);
+	ret = getchar();
+
+	if(ret != '\n' && ret != EOF)
+		while((ret = getchar()) != '\n' && ret != EOF);
+
+	gui_init();
+}
+
+void command_run(char *in)
+{
+	static const struct
 	{
 		const char *nam;
-		int (*f)(int argc, char **argv, struct range *rng);
+		void (*f)(int argc, char **argv, struct range *rng);
 	} funcs[] = {
 #define CMD(x) { #x, cmd_##x }
+		{ "!", cmd_bang },
 		CMD(r),
 		CMD(w),
 		CMD(q),
 		CMD(e),
-		{ "!", cmd_bang }
+		CMD(set),
 #undef CMD
 	};
+
+#define HAVE_RANGE (s > in)
+	struct range lim, rng;
+	char *s, *iter;
+	char **argv;
+	int argc;
+	int found = 0;
+	int i;
 
 	lim.start = global_y;
 	lim.end		= buffer_nlines(global_buffer);
 
 	s = parserange(in, &rng, &lim);
 
-	if(!s)
-		return 1;
-	else if(HAVE_RANGE && *s == '\0'){
+	if(!s){
+		gui_status("couldn't parse range");
+		return;
+	}else if(HAVE_RANGE && *s == '\0'){
 		/* just a number, move to that line */
 		global_y = rng.start - 1; /* -1, because they enter between 1 & $ */
-		return 0;
+		return;
 	}
 
-	argc = i = 0;
+	if(!HAVE_RANGE)
+		rng.start = rng.end = -1;
+
+	argc = 1;
 	for(iter = s; *iter; iter++)
-		if(*iter == ' ')
+		if(*iter == ' ' && (iter > s ? iter[-1] != '\\' : 1))
 			argc++;
+
 	argv = umalloc(sizeof(*argv) * argc);
-	for(last = iter = s; *iter; iter++)
-		if(*iter == ' '){
-			argv[i++] = last;
+	argv[0] = s;
+
+	i = 1;
+	for(iter = s; *iter; iter++)
+		if(*iter == ' ' && (iter > s ? iter[-1] != '\\' : 1)){
+			argv[i++] = iter + 1;
 			*iter = '\0';
-			last = iter + 1;
 		}
 
 	for(i = 0; i < LEN(funcs); i++)
-		if(!strncmp(s, funcs[i].nam, strlen(funcs[i].nam)))
-			return funcs[i].f(argc, argv, &rng);
+		if(!strncmp(s, funcs[i].nam, strlen(funcs[i].nam))){
+			funcs[i].f(argc, argv, &rng);
+			found = 1;
+			break;
+		}
 
-	return 1;
+	free(argv);
+
+	if(!found && *s)
+		gui_status("not an editor command: \"%s\"", s);
 }
 
 void command_dumpbuffer(buffer_t *b)
@@ -408,74 +514,4 @@ void command_dumpbuffer(buffer_t *b)
 		}
 		fclose(f);
 	}
-}
-
-static void parse_setget(buffer_t *b, char isset, /* is this "set" or "get"? */
-		char *s, void (*pfunc)(const char *, ...), void (*wrongfunc)(void))
-{
-	if(*s == ' '){
-		if(isalpha(*++s)){
-			char *wordstart = s, bool, tmp;
-			enum vartype type;
-
-			if(!strncmp(wordstart, "no", 2) && isset){
-				bool = 0;
-				wordstart += 2;
-			}else
-				bool = 1;
-
-			while(isalpha(*++s));
-
-			tmp = *s;
-			*s = '\0';
-
-			if((type = vars_gettype(wordstart)) == VARS_UNKNOWN){
-				pfunc("unknown variable");
-				return;
-			}
-
-			switch(tmp){
-				case '\0':
-					if(isset){
-						if(vars_isbool(type))
-							vars_set(type, b, bool);
-						else
-							pfunc("\"%s\" needs an integer value", wordstart);
-					}else
-						pfunc("%s: %d", wordstart, *vars_get(type, b));
-					break;
-
-				case ' ':
-					if(isset){
-						char val = atoi(++s);
-
-						if(!val)
-							pfunc("\"%s\" must be a number > 0", s);
-						else
-							vars_set(type, b, val);
-					}else{
-						int *p = vars_get(type, b);
-						if(p)
-							pfunc("%s: %d");
-						else
-							pfunc("%s: (not set)");
-					}
-					break;
-
-				default:
-					wrongfunc();
-			}
-			return;
-		}
-	}else if(*s == '\0' && !isset){
-		/* set dump */
-		enum vartype t = 0;
-
-		do
-			pfunc("%s: %d\n", vars_tostring(t), *vars_get(t, b));
-		while(++t != VARS_UNKNOWN);
-
-		return;
-	}
-	wrongfunc();
 }
