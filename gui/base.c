@@ -391,13 +391,9 @@ static void join(unsigned int ntimes)
 
 static int colon()
 {
-#define BUF_SIZE 128
-	char in[BUF_SIZE];
+	char in[128];
 
-	gui_mvaddch(gui_max_y() - 1, 0, ':');
-	gui_clrtoeol();
-
-	if(!gui_getstr(in, sizeof in)){
+	if(!gui_prompt(":", in, sizeof in)){
 		char *c = strchr(in, '\n');
 
 		if(c)
@@ -407,7 +403,6 @@ static int colon()
 	}
 
 	return 1;
-#undef BUF_SIZE
 }
 
 static char iseditchar(int c)
@@ -462,6 +457,7 @@ int gui_main(const char *filename, char readonly)
 			 * cursor must be updated before
 			 * the pad is refreshed
 			 */
+			gui_status("at (%d, %d)", gui_x(), gui_y());
 			gui_redraw();
 			viewchanged = 0;
 		}
@@ -657,6 +653,9 @@ case_i:
 				break;
 
 			case CTRL_AND('['):
+				break;
+			case CTRL_AND('l'):
+				gui_redraw();
 				break;
 
 			default:

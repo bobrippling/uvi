@@ -17,6 +17,7 @@ void gui_mvaddch(int y, int x, int c);
 int gui_getstr(char *s, int size);
 int gui_getch(void);
 int gui_anykey(void);
+int gui_prompt(const char *p, char *buf, int siz);
 
 void gui_status( const char *, ...);
 void gui_statusl(const char *, va_list);
@@ -46,8 +47,8 @@ void gui_drawbuffer(buffer_t *b);
 int  gui_scroll(enum scroll);
 void gui_move(int y, int x);
 void gui_move_motion(struct motion *);
-void gui_clip(void);
 
+void gui_clip(void);
 void gui_redraw(void);
 
 #define CTRL_AND(c)  ((c) & 037)

@@ -48,6 +48,7 @@ int main(int argc, const char **argv)
 	signal(SIGINT,  &sigh);
 	signal(SIGTERM, &sigh);
 	signal(SIGQUIT, &sigh);
+	signal(SIGSEGV, &sigh);
 
 	for(i = 1; i < argc; i++)
 		if(argv_options && *argv[i] == '-'){

@@ -189,20 +189,30 @@ int gui_getstr(char *s, int size)
 	return 0;
 }
 
+int gui_prompt(const char *p, char *buf, int siz)
+{
+	move(max_y - 1, 0);
+	gui_clrtoeol();
+	addstr(p);
+	return gui_getstr(buf, siz);
+}
+
+
 void gui_redraw()
 {
 	struct list *l;
 	int y;
 	move(0, 0);
 
-	y = 0;
+	y = pos_y;
 	for(l = buffer_getindex(global_buffer, pos_top);
-			l && y < max_y;
+			l && y < max_y - 1;
 			l = l->next, y++){
 
 		if(strchr(l->data, '\t')){
 			char *p = l->data;
-			while(*p)
+			int i = 0;
+			while(*p && ++i < max_x)
 				gui_addch(*p++);
 		}else
 			addnstr(l->data, max_x);
@@ -212,7 +222,7 @@ void gui_redraw()
 	for(; y < max_y - 1; y++)
 		addstr("~\n");
 
-	gui_move(pos_y, gui_x());
+	gui_move(pos_y, pos_x);
 	refresh();
 }
 
@@ -253,7 +263,7 @@ void gui_move(int y, int x)
 		if(line[x] == '\t')
 			ntabs++;
 
-	move(y, ntabs * (global_settings.showtabs ? 2 : global_settings.tabstop) + x - ntabs);
+	move(y - pos_top, ntabs * (global_settings.showtabs ? 2 : global_settings.tabstop) + x - ntabs);
 }
 
 void gui_move_motion(struct motion *m)
@@ -271,21 +281,24 @@ void gui_move_motion(struct motion *m)
 		gui_move(y, x);
 }
 
-static void gui_clip_x()
-{
-	struct list *l = buffer_getindex(global_buffer, pos_y);
-	if(pos_x > (signed)strlen(l->data))
-		pos_x = strlen(l->data);
-}
-
 void gui_clip()
 {
-	int nl = buffer_nlines(global_buffer);
+	const int nl = buffer_nlines(global_buffer);
+	struct list *l;
 
-	if(pos_y > nl - 1)
-		pos_y = nl - 1;
+	if(pos_top < 0)
+		pos_top = 0;
+	else if(pos_top >= nl)
+		pos_top = nl-1;
 
-	gui_clip_x();
+	if(pos_y > pos_top + max_y - 2) /* -1 for off-by-one, -1 for cmdline */
+		pos_top = pos_y - max_y - 2;
+	else if(pos_y < pos_top)
+		pos_top = pos_y;
+
+	l = buffer_getindex(global_buffer, pos_y);
+	if(pos_x > (signed)strlen(l->data))
+		pos_x = strlen(l->data);
 }
 
 
@@ -297,11 +310,7 @@ int gui_scroll(enum scroll s)
 		case SINGLE_DOWN:
 			if(pos_top < buffer_nlines(global_buffer) - 1){
 				pos_top++;
-
-				if(pos_y <= pos_top){
-					pos_y = pos_top;
-					gui_clip_x();
-				}
+				gui_clip();
 				ret = 1;
 			}
 			break;
@@ -309,50 +318,32 @@ int gui_scroll(enum scroll s)
 		case SINGLE_UP:
 			if(pos_top){
 				pos_top--;
-
-				if(pos_y >= pos_top + max_y){
-					pos_y = pos_top + max_y - 1;
-					gui_clip_x();
-				}
+				gui_clip();
 				ret = 1;
 			}
 			break;
 
 		case PAGE_UP:
 			pos_top -= max_y;
-			if(pos_top < 0)
-				pos_top = 0;
-
+			gui_clip();
 			ret = 1;
 			break;
 
 		case PAGE_DOWN:
 			pos_top += max_y;
-			ret = buffer_nlines(global_buffer) - 1;
-
-			if(pos_top + max_y > ret)
-				clear();
-
-			if(pos_top > ret)
-				pos_top = ret;
-
+			gui_clip();
 			ret = 1;
 			break;
 
 		case HALF_UP:
 			pos_top -= max_y / 2;
-			if(pos_top < 0)
-				pos_top = 0;
+			gui_clip();
 			ret = 1;
 			break;
 
 		case HALF_DOWN:
 			pos_top += max_y / 2;
-			ret = buffer_nlines(global_buffer) - 1;
-			if(pos_top + max_y > ret)
-				clear();
-			if(pos_top > ret)
-				pos_top = ret;
+			gui_clip();
 			ret = 1;
 			break;
 

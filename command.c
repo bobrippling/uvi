@@ -22,24 +22,39 @@
 #include "gui/gui.h"
 
 #define LEN(x) ((signed)(sizeof(x) / sizeof(x[0])))
-#define ARGV_TO_CMD(cmd) \
-	do{ \
-		int i; \
-		for(i = 0; i < argc - 1; i++) \
-			argv[i][strlen(argv[i])] = ' '; \
-	}while(0)
+
+char *argv_to_str(int argc, char **argv)
+{
+	char *s;
+	int len;
+	int i;
+
+	for(i = 0, len = 1; i < argc; i++)
+		len += 1 + strlen(argv[i]);
+	s = umalloc(len);
+	*s = '\0';
+	for(i = 0; i < argc; i++){
+		fprintf(stderr, "argv_to_str(): strcat('%s', '%s')\n", s, argv[i]);
+		strcat(s, argv[i]);
+		strcat(s, " ");
+	}
+	return s;
+}
+
 
 void cmd_r(int argc, char **argv, int force, struct range *rng)
 {
+	char *cmd;
+
 	if(argc != 2){
 		gui_status("usage: r[!] cmd/file");
 		return;
 	}
 
-	ARGV_TO_CMD();
+	cmd = argv_to_str(argc, argv);
 
 	if(force){
-		struct list *l = pipe_read(argv[1]);
+		struct list *l = pipe_read(cmd);
 		if(!l)
 			gui_status("pipe error: %s", strerror(errno));
 		else if(l->data){
@@ -51,10 +66,10 @@ void cmd_r(int argc, char **argv, int force, struct range *rng)
 			buffer_modified(global_buffer) = 1;
 		}else{
 			list_free(l);
-			gui_status("%s: no output", argv[1]);
+			gui_status("%s: no output", cmd);
 		}
 	}else{
-		buffer_t *tmpbuf = readfile(argv[1], 0);
+		buffer_t *tmpbuf = readfile(cmd, 0);
 
 		if(!tmpbuf)
 			gui_status("read: %s", strerror(errno));
@@ -68,6 +83,8 @@ void cmd_r(int argc, char **argv, int force, struct range *rng)
 			buffer_modified(global_buffer) = 1;
 		}
 	}
+
+	free(cmd);
 }
 
 void cmd_w(int argc, char **argv, int force, struct range *rng)
@@ -101,9 +118,9 @@ usage:
 
 	if(force && after == NONE){
 		/* write to pipe */
-		ARGV_TO_CMD();
-
-		shellout(argv[1], buffer_gethead(global_buffer));
+		char *cmd = argv_to_str(argc, argv);
+		shellout(cmd, buffer_gethead(global_buffer));
+		free(cmd);
 		return;
 	}
 
@@ -191,9 +208,13 @@ void cmd_bang(int argc, char **argv, int force, struct range *rng)
 		return;
 	}
 
-	ARGV_TO_CMD();
-
-	shellout(argv[1], NULL);
+	if(argc == 1){
+		shellout("sh", NULL);
+	}else{
+		char *cmd = argv_to_str(argc, argv);
+		shellout(cmd, NULL);
+		free(cmd);
+	}
 }
 
 void cmd_e(int argc, char **argv, int force, struct range *rng)
@@ -216,18 +237,15 @@ void cmd_new(int argc, char **argv, int force, struct range *rng)
 {
 	if(argc != 1)
 		gui_status("usage: new[!]");
+
+	buffer_free(global_buffer);
+	global_buffer = readfile(argv[1], 0);
 }
 
 void cmd_set(int argc, char **argv, int force, struct range *rng)
 {
 	enum vartype type = 0;
 	int i;
-
-	if(strcmp(argv[0], "set")){
-		gui_status("usage: set var [value]");
-		return;
-	}
-
 
 	if(argc == 1){
 		/* set dump */
@@ -358,12 +376,15 @@ void command_run(char *in)
 		void (*f)(int argc, char **argv, int force, struct range *rng);
 	} funcs[] = {
 #define CMD(x) { #x, cmd_##x }
-		{ "!", cmd_bang },
+		{ "!",  cmd_bang },
+		{ "we", cmd_w },
+		{ "wq", cmd_w },
 		CMD(r),
 		CMD(w),
 		CMD(q),
 		CMD(e),
 		CMD(set),
+		CMD(new),
 #undef CMD
 	};
 
@@ -376,10 +397,20 @@ void command_run(char *in)
 	int found = 0;
 	int i;
 
+	if(!*in)
+		return;
+
 	lim.start = gui_y();
 	lim.end		= buffer_nlines(global_buffer);
 
 	s = parserange(in, &rng, &lim);
+
+	for(iter = s; *iter && *iter != ' '; iter++)
+		if(*iter == '!'){
+			force = 1;
+			*iter = ' ';
+			break;
+		}
 
 	if(!s){
 		gui_status("couldn't parse range");
@@ -395,28 +426,33 @@ void command_run(char *in)
 
 	argc = 1;
 	for(iter = s; *iter; iter++)
-		if((*iter == ' ' || (!found && *iter == '!')) && (iter > s ? iter[-1] != '\\' : 1)){
+		if(*iter == ' ' && (iter > s ? iter[-1] != '\\' : 1)){
 			argc++;
 			found = 1;
+			while(*iter == ' ')
+				iter++;
 		}
 
 	argv = umalloc(sizeof(*argv) * argc);
 	argv[0] = s;
-i = 1;
+	i = 1;
 	for(iter = s; *iter; iter++)
 		if(*iter == ' ' && (iter > s ? iter[-1] != '\\' : 1)){
 			argv[i++] = iter + 1;
 			*iter = '\0';
+			while(iter[1] == ' ')
+				iter++;
 		}
 
-	i = strlen(argv[0]);
-	if(argv[0][0] != '!' && argv[0][i-1] == '!'){
-		argv[0][i-1] = '\0';
-		force = 1;
-	}
+	if(force && !*argv[0])
+		argv[0] = "!";
 
+	for(i = 0; i < argc; i++)
+		fprintf(stderr, "argv[%d] = '%s'\n", i, argv[i]);
+
+	found = 0;
 	for(i = 0; i < LEN(funcs); i++)
-		if(!strncmp(s, funcs[i].nam, strlen(funcs[i].nam))){
+		if(!strcmp(argv[0], funcs[i].nam)){
 			funcs[i].f(argc, argv, force, &rng);
 			found = 1;
 			break;
@@ -424,7 +460,7 @@ i = 1;
 
 	free(argv);
 
-	if(!found && *s)
+	if(!found)
 		gui_status("not an editor command: \"%s\"", s);
 }
 

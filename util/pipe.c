@@ -84,12 +84,10 @@ int pipe_write(const char *cmd, struct list *l)
 
 		default:
 		{
-			int ret, saveerrno;
+			int ret;
 			close(fds[READ_FD]);
-			ret = parent_write(fds[WRITE_FD], l);
-			saveerrno = errno;
-			wait(NULL);
-			errno = saveerrno;
+			parent_write(fds[WRITE_FD], l);
+			wait(&ret);
 			return ret;
 		}
 	}

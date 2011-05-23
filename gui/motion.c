@@ -254,8 +254,8 @@ int applymotion(struct motion *motion, struct bufferpos *pos,
 		}
 
 		case MOTION_SCREEN_BOTTOM:
-			if(*pos->y != si->top + si->height - 1){
-				*pos->y = si->top + si->height - 1;
+			if(*pos->y != si->top + si->height - 2){
+				*pos->y = si->top + si->height - 2;
 				if(*pos->y >= buffer_nlines(global_buffer))
 					*pos->y = buffer_nlines(global_buffer)-1;
 				return 0;
