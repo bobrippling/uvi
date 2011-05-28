@@ -39,56 +39,34 @@ static char iseditchar(int);
 static void showpos(void);
 
 
-#define SEARCH_STR_SIZE 256
-static char searchstr[SEARCH_STR_SIZE] = { 0 };
+static char searchstr[256] = { 0 };
 
 
 static int search(int next)
 {
-	char *pos;
-	int done = 0, i = 0;
-	struct list *l = buffer_gethead(global_buffer); /* FIXME: start at curpos */
-
+	struct list *l;
+	char *p;
+	int y;
 
 	if(next){
-		if(*searchstr){
-			done = 1; /* exit immediately */
-			goto dosearch;
-		}else{
+		if(!*searchstr){
 			gui_status("no previous search");
-			return 0;
+			return 1;
 		}
-	}
+	}else if(gui_getstr(searchstr, sizeof searchstr))
+		return 1;
 
-	gui_mvaddch(gui_max_y(), 0, '/');
-	while(!done){
-		if((searchstr[i] = gui_getch()) == EOF)
-			done = 1; /* TODO: return to initial position */
-		else{
-			struct list *s;
-			int y;
+	if((p = strchr(searchstr, '\n')))
+		*p = '\0';
 
-			/* FIXME: check for backspace */
-			gui_mvaddch(gui_max_y(), strlen(searchstr), searchstr[i++]);
-
-			/* TODO: allow SIGINT to stop search */
-			if((pos = strchr(searchstr, '\n'))){
-				*pos = '\0';
-				done = 1;
-			}
-
-dosearch:
-			for(y = 0, s = l; s; s = s->next){
-				if((pos = strstr(l->data, searchstr))){
-					int x = pos - (char *)s->data;
-					gui_move(x, y);
-					break;
-				}
-
-				y++;
-			}
+	/* TODO: allow SIGINT to stop search */
+	/* FIXME: start at curpos */
+	for(y = 0, l = buffer_gethead(global_buffer); l; l = l->next, y++)
+		if((p = strstr(l->data, searchstr))){ /* TODO: regex */
+			int x = p - (char *)l->data;
+			gui_move(x, y);
+			break;
 		}
-	}
 
 	return 0;
 }
@@ -262,12 +240,15 @@ static void open(int before)
 {
 	struct list *here;
 
-	if(before)
-		gui_move(gui_y() - 1, gui_x());
-
 	here = buffer_getindex(global_buffer, gui_y());
 
-	list_insertafter(here, ustrdup(""));
+	if(before){
+		list_insertbefore(here, ustrdup(""));
+		gui_move(gui_y() - 1, gui_x());
+	}else{
+		list_insertafter(here, ustrdup(""));
+	}
+
 	insert(0);
 }
 
@@ -298,7 +279,7 @@ static void delete(struct motion *mparam)
 		if(islinemotion(mparam)){
 			/* delete lines between gui_y() and y, inclusive */
 			buffer_remove_range(global_buffer, &r);
-			gui_clip();
+			gui_move(gui_y(), gui_x());
 		}else{
 			char *data = buffer_getindex(global_buffer, gui_y())->data, forwardmotion = 1;
 			int oldlen = strlen(data);
@@ -457,8 +438,7 @@ int gui_main(const char *filename, char readonly)
 			 * cursor must be updated before
 			 * the pad is refreshed
 			 */
-			gui_status("at (%d, %d)", gui_x(), gui_y());
-			gui_redraw();
+			gui_draw();
 			viewchanged = 0;
 		}
 
@@ -614,6 +594,10 @@ case_i:
 				viewchanged = gui_scroll(SINGLE_UP);
 				break;
 
+			case CTRL_AND('l'):
+				gui_redraw();
+				break;
+
 			case 'n':
 				flag = 1;
 			case '/':
@@ -653,9 +637,6 @@ case_i:
 				break;
 
 			case CTRL_AND('['):
-				break;
-			case CTRL_AND('l'):
-				gui_redraw();
 				break;
 
 			default:

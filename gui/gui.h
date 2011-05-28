@@ -45,12 +45,16 @@ enum scroll
 void gui_drawbuffer(buffer_t *b);
 
 int  gui_scroll(enum scroll);
+void gui_inc(int n);
+void gui_dec(int n);
 void gui_move(int y, int x);
 void gui_move_motion(struct motion *);
 
 void gui_clip(void);
+void gui_draw(void);
 void gui_redraw(void);
 
 #define CTRL_AND(c)  ((c) & 037)
+#define SCROLL_OFF 3
 
 #endif

@@ -131,6 +131,29 @@ int applymotion(struct motion *motion, struct bufferpos *pos,
 	char *      charpos   = charstart + *pos->x;
 
 	switch(motion->motion){
+		case MOTION_UP:
+			/* TODO: ntimes */;
+			if(*pos->y > 0){
+				--*pos->y;
+				return 0;
+			}
+			break;
+
+		case MOTION_DOWN:
+		{
+			/* TODO: ntimes */;
+			int nlines = buffer_nlines(global_buffer);
+
+			if(nlines < 0)
+				nlines = 0;
+
+			if(*pos->y < nlines - 1){
+				++*pos->y;
+				return 0;
+			}
+			break;
+		}
+
 		case MOTION_NOMOVE:
 			return 0;
 
@@ -204,32 +227,9 @@ int applymotion(struct motion *motion, struct bufferpos *pos,
 			return 0;
 
 		/* time for the line changer awkward ones */
-		case MOTION_UP:
-			/* TODO: ntimes */;
-			if(*pos->y > 0){
-				--*pos->y;
-				return 0;
-			}
-			break;
-
-		case MOTION_DOWN:
-		{
-			int nlines = buffer_nlines(global_buffer) - 1;
-			/* TODO: ntimes */;
-
-			if(nlines < 0)
-				nlines = 0;
-
-			if(*pos->y < nlines){
-				++*pos->y;
-				return 0;
-			}
-			break;
-		}
-
 		case MOTION_SCREEN_TOP:
-			if(*pos->y != si->top){
-				*pos->y = si->top;
+			if(*pos->y != si->top + SCROLL_OFF){
+				*pos->y = si->top + SCROLL_OFF;
 				return 0;
 			}
 			break;
@@ -254,8 +254,8 @@ int applymotion(struct motion *motion, struct bufferpos *pos,
 		}
 
 		case MOTION_SCREEN_BOTTOM:
-			if(*pos->y != si->top + si->height - 2){
-				*pos->y = si->top + si->height - 2;
+			if(*pos->y != si->top + si->height - 2 - SCROLL_OFF){
+				*pos->y = si->top + si->height - 2 - SCROLL_OFF;
 				if(*pos->y >= buffer_nlines(global_buffer))
 					*pos->y = buffer_nlines(global_buffer)-1;
 				return 0;
@@ -298,12 +298,6 @@ int applymotion(struct motion *motion, struct bufferpos *pos,
 			break;
 		}
 	}
-
-	int len = strlen(buffer_getindex(global_buffer, *pos->y)->data) - 1;
-	if(len < 0)
-		len = 0;
-	if(*pos->x > len)
-		*pos->x = len;
 
 	return 1;
 MOTION_GOTO:

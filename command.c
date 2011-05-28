@@ -34,7 +34,6 @@ char *argv_to_str(int argc, char **argv)
 	s = umalloc(len);
 	*s = '\0';
 	for(i = 0; i < argc; i++){
-		fprintf(stderr, "argv_to_str(): strcat('%s', '%s')\n", s, argv[i]);
 		strcat(s, argv[i]);
 		strcat(s, " ");
 	}
@@ -229,7 +228,7 @@ void cmd_e(int argc, char **argv, int force, struct range *rng)
 	}else{
 		buffer_free(global_buffer);
 		global_buffer = readfile(argv[1], 0);
-		gui_clip();
+		gui_move(0, 0);
 	}
 }
 
@@ -447,8 +446,10 @@ void command_run(char *in)
 	if(force && !*argv[0])
 		argv[0] = "!";
 
+	/*
 	for(i = 0; i < argc; i++)
 		fprintf(stderr, "argv[%d] = '%s'\n", i, argv[i]);
+		*/
 
 	found = 0;
 	for(i = 0; i < LEN(funcs); i++)

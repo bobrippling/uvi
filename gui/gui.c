@@ -18,6 +18,7 @@ typedef struct
 } syntax;
 
 /*#include "../config.h"*/
+static void gui_position_cursor(const char *line);
 
 int pos_y = 0, pos_x = 0;
 int pos_top = 0;
@@ -33,6 +34,7 @@ static void sigwinch(int sig)
 {
 	(void)sig;
 	getmaxyx(stdscr, max_y, max_x);
+	fprintf(stderr, "sigwinch: (%d, %d)\n", max_y, max_x);
 }
 
 int gui_init()
@@ -200,29 +202,48 @@ int gui_prompt(const char *p, char *buf, int siz)
 
 void gui_redraw()
 {
+	redrawwin(stdscr);
+}
+
+void gui_draw()
+{
 	struct list *l;
 	int y;
-	move(0, 0);
 
-	y = pos_y;
-	for(l = buffer_getindex(global_buffer, pos_top);
+	for(l = buffer_getindex(global_buffer, pos_top), y = 0;
 			l && y < max_y - 1;
 			l = l->next, y++){
 
+		move(y, 0);
+		clrtoeol();
+
 		if(strchr(l->data, '\t')){
-			char *p = l->data;
-			int i = 0;
-			while(*p && ++i < max_x)
-				gui_addch(*p++);
+			char *p;
+			int i;
+
+			for(p = l->data, i = 0;
+					*p && i < max_x;
+					p++){
+
+				if(*p == '\t')
+					/* FIXME: proper tabs != 8 spaces */
+					if(global_settings.showtabs)
+						i += 8;
+					else
+						i += global_settings.tabstop;
+				else
+					i++;
+
+				gui_addch(*p);
+			}
 		}else
 			addnstr(l->data, max_x);
-		addch('\n');
 	}
 
 	for(; y < max_y - 1; y++)
-		addstr("~\n");
+		mvaddstr(y, 0, "~\n");
 
-	gui_move(pos_y, pos_x);
+	gui_position_cursor(NULL);
 	refresh();
 }
 
@@ -247,23 +268,79 @@ void gui_addch(int c)
 		addch(c);
 }
 
-void gui_move(int y, int x)
+static void gui_position_cursor(const char *line)
 {
-	const char *line;
+	int x;
 	int ntabs;
 
-	pos_x = x;
-	pos_y = y;
-	gui_clip();
-
-	/* check that we're on the right x pos - ^I etc */
-	line = buffer_getindex(global_buffer, pos_y)->data;
+	if(!line)
+		line = buffer_getindex(global_buffer, pos_y)->data;
 
 	for(ntabs = 0, x = 0; x < pos_x; x++)
 		if(line[x] == '\t')
 			ntabs++;
 
-	move(y - pos_top, ntabs * (global_settings.showtabs ? 2 : global_settings.tabstop) + x - ntabs);
+	fprintf(stderr, "move(%d - %d = %d, x);\n", pos_y, pos_top, pos_y - pos_top);
+	move(pos_y - pos_top, ntabs * (global_settings.showtabs ? 2 : global_settings.tabstop) + x - ntabs);
+}
+
+void gui_move(int y, int x)
+{
+	const char *line;
+	int len;
+
+	if(y < 0)
+		y = 0;
+	else if(y >= buffer_nlines(global_buffer))
+		y = buffer_nlines(global_buffer)-1;
+
+	/* check that we're on the right x pos - ^I etc */
+	line = buffer_getindex(global_buffer, y)->data;
+
+	len = strlen(line) - 1;
+	if(len < 0)
+		len = 0;
+
+	if(x > len)
+		x = len;
+
+	if(y > pos_y)
+		gui_inc(y - pos_y);
+	else
+		gui_dec(pos_y - y);
+
+	pos_x = x;
+	pos_y = y;
+	gui_position_cursor(line);
+}
+
+void gui_inc(int n)
+{
+	int nl = buffer_nlines(global_buffer);
+
+	if(pos_y < nl - 1){
+		pos_y += n;
+
+		if(pos_y >= nl)
+			pos_y = nl - 1;
+
+		if(pos_y > pos_top + max_y - 2 - SCROLL_OFF)
+			pos_top = pos_y - max_y + 2 + SCROLL_OFF;
+	}
+}
+
+void gui_dec(int n)
+{
+	if(pos_y > 0){
+		pos_y -= n;
+		if(pos_y < 0)
+			pos_y = 0;
+
+		if(pos_y - pos_top < SCROLL_OFF)
+			pos_top = pos_y - SCROLL_OFF;
+			if(pos_top < 0)
+				pos_top = 0;
+	}
 }
 
 void gui_move_motion(struct motion *m)
@@ -281,36 +358,18 @@ void gui_move_motion(struct motion *m)
 		gui_move(y, x);
 }
 
-void gui_clip()
-{
-	const int nl = buffer_nlines(global_buffer);
-	struct list *l;
-
-	if(pos_top < 0)
-		pos_top = 0;
-	else if(pos_top >= nl)
-		pos_top = nl-1;
-
-	if(pos_y > pos_top + max_y - 2) /* -1 for off-by-one, -1 for cmdline */
-		pos_top = pos_y - max_y - 2;
-	else if(pos_y < pos_top)
-		pos_top = pos_y;
-
-	l = buffer_getindex(global_buffer, pos_y);
-	if(pos_x > (signed)strlen(l->data))
-		pos_x = strlen(l->data);
-}
-
-
 int gui_scroll(enum scroll s)
 {
+	int check = 0;
 	int ret = 0;
 
 	switch(s){
 		case SINGLE_DOWN:
 			if(pos_top < buffer_nlines(global_buffer) - 1){
 				pos_top++;
-				gui_clip();
+				if(pos_y < pos_top + SCROLL_OFF)
+					pos_y = pos_top + SCROLL_OFF;
+				check = 1;
 				ret = 1;
 			}
 			break;
@@ -318,32 +377,32 @@ int gui_scroll(enum scroll s)
 		case SINGLE_UP:
 			if(pos_top){
 				pos_top--;
-				gui_clip();
+				check = 1;
 				ret = 1;
 			}
 			break;
 
 		case PAGE_UP:
 			pos_top -= max_y;
-			gui_clip();
+			check = 1;
 			ret = 1;
 			break;
 
 		case PAGE_DOWN:
 			pos_top += max_y;
-			gui_clip();
+			check = 1;
 			ret = 1;
 			break;
 
 		case HALF_UP:
 			pos_top -= max_y / 2;
-			gui_clip();
+			check = 1;
 			ret = 1;
 			break;
 
 		case HALF_DOWN:
 			pos_top += max_y / 2;
-			gui_clip();
+			check = 1;
 			ret = 1;
 			break;
 
@@ -352,25 +411,35 @@ int gui_scroll(enum scroll s)
 			break;
 
 		case CURSOR_BOTTOM:
-			if((pos_top = pos_y - max_y + 1) < 0)
-				pos_top = 0;
+			pos_top = pos_y - max_y + 1;
 			break;
 
 		case CURSOR_MIDDLE:
-			if((pos_top = pos_y - max_y / 2) < 2)
-				pos_top = 0;
+			pos_top = pos_y - max_y / 2;
 			break;
 	}
 
+	if(pos_top < 0)
+		pos_top = 0;
+
+	if(check){
+		const int lim = pos_top + max_y - 1 - SCROLL_OFF;
+		if(pos_y >= lim)
+			pos_y = lim - 1;
+		if(pos_y < pos_top)
+			pos_y = pos_top;
+	}
+
+	gui_move(pos_y, pos_x);
 	return ret;
 }
 
+#if 0
 void gui_drawbuffer(buffer_t *b)
 {
 	struct list *l = buffer_getindex(b, pos_top);
 	int y = 0;
 
-#if 0
 	int keyword_on = 0;
 	int colour_on = 0, waitlen = 0, needcolouroff = 0;
 	unsigned int current_syntax = -1;
@@ -378,12 +447,10 @@ void gui_drawbuffer(buffer_t *b)
 	const char newline[] = "\n";
 	KEYWORDS;
 #define KEYWORD_COUNT (sizeof(keyword)/sizeof(keyword[0]))
-#endif
 
 	clear();
 	move(0, 0);
 
-#if 0
 	if(global_settings.colour){
 		while(l){
 			char *c = l->data;
@@ -428,26 +495,32 @@ void gui_drawbuffer(buffer_t *b)
 			l = l->next;
 		}
 	}else
-#endif
 		while(l){
 			if(strchr(l->data, '\t')){
 				/* write at most max_x-1 chars */
-				int len = 0;
-				char *pos = l->data;
+				char *iter;
+				int pos;
 
-				while(len < max_x && *pos){
-					if(*pos == '\t')
+				for(iter = l->data, pos = 0;
+						*iter && pos < max_x;
+						iter++, pos++){
+
+					if(*iter == '\t')
+						/* FIXME: proper tabs != 8 spaces */
 						if(global_settings.showtabs)
-							len += 2;
+							pos += 8;
 						else
-							len += global_settings.tabstop;
+							pos += global_settings.tabstop;
 					else
-						len++;
+						pos++;
 
-					gui_addch(*pos++);
+					fprintf(stderr, "gui_addch('%c'), pos = %d + 1\n", *iter, pos);
+					gui_addch(*iter);
 				}
-			}else
+			}else{
+				fprintf(stderr, "addnstr('%s', %d - 1);\n", l->data, max_x);
 				addnstr(l->data, max_x - 1);
+			}
 			addch('\n');
 
 			y++;
@@ -455,19 +528,16 @@ void gui_drawbuffer(buffer_t *b)
 		}
 
 	move(y, 0);
-#if 0
 	if(global_settings.colour)
 		coloron(COLOR_BLUE, A_BOLD);
-#endif
 
 	while(++y <= max_y)
 		addstr("~\n");
 
-#if 0
 	if(global_settings.colour)
 		wcoloroff(COLOR_BLUE, A_BOLD);
-#endif
 }
+#endif
 
 #if 0
 static void checkcolour(const char *c, char *waitlen, char *colour_on,
