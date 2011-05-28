@@ -1,5 +1,5 @@
-#include <stdlib.h> /* free() only */
-#include <setjmp.h> /* alloc.h */
+#include <stdlib.h>
+#include <setjmp.h>
 
 #include "list.h"
 #include "alloc.h"

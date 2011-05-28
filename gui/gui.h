@@ -16,7 +16,7 @@ void gui_mvaddch(int y, int x, int c);
 
 int gui_getstr(char *s, int size);
 int gui_getch(void);
-int gui_anykey(void);
+int gui_peekch(void);
 int gui_prompt(const char *p, char *buf, int siz);
 
 void gui_status( const char *, ...);

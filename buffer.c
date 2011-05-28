@@ -1,15 +1,12 @@
-#define _POSIX_SOURCE 1
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <sys/uio.h>
 #include <setjmp.h>
 #include <string.h>
-/* stat */
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
-/* getpwuid */
 #include <pwd.h>
 
 #include "util/alloc.h"
@@ -351,4 +348,11 @@ struct list *buffer_extract_range(buffer_t *buffer, struct range *rng)
 	buffer->changed = 1;
 
 	return extracted;
+}
+
+void buffer_dump(buffer_t *b, FILE *f)
+{
+	struct list *head;
+	for(head = buffer_gethead(b); head; head = head->next)
+		fprintf(f, "%s\n", (char *)head->data);
 }

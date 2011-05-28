@@ -39,7 +39,7 @@ static void sigwinch(int sig)
 
 int gui_init()
 {
-	static char init = 0;
+	static int init = 0;
 
 	if(!init){
 		init = 1;
@@ -135,7 +135,7 @@ int gui_getch()
 	return c;
 }
 
-int gui_anykey()
+int gui_peekch()
 {
 	int c = gui_getch();
 	ungetch(c);
@@ -157,14 +157,6 @@ int gui_getstr(char *s, int size)
 		c = gui_getch();
 
 		switch(c){
-			case EOF:
-				return 1;
-
-			case '\n':
-			case '\r':
-				*s = '\n';
-				return 0;
-
 			/* TODO: ^U, ^W, etc */
 
 			case '\b':
@@ -178,9 +170,14 @@ int gui_getstr(char *s, int size)
 				/* else fall through */
 
 			case CTRL_AND('['):
-				*start = '\0';
-				return 0;
+				*s = '\0';
+				return 1;
 
+			case '\n':
+			case '\r':
+				*s = '\0';
+				gui_addch('\n');
+				return 0;
 
 			default:
 				*s++ = c;
@@ -280,7 +277,6 @@ static void gui_position_cursor(const char *line)
 		if(line[x] == '\t')
 			ntabs++;
 
-	fprintf(stderr, "move(%d - %d = %d, x);\n", pos_y, pos_top, pos_y - pos_top);
 	move(pos_y - pos_top, ntabs * (global_settings.showtabs ? 2 : global_settings.tabstop) + x - ntabs);
 }
 

@@ -221,19 +221,61 @@ static void showpos()
 
 static void insert(int append)
 {
-	char *buf = umalloc(256);
-	if(append)
-		gui_move(gui_y(), gui_x() + 1);
+	char buf[256];
+	int i = 0, x = gui_x();
+	int nlines = 10;
+	char **lines = umalloc(nlines * sizeof *lines);
+	struct list *iter;
 
-	if(gui_getstr(buf, 256)){
-		free(buf);
-		return;
+	if(append)
+		gui_move(gui_y(), ++x);
+
+	for(;;){
+		int esc = gui_getstr(buf, sizeof buf);
+
+		lines[i] = ustrdup(buf);
+		if(++i >= nlines)
+			lines = urealloc(lines, (nlines += 10) * sizeof *lines);
+
+		if(esc)
+			/* escape */
+			break;
 	}
 
-	buffer_insertafter(global_buffer, buffer_getindex(global_buffer, gui_y()), buf);
-	gui_move(gui_y(), gui_x() + strlen(buf));
+
+	iter = buffer_getindex(global_buffer, gui_y());
+	{
+		char *ins = (char *)iter->data + x;
+		char *after = ustrdup(ins);
+
+		*ins = '\0';
+
+		if(i > 1){
+			/* add all lines, then join with v_after */
+			int j;
+			char *old = iter->data;
+			iter->data = ustrcat(iter->data, *lines, NULL);
+			free(old);
+
+			/* tag v_after onto the last line */
+			old = lines[i-1];
+			lines[i-1] = ustrcat(lines[i-1], after, NULL);
+			free(old);
+			free(after);
+
+			for(j = i - 1; j > 0; j--)
+				buffer_insertafter(global_buffer, iter, lines[j]);
+		}else{
+			/* tag v_after on the end */
+			char *old = iter->data;
+			iter->data = ustrcat(iter->data, *lines, after, NULL);
+			free(old);
+			gui_move(gui_y(), gui_x() + strlen(*lines) - 1);
+		}
+	}
 
 	buffer_modified(global_buffer) = 1;
+	free(lines);
 }
 
 static void open(int before)

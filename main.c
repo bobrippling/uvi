@@ -39,7 +39,7 @@ int main(int argc, const char **argv)
 	int i, argv_options = 1, readonly = 0;
 	const char *fname = NULL;
 
-	if(setlocale(LC_CTYPE, "") == NULL){
+	if(setlocale(LC_ALL, "") == NULL){
 		fprintf(stderr, "%s: Locale not specified :(\n", *argv);
 		return 1;
 	}
@@ -48,7 +48,6 @@ int main(int argc, const char **argv)
 	signal(SIGINT,  &sigh);
 	signal(SIGTERM, &sigh);
 	signal(SIGQUIT, &sigh);
-	signal(SIGSEGV, &sigh);
 
 	for(i = 1; i < argc; i++)
 		if(argv_options && *argv[i] == '-'){

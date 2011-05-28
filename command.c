@@ -257,7 +257,7 @@ void cmd_set(int argc, char **argv, int force, struct range *rng)
 		while(++type != VARS_UNKNOWN);
 
 		gui_status("any key to continue...");
-		gui_anykey();
+		gui_peekch();
 		gui_status("");
 		return;
 	}
@@ -367,6 +367,32 @@ void shellout(const char *cmd, struct list *l)
 	gui_init();
 }
 
+void parsecmd(char *s, int *pargc, char ***pargv, int *pforce)
+{
+	char *cpy = ustrdup(s);
+	char **argv;
+	char *iter;
+	int n = 1;
+
+	for(iter = strtok(cpy, " !"); iter; iter = strtok(NULL, " "))
+		n++;
+	free(cpy);
+
+	argv = umalloc(sizeof(char *) * n);
+
+	n = 0;
+	for(iter = strtok(s, " !"); iter; iter = strtok(NULL, " "))
+		argv[n++] = iter;
+
+	if(argv[0][1] == '!'){
+		*pforce = 1;
+		argv[0][1] = '\0';
+	}
+
+	*pargv = argv;
+	*pargc = n;
+}
+
 void command_run(char *in)
 {
 	static const struct
@@ -423,33 +449,7 @@ void command_run(char *in)
 	if(!HAVE_RANGE)
 		rng.start = rng.end = -1;
 
-	argc = 1;
-	for(iter = s; *iter; iter++)
-		if(*iter == ' ' && (iter > s ? iter[-1] != '\\' : 1)){
-			argc++;
-			found = 1;
-			while(*iter == ' ')
-				iter++;
-		}
-
-	argv = umalloc(sizeof(*argv) * argc);
-	argv[0] = s;
-	i = 1;
-	for(iter = s; *iter; iter++)
-		if(*iter == ' ' && (iter > s ? iter[-1] != '\\' : 1)){
-			argv[i++] = iter + 1;
-			*iter = '\0';
-			while(iter[1] == ' ')
-				iter++;
-		}
-
-	if(force && !*argv[0])
-		argv[0] = "!";
-
-	/*
-	for(i = 0; i < argc; i++)
-		fprintf(stderr, "argv[%d] = '%s'\n", i, argv[i]);
-		*/
+	parsecmd(s, &argc, &argv, &force);
 
 	found = 0;
 	for(i = 0; i < LEN(funcs); i++)
@@ -507,11 +507,7 @@ void dumpbuffer(buffer_t *b)
 		free(path);
 
 	if(f){
-		struct list *head = buffer_gethead(b);
-		while(head){
-			fprintf(f, "%s\n", (char *)head->data);
-			head = head->next;
-		}
+		buffer_dump(b, f);
 		fclose(f);
 	}
 }
