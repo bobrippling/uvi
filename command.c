@@ -93,7 +93,7 @@ void cmd_w(int argc, char **argv, int force, struct range *rng)
 
 	if(rng->start != -1 || rng->end != -1){
 usage:
-		gui_status("usage: w[qe][!] file");
+		gui_status("usage: w[qe][![!]] file|command");
 		return;
 	}else if(buffer_readonly(global_buffer)){
 		gui_status("buffer is read-only");
@@ -107,24 +107,19 @@ usage:
 	else if(strcmp(argv[0], "w"))
 		goto usage;
 
-
-	if(argc == 2){
-		if(after != EDIT)
-			buffer_setfilename(global_buffer, argv[1]);
-	}else if(argc != 1)
-		goto usage;
-
-
-	if(force && after == NONE){
-		/* write to pipe */
+	if(argc > 1 && argv[1][0] == '!'){
+		/* pipe */
 		char *cmd = argv_to_str(argc, argv);
-		shellout(cmd, buffer_gethead(global_buffer));
+		char *bang = strchr(cmd, '!') + 1;
+
+		shellout(bang, buffer_gethead(global_buffer));
+
 		free(cmd);
 		return;
-	}
 
+	}else if(argc == 2 && after != EDIT){
+		/* have a filename to save to */
 
-	if(argc == 2){
 		if(!force){
 			struct stat st;
 
@@ -133,10 +128,12 @@ usage:
 				return;
 			}
 		}
-
 		buffer_setfilename(global_buffer, argv[1]);
-	}
-	if(!buffer_hasfilename(global_buffer)){
+
+	}else if(argc != 1){
+		goto usage;
+
+	}else if(!buffer_hasfilename(global_buffer)){
 		gui_status("buffer has no filename");
 		return;
 	}
@@ -155,11 +152,8 @@ usage:
 			buffer_free(global_buffer);
 			global_buffer = readfile(argv[1], 0);
 			break;
-
 		case QUIT:
 			global_running = 0;
-			break;
-
 		case NONE:
 			break;
 	}
