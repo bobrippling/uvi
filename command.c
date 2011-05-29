@@ -372,16 +372,24 @@ void parsecmd(char *s, int *pargc, char ***pargv, int *pforce)
 		n++;
 	free(cpy);
 
+	if(*s == '!')
+		n++;
+
 	argv = umalloc(sizeof(char *) * n);
 
 	n = 0;
+	if(*s == '!'){
+		n++;
+		argv[0] = "!";
+	}
+
+	if(s[1] == '!'){
+		*pforce = 1;
+		s[1] = ' ';
+	}
+
 	for(iter = strtok(s, " !"); iter; iter = strtok(NULL, " "))
 		argv[n++] = iter;
-
-	if(argv[0][1] == '!'){
-		*pforce = 1;
-		argv[0][1] = '\0';
-	}
 
 	*pargv = argv;
 	*pargc = n;
@@ -409,7 +417,7 @@ void command_run(char *in)
 
 #define HAVE_RANGE (s > in)
 	struct range lim, rng;
-	char *s, *iter;
+	char *s;
 	char **argv;
 	int argc;
 	int force = 0;
@@ -423,13 +431,6 @@ void command_run(char *in)
 	lim.end		= buffer_nlines(global_buffer);
 
 	s = parserange(in, &rng, &lim);
-
-	for(iter = s; *iter && *iter != ' '; iter++)
-		if(*iter == '!'){
-			force = 1;
-			*iter = ' ';
-			break;
-		}
 
 	if(!s){
 		gui_status("couldn't parse range");
