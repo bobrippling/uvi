@@ -256,6 +256,7 @@ static void insert(int append)
 			char *old = iter->data;
 			iter->data = ustrcat(iter->data, *lines, NULL);
 			free(old);
+			free(*lines);
 
 			/* tag v_after onto the last line */
 			old = lines[i-1];
@@ -285,10 +286,11 @@ static void open(int before)
 	here = buffer_getindex(global_buffer, gui_y());
 
 	if(before){
-		list_insertbefore(here, ustrdup(""));
-		gui_move(gui_y() - 1, gui_x());
+		buffer_insertbefore(global_buffer, here, ustrdup(""));
+		gui_move(gui_y(), 0);
 	}else{
-		list_insertafter(here, ustrdup(""));
+		buffer_insertafter(global_buffer, here, ustrdup(""));
+		gui_move(gui_y() + 1, gui_x());
 	}
 
 	insert(0);
