@@ -3,6 +3,7 @@
 #include <string.h>
 #include <errno.h>
 #include <signal.h>
+#include <ctype.h>
 
 #include "../range.h"
 #include "../util/list.h"
@@ -82,6 +83,10 @@ void gui_term()
 
 void gui_statusl(const char *s, va_list l)
 {
+	int y, x;
+
+	getyx(stdscr, y, x);
+
 	move(max_y - 1, 0);
 	gui_clrtoeol();
 
@@ -94,6 +99,7 @@ void gui_statusl(const char *s, va_list l)
 	if(global_settings.colour)
 		coloroff(COLOR_RED);
 #endif
+	move(y, x);
 }
 
 void gui_status(const char *s, ...)
@@ -211,30 +217,33 @@ void gui_draw()
 			l && y < max_y - 1;
 			l = l->next, y++){
 
+		char *p;
+		int i;
+
 		move(y, 0);
 		clrtoeol();
 
-		if(strchr(l->data, '\t')){
-			char *p;
-			int i;
+		for(p = l->data, i = 0;
+				*p && i < max_x;
+				p++){
 
-			for(p = l->data, i = 0;
-					*p && i < max_x;
-					p++){
-
-				if(*p == '\t')
+			switch(*p){
+				case '\t':
 					/* FIXME: proper tabs != 8 spaces */
 					if(global_settings.showtabs)
 						i += 8;
 					else
 						i += global_settings.tabstop;
-				else
-					i++;
+					break;
 
-				gui_addch(*p);
+				default:
+					if(!isprint(*p))
+						i++; /* ^x */
+					i++;
 			}
-		}else
-			addnstr(l->data, max_x);
+
+			gui_addch(*p);
+		}
 	}
 
 	for(; y < max_y - 1; y++)
@@ -269,15 +278,21 @@ static void gui_position_cursor(const char *line)
 {
 	int x;
 	int ntabs;
+	int nnp;
 
 	if(!line)
 		line = buffer_getindex(global_buffer, pos_y)->data;
 
-	for(ntabs = 0, x = 0; x < pos_x; x++)
+	for(ntabs = 0, nnp = 0, x = 0; x < pos_x; x++)
 		if(line[x] == '\t')
 			ntabs++;
+		else if(!isprint(line[x]))
+			nnp++;
 
-	move(pos_y - pos_top, ntabs * (global_settings.showtabs ? 2 : global_settings.tabstop) + x - ntabs);
+	move(pos_y - pos_top,
+			nnp   * 2 +
+			ntabs * (global_settings.showtabs ? 2 : global_settings.tabstop) +
+			x - ntabs - nnp);
 }
 
 void gui_move(int y, int x)

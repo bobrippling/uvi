@@ -1,17 +1,15 @@
 ncurses.c:
-	bug: on newline tabs get displayed as the terminal pleases
-	bug: on backspace, if there was a tab the cursor shifts all over
-
 	change 'w' and 'b' to toggle between /\s/ and !/\s/ like gui textboxes
 
-	change tabs - access termios?
-		int ntabs = curpos / 8;
-		mov(ntabs * 8 + 8)
+	int ntabs = curpos / 8;
+	mov(ntabs * 8 + 8)
 
 	only syntax highlight what's on screen?
 	:e autocomplete?
 
 	'u' (aka undo)
+
+	Fix segfault on d'a, where a is marked as above current position
 
 	SIGWINCH - handle
 
@@ -27,4 +25,4 @@ regex:
 
 copy vim - change attributes on stdin (tcsetattr), so it works with poormanseperation.sh
 
-binary file handling - '\0' for e.g
+binary file handling? - '\0' for e.g

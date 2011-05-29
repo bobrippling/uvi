@@ -266,6 +266,8 @@ static void insert(int append)
 
 			for(j = i - 1; j > 0; j--)
 				buffer_insertafter(global_buffer, iter, lines[j]);
+
+			gui_move(gui_y() + i - 1, strlen(after) + strlen(lines[i-1]));
 		}else{
 			/* tag v_after on the end */
 			char *old = iter->data;
@@ -307,7 +309,7 @@ static void delete(struct motion *mparam)
 	si.top = gui_top();
 	si.height = gui_max_y();
 
-	if(applymotion(mparam, &topos, &si)){
+	if(!applymotion(mparam, &topos, &si)){
 		struct range r;
 
 		r.start = gui_y();
@@ -371,9 +373,9 @@ static void delete(struct motion *mparam)
 					gui_move(gui_y(), x);
 			}
 		}
-	}
 
-	buffer_modified(global_buffer) = 1;
+		buffer_modified(global_buffer) = 1;
+	}
 }
 
 static void join(unsigned int ntimes)

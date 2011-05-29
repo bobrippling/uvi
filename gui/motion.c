@@ -98,11 +98,12 @@ int getmotion(struct motion *m)
 						m->motion = MOTION_MARK;
 						m->extra = c;
 					}else{
-						gui_status("mark not set");
+						gui_status("mark '%c' not set", c);
 						return 1;
 					}
 				}else{
-					gui_status("invalid mark");
+					if(c != CTRL_AND('['))
+						gui_status("invalid mark");
 					return 1;
 				}
 				return 0;
@@ -133,11 +134,9 @@ int applymotion(struct motion *motion, struct bufferpos *pos,
 	switch(motion->motion){
 		case MOTION_UP:
 			/* TODO: ntimes */;
-			if(*pos->y > 0){
+			if(*pos->y > 0)
 				--*pos->y;
-				return 0;
-			}
-			break;
+			return 0;
 
 		case MOTION_DOWN:
 		{
@@ -214,11 +213,9 @@ int applymotion(struct motion *motion, struct bufferpos *pos,
 
 		case MOTION_FORWARD_LETTER:
 			/* TODO: ntimes */
-			if(charpos[1] != '\0'){
+			if(charpos[1] != '\0')
 				++*pos->x;
-				return 0;
-			}
-			break;
+			return 0;
 
 		case MOTION_BACKWARD_LETTER:
 			/* TODO: ntimes */
@@ -228,11 +225,9 @@ int applymotion(struct motion *motion, struct bufferpos *pos,
 
 		/* time for the line changer awkward ones */
 		case MOTION_SCREEN_TOP:
-			if(*pos->y != si->top + SCROLL_OFF){
+			if(*pos->y != si->top + SCROLL_OFF)
 				*pos->y = si->top + SCROLL_OFF;
-				return 0;
-			}
-			break;
+			return 0;
 
 		case MOTION_SCREEN_MIDDLE:
 		{
@@ -246,11 +241,9 @@ int applymotion(struct motion *motion, struct bufferpos *pos,
 					mid = 0;
 			}
 
-			if(*pos->y != mid){
+			if(*pos->y != mid)
 				*pos->y = mid;
-				return 0;
-			}
-			break;
+			return 0;
 		}
 
 		case MOTION_SCREEN_BOTTOM:
@@ -258,9 +251,8 @@ int applymotion(struct motion *motion, struct bufferpos *pos,
 				*pos->y = si->top + si->height - 2 - SCROLL_OFF;
 				if(*pos->y >= buffer_nlines(global_buffer))
 					*pos->y = buffer_nlines(global_buffer)-1;
-				return 0;
 			}
-			break;
+			return 0;
 
 		case MOTION_PARA_PREV:
 			/* FIXME TODO: ntimes */;
@@ -291,11 +283,8 @@ int applymotion(struct motion *motion, struct bufferpos *pos,
 			if(last < 0)
 				last = 0;
 
-			if(*pos->y != last){
-				*pos->y = last;
-				return 0;
-			}
-			break;
+			*pos->y = last;
+			return 0;
 		}
 	}
 
