@@ -48,6 +48,7 @@ static int search(int next, int rev)
 	struct list *l;
 	char *p;
 	int y;
+	int found = 0;
 
 	if(next){
 		if(!*search_str){
@@ -71,11 +72,15 @@ static int search(int next, int rev)
 
 		if((p = strstr(l->data, search_str))){ /* TODO: regex */
 			int x = p - (char *)l->data;
+			found = 1;
 			gui_move(y, x);
 			break;
 		}
 
-	return 0;
+	if(!found)
+		gui_status(GUI_ERR, "not found");
+
+	return !found;
 }
 
 void shift(unsigned int nlines, int indent)
