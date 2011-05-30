@@ -225,8 +225,7 @@ int applymotion(struct motion *motion, struct bufferpos *pos,
 
 		/* time for the line changer awkward ones */
 		case MOTION_SCREEN_TOP:
-			if(*pos->y != si->top + SCROLL_OFF)
-				*pos->y = si->top + SCROLL_OFF;
+			*pos->y = si->top ? si->top + SCROLL_OFF : 0;
 			return 0;
 
 		case MOTION_SCREEN_MIDDLE:
@@ -241,17 +240,15 @@ int applymotion(struct motion *motion, struct bufferpos *pos,
 					mid = 0;
 			}
 
-			if(*pos->y != mid)
-				*pos->y = mid;
+			*pos->y = mid;
 			return 0;
 		}
 
 		case MOTION_SCREEN_BOTTOM:
-			if(*pos->y != si->top + si->height - 2 - SCROLL_OFF){
-				*pos->y = si->top + si->height - 2 - SCROLL_OFF;
-				if(*pos->y >= buffer_nlines(global_buffer))
-					*pos->y = buffer_nlines(global_buffer)-1;
-			}
+			*pos->y = si->top + si->height - 2 - SCROLL_OFF;
+
+			if(*pos->y >= buffer_nlines(global_buffer))
+				*pos->y = buffer_nlines(global_buffer)-1;
 			return 0;
 
 		case MOTION_PARA_PREV:

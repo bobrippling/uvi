@@ -34,7 +34,7 @@ static int  colon(void);
 static int  search(int);
 REPEAT_FUNC(showgirl);
 
-static char iseditchar(int);
+static int iseditchar(int);
 
 static void showpos(void);
 
@@ -136,7 +136,7 @@ void showgirl(unsigned int page)
 {
 	char *const line = buffer_getindex(global_buffer, gui_y())->data;
 	char *wordstart, *wordend, *word;
-	char save;
+	int save;
 	int len;
 
 	wordend = wordstart = line + gui_x();
@@ -310,68 +310,51 @@ static void delete(struct motion *mparam)
 	si.height = gui_max_y();
 
 	if(!applymotion(mparam, &topos, &si)){
-		struct range r;
+		struct range from;
 
-		r.start = gui_y();
-		r.end   = y;
+		from.start = gui_y();
+		from.end   = y;
 
-		if(r.start > r.end){
-			int t = r.start;
-			r.start = r.end;
-			r.end = t;
+		if(from.start > from.end){
+			int t = from.start;
+			from.start = from.end;
+			from.end = t;
 		}
 
 
 		if(islinemotion(mparam)){
 			/* delete lines between gui_y() and y, inclusive */
-			buffer_remove_range(global_buffer, &r);
+			buffer_remove_range(global_buffer, &from);
 			gui_move(gui_y(), gui_x());
 		}else{
-			char *data = buffer_getindex(global_buffer, gui_y())->data, forwardmotion = 1;
-			int oldlen = strlen(data);
+			char *data = buffer_getindex(global_buffer, gui_y())->data;
+			int gx = gui_x();
 
-			if(r.start < r.end){
-				/* lines to remove */
-				r.start++;
-				buffer_remove_range(global_buffer, &r);
+			if(from.start < from.end){
+				/* there are also lines to remove */
+				from.start++;
+				buffer_remove_range(global_buffer, &from);
 
-				/* join line r.end with line y */
+				/* join line from.end with current */
 				join(1);
-				x += oldlen;
 
-				data = buffer_getindex(global_buffer, gui_y())->data;
+				data = buffer_getindex(global_buffer, from.start)->data;
 			}
 
-			/* should be left-most */
-			if(gui_x() > x){
+			/* gx should be left-most */
+			if(gx > x){
 				int t = x;
-				x = gui_x();
-				gui_move(gui_y(), t);
-				forwardmotion = 0;
+				x = gx;
+				gx = t;
 			}
 
-			{
-				char *linestart = data;
-				char *curpos    = linestart + gui_x();
-				char *xpos      = linestart + x;
+			if(istilmotion(mparam))
+				x++;
 
-				if(forwardmotion){
-					if(*xpos != '\0' && !istilmotion(mparam))
-						xpos++; /* delete up to and including where we motion() to */
-				}else{
-					if(*xpos != '\0'){
-						curpos++;
-						/* include the current char in the deletion */
-						xpos++;
-					}
-				}
+			/* remove the chars between gx and x, inclusive */
+			memmove(data + gx, data + x, strlen(data + x) + 1);
 
-				/* remove the chars between gui_x() and x, inclusive */
-				memmove(curpos, xpos, strlen(xpos) + 1);
-
-				if(gui_x() >= x)
-					gui_move(gui_y(), x);
-			}
+			gui_move(gui_y(), gx);
 		}
 
 		buffer_modified(global_buffer) = 1;
@@ -432,7 +415,7 @@ static int colon()
 	return 1;
 }
 
-static char iseditchar(int c)
+static int iseditchar(int c)
 {
 	switch(c){
 		case 'O':
@@ -457,7 +440,7 @@ static char iseditchar(int c)
 	return 0;
 }
 
-int gui_main(const char *filename, char readonly)
+int gui_main(const char *filename, int readonly)
 {
 	int c, bufferchanged = 1, viewchanged = 1, ret = 0, multiple = 0;
 	int prevcmd = '\0', prevmultiple = 0;
@@ -533,9 +516,10 @@ switch_start:
 
 			case 'm':
 				c = gui_getch();
-				if(mark_valid(c))
+				if(mark_valid(c)){
 					mark_set(c, gui_y(), gui_x());
-				else
+					gui_status("'%c' => (%d, %d)", c, gui_x(), gui_y());
+				}else
 					gui_status("invalid mark");
 				break;
 
