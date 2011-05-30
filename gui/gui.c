@@ -280,6 +280,7 @@ void gui_addch(int c)
 			int ntabs;
 
 			getyx(stdscr, y, x);
+			(void)y;
 
 			ntabs = GUI_TAB_INDENT(x);
 
