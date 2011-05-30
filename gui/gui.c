@@ -33,11 +33,9 @@ int gui_max_x(){return max_x;}
 int gui_max_y(){return max_y;}
 int gui_top(){return pos_top;}
 
-static void sigwinch(int sig)
+static void sigwinch(int unused)
 {
-	(void)sig;
 	getmaxyx(stdscr, max_y, max_x);
-	fprintf(stderr, "sigwinch: (%d, %d)\n", max_y, max_x);
 }
 
 int gui_init()

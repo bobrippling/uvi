@@ -256,12 +256,42 @@ int applymotion(struct motion *motion, struct bufferpos *pos,
 			return 0;
 
 		case MOTION_PARA_PREV:
-			/* FIXME TODO: ntimes */;
-			return 1;
-
 		case MOTION_PARA_NEXT:
-			/* FIXME TODO: ntimes */;
-			return 1;
+		{
+			const int rev = motion->motion == MOTION_PARA_PREV;
+			int y = *pos->y;
+			struct list *l = buffer_getindex(global_buffer, y);
+#define NEXT() \
+			do \
+				if(rev){ \
+					l = l->prev; \
+					y--; \
+				}else{ \
+					l = l->next; \
+					y++; \
+				} \
+			while(0)
+
+			while(buffer_line_isspace(l->data))
+				/* on a space, move until we find a non-space */
+				NEXT();
+
+			/* find a space */
+			while(l){
+				if(buffer_line_isspace(l->data))
+					break;
+				NEXT();
+			}
+
+			if(l)
+				*pos->y = y;
+			else
+				*pos->y = rev ? 0 : buffer_nlines(global_buffer);
+
+			*pos->x = 0;
+			return 0;
+#undef NEXT
+		}
 
 		case MOTION_PAREN_MATCH:
 			percent(pos);
