@@ -31,7 +31,7 @@ REPEAT_FUNC(replace);
 
 /* extra */
 static int  colon(void);
-static int  search(int);
+static int  search(int, int);
 REPEAT_FUNC(showgirl);
 
 static char iseditchar(int);
@@ -39,31 +39,37 @@ static char iseditchar(int);
 static void showpos(void);
 
 
-static char searchstr[256] = { 0 };
+static char search_str[256] = { 0 };
+static int  search_rev = 0;
 
 
-static int search(int next)
+static int search(int next, int rev)
 {
 	struct list *l;
 	char *p;
 	int y;
 
 	if(next){
-		if(!*searchstr){
+		if(!*search_str){
 			gui_status("no previous search");
 			return 1;
 		}
-	}else if(gui_prompt("/", searchstr, sizeof searchstr))
-		return 1;
-
+		rev = rev - search_rev; /* obey the previous "?" or "/" */
+	}else{
+		search_rev = rev;
+		if(gui_prompt(rev ? "?" : "/", search_str, sizeof search_str))
+			return 1;
+	}
 
 	/* TODO: allow SIGINT to stop search */
 	/* FIXME: start at curpos */
-	for(y = gui_y() + 1, l = buffer_getindex(global_buffer, y);
+	for(y = gui_y() + (rev ? -1 : 1),
+			l = buffer_getindex(global_buffer, y);
 			l;
-			l = l->next, y++)
+			l = (rev ? l->prev : l->next),
+			rev ? y-- : y++)
 
-		if((p = strstr(l->data, searchstr))){ /* TODO: regex */
+		if((p = strstr(l->data, search_str))){ /* TODO: regex */
 			int x = p - (char *)l->data;
 			gui_move(y, x);
 			break;
@@ -650,10 +656,16 @@ case_i:
 				break;
 
 			case 'n':
-				flag = 1;
+			case 'N':
 			case '/':
-				viewchanged = !search(flag);
+			case '?':
+			{
+				int rev  = c == '?' || c == 'N';
+				int next = tolower(c) == 'n';
+
+				viewchanged = !search(next, rev);
 				break;
+			}
 
 			case '>':
 				flag = 1;
