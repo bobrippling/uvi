@@ -25,18 +25,12 @@ static void gui_attroff(enum gui_attr);
 
 int pos_y = 0, pos_x = 0;
 int pos_top = 0;
-int max_x = 0, max_y = 0;
 
 int gui_x(){return pos_x;}
 int gui_y(){return pos_y;}
-int gui_max_x(){return max_x;}
-int gui_max_y(){return max_y;}
+int gui_max_x(){return COLS;}
+int gui_max_y(){return LINES;}
 int gui_top(){return pos_top;}
-
-static void sigwinch(int unused)
-{
-	getmaxyx(stdscr, max_y, max_x);
-}
 
 int gui_init()
 {
@@ -67,9 +61,6 @@ int gui_init()
 			init_pair(COLOR_BLUE,    COLOR_BLUE,    -1);
 			init_pair(COLOR_YELLOW,  COLOR_YELLOW,  -1);
 		}
-
-		signal(SIGWINCH, sigwinch);
-		sigwinch(SIGWINCH);
 	}
 
 	refresh();
@@ -101,7 +92,7 @@ void gui_statusl(enum gui_attr a, const char *s, va_list l)
 
 	getyx(stdscr, y, x);
 
-	move(max_y - 1, 0);
+	move(LINES - 1, 0);
 	gui_clrtoeol();
 
 	gui_attron(a);
@@ -121,7 +112,7 @@ void gui_status(enum gui_attr a, const char *s, ...)
 
 void gui_status_addl(enum gui_attr a, const char *s, va_list l)
 {
-	move(max_y - 1, 0);
+	move(LINES - 1, 0);
 	gui_attron(a);
 	vwprintw(stdscr, s, l);
 	gui_attron(a);
@@ -207,7 +198,7 @@ int gui_getstr(char *s, int size)
 
 int gui_prompt(const char *p, char *buf, int siz)
 {
-	move(max_y - 1, 0);
+	move(LINES - 1, 0);
 	gui_clrtoeol();
 	addstr(p);
 	return gui_getstr(buf, siz);
@@ -225,7 +216,7 @@ void gui_draw()
 	int y;
 
 	for(l = buffer_getindex(global_buffer, pos_top), y = 0;
-			l && y < max_y - 1;
+			l && y < LINES - 1;
 			l = l->next, y++){
 
 		char *p;
@@ -235,7 +226,7 @@ void gui_draw()
 		clrtoeol();
 
 		for(p = l->data, i = 0;
-				*p && i < max_x;
+				*p && i < COLS;
 				p++){
 
 			switch(*p){
@@ -258,7 +249,7 @@ void gui_draw()
 	}
 
 	attron( COLOR_PAIR(COLOR_BLUE) | A_BOLD);
-	for(; y < max_y - 1; y++)
+	for(; y < LINES - 1; y++)
 		mvaddstr(y, 0, "~\n");
 	attroff(COLOR_PAIR(COLOR_BLUE) | A_BOLD);
 
@@ -348,8 +339,8 @@ void gui_inc(int n)
 		if(pos_y >= nl)
 			pos_y = nl - 1;
 
-		if(pos_y > pos_top + max_y - 2 - SCROLL_OFF)
-			pos_top = pos_y - max_y + 2 + SCROLL_OFF;
+		if(pos_y > pos_top + LINES - 2 - SCROLL_OFF)
+			pos_top = pos_y - LINES + 2 + SCROLL_OFF;
 	}
 }
 
@@ -376,7 +367,7 @@ void gui_move_motion(struct motion *m)
 	bp.x      = &x;
 	bp.y      = &y;
 	si.top    = pos_top;
-	si.height = max_y;
+	si.height = LINES;
 
 	if(!applymotion(m, &bp, &si))
 		gui_move(y, x);
@@ -407,25 +398,25 @@ int gui_scroll(enum scroll s)
 			break;
 
 		case PAGE_UP:
-			pos_top -= max_y;
+			pos_top -= LINES;
 			check = 1;
 			ret = 1;
 			break;
 
 		case PAGE_DOWN:
-			pos_top += max_y;
+			pos_top += LINES;
 			check = 1;
 			ret = 1;
 			break;
 
 		case HALF_UP:
-			pos_top -= max_y / 2;
+			pos_top -= LINES / 2;
 			check = 1;
 			ret = 1;
 			break;
 
 		case HALF_DOWN:
-			pos_top += max_y / 2;
+			pos_top += LINES / 2;
 			check = 1;
 			ret = 1;
 			break;
@@ -435,11 +426,11 @@ int gui_scroll(enum scroll s)
 			break;
 
 		case CURSOR_BOTTOM:
-			pos_top = pos_y - max_y + 1;
+			pos_top = pos_y - LINES + 1;
 			break;
 
 		case CURSOR_MIDDLE:
-			pos_top = pos_y - max_y / 2;
+			pos_top = pos_y - LINES / 2;
 			break;
 	}
 
@@ -447,7 +438,7 @@ int gui_scroll(enum scroll s)
 		pos_top = 0;
 
 	if(check){
-		const int lim = pos_top + max_y - 1 - SCROLL_OFF;
+		const int lim = pos_top + LINES - 1 - SCROLL_OFF;
 		if(pos_y >= lim)
 			pos_y = lim - 1;
 		if(pos_y < pos_top)
@@ -478,7 +469,7 @@ void gui_drawbuffer(buffer_t *b)
 	if(global_settings.colour){
 		while(l){
 			char *c = l->data;
-			int lim = max_x - 1, i;
+			int lim = COLS - 1, i;
 
 			while(*c && lim > 0){
 				checkcolour(c, &waitlen, &colour_on,
@@ -521,12 +512,12 @@ void gui_drawbuffer(buffer_t *b)
 	}else
 		while(l){
 			if(strchr(l->data, '\t')){
-				/* write at most max_x-1 chars */
+				/* write at most COLS-1 chars */
 				char *iter;
 				int pos;
 
 				for(iter = l->data, pos = 0;
-						*iter && pos < max_x;
+						*iter && pos < COLS;
 						iter++, pos++){
 
 					if(*iter == '\t')
@@ -542,8 +533,8 @@ void gui_drawbuffer(buffer_t *b)
 					gui_addch(*iter);
 				}
 			}else{
-				fprintf(stderr, "addnstr('%s', %d - 1);\n", l->data, max_x);
-				addnstr(l->data, max_x - 1);
+				fprintf(stderr, "addnstr('%s', %d - 1);\n", l->data, COLS);
+				addnstr(l->data, COLS - 1);
 			}
 			addch('\n');
 
@@ -555,7 +546,7 @@ void gui_drawbuffer(buffer_t *b)
 	if(global_settings.colour)
 		coloron(COLOR_BLUE, A_BOLD);
 
-	while(++y <= max_y)
+	while(++y <= LINES)
 		addstr("~\n");
 
 	if(global_settings.colour)
