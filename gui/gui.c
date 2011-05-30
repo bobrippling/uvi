@@ -12,6 +12,10 @@
 #include "gui.h"
 #include "../global.h"
 
+#define GUI_TAB_INDENT(x) \
+	(global_settings.tabstop - (x) % global_settings.tabstop)
+
+
 typedef struct
 {
 	const char *const start, *const end;
@@ -78,6 +82,10 @@ void gui_term()
 		switch(a){ \
 			case GUI_ERR: \
 				x(COLOR_PAIR(COLOR_RED) | A_BOLD); \
+				break; \
+			case GUI_IS_NOT_PRINT: \
+				x(COLOR_PAIR(COLOR_BLUE)); \
+				break; \
 			case GUI_NONE: \
 				break; \
 		} \
@@ -165,7 +173,7 @@ int gui_getstr(char *s, int size)
 		c = gui_getch();
 
 		switch(c){
-			/* TODO: ^U, ^W, etc */
+			/* TODO: ^V, ^U, ^W, etc */
 
 			case '\b':
 			case '\177':
@@ -231,11 +239,10 @@ void gui_draw()
 
 			switch(*p){
 				case '\t':
-					/* FIXME: proper tabs != 8 spaces */
 					if(global_settings.showtabs)
-						i += 8;
+						i += 2;
 					else
-						i += global_settings.tabstop;
+						i += GUI_TAB_INDENT(i);
 					break;
 
 				default:
@@ -269,34 +276,47 @@ void gui_addch(int c)
 		if(global_settings.showtabs){
 			addstr("^I");
 		}else{
-			c = global_settings.tabstop;
+			int x, y;
+			int ntabs;
 
-			while(c--)
+			getyx(stdscr, y, x);
+
+			ntabs = GUI_TAB_INDENT(x);
+
+			while(ntabs --> 0)
 				addch(' ');
 		}
-	}else
+	}else if(isprint(c)){
 		addch(c);
+	}else{
+		gui_attron( GUI_IS_NOT_PRINT);
+		printw("^%c", c + 'A');
+		gui_attroff(GUI_IS_NOT_PRINT);
+	}
 }
 
 static void gui_position_cursor(const char *line)
 {
 	int x;
-	int ntabs;
-	int nnp;
+	int i;
 
 	if(!line)
 		line = buffer_getindex(global_buffer, pos_y)->data;
 
-	for(ntabs = 0, nnp = 0, x = 0; x < pos_x; x++)
-		if(line[x] == '\t')
-			ntabs++;
-		else if(!isprint(line[x]))
-			nnp++;
+	x = 0;
 
-	move(pos_y - pos_top,
-			nnp   * 2 +
-			ntabs * (global_settings.showtabs ? 2 : global_settings.tabstop) +
-			x - ntabs - nnp);
+	for(i = 0; i < pos_x; i++)
+		if(line[i] == '\t'){
+			if(global_settings.showtabs)
+				x += 2;
+			else
+				x += GUI_TAB_INDENT(x);
+		}else if(!isprint(line[i]))
+			x += 2;
+		else
+			x++;
+
+	move(pos_y - pos_top, x);
 }
 
 void gui_move(int y, int x)

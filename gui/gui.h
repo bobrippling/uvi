@@ -23,6 +23,7 @@ enum gui_attr
 {
 	GUI_NONE,
 	GUI_ERR,
+	GUI_IS_NOT_PRINT,
 };
 
 void gui_status(     enum gui_attr, const char *, ...);
