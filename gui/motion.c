@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
 #include <ctype.h>
@@ -85,7 +86,7 @@ int getmotion(struct motion *m)
 			case MOTION_TIL:
 				m->extra = gui_getch();
 				if(!isprint(m->extra)){
-					gui_status("unknown character");
+					gui_status(GUI_ERR, "unknown character");
 					return 1;
 				}
 				return 0;
@@ -98,12 +99,12 @@ int getmotion(struct motion *m)
 						m->motion = MOTION_MARK;
 						m->extra = c;
 					}else{
-						gui_status("mark '%c' not set", c);
+						gui_status(GUI_ERR, "mark '%c' not set", c);
 						return 1;
 					}
 				}else{
 					if(c != CTRL_AND('['))
-						gui_status("invalid mark");
+						gui_status(GUI_ERR, "invalid mark");
 					return 1;
 				}
 				return 0;

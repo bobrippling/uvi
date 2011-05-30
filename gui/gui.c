@@ -20,6 +20,8 @@ typedef struct
 
 /*#include "../config.h"*/
 static void gui_position_cursor(const char *line);
+static void gui_attron( enum gui_attr);
+static void gui_attroff(enum gui_attr);
 
 int pos_y = 0, pos_x = 0;
 int pos_top = 0;
@@ -81,7 +83,21 @@ void gui_term()
 	endwin();
 }
 
-void gui_statusl(const char *s, va_list l)
+#define ATTR_FN(x) \
+	static void gui_ ## x(enum gui_attr a) \
+	{ \
+		switch(a){ \
+			case GUI_ERR: \
+				x(COLOR_PAIR(COLOR_RED) | A_BOLD); \
+			case GUI_NONE: \
+				break; \
+		} \
+	}
+
+ATTR_FN(attron)
+ATTR_FN(attroff)
+
+void gui_statusl(enum gui_attr a, const char *s, va_list l)
 {
 	int y, x;
 
@@ -90,38 +106,35 @@ void gui_statusl(const char *s, va_list l)
 	move(max_y - 1, 0);
 	gui_clrtoeol();
 
-#ifdef VIEW_COLOUR
-	if(global_settings.colour)
-		coloron(COLOR_RED);
-#endif
+	gui_attron(a);
 	vwprintw(stdscr, s, l);
-#ifdef VIEW_COLOUR
-	if(global_settings.colour)
-		coloroff(COLOR_RED);
-#endif
+	gui_attroff(a);
+
 	move(y, x);
 }
 
-void gui_status(const char *s, ...)
+void gui_status(enum gui_attr a, const char *s, ...)
 {
 	va_list l;
 	va_start(l, s);
-	gui_statusl(s, l);
+	gui_statusl(a, s, l);
 	va_end(l);
 }
 
-void gui_status_addl(const char *s, va_list l)
+void gui_status_addl(enum gui_attr a, const char *s, va_list l)
 {
 	move(max_y - 1, 0);
+	gui_attron(a);
 	vwprintw(stdscr, s, l);
+	gui_attron(a);
 	scrl(1);
 }
 
-void gui_status_add(const char *s, ...)
+void gui_status_add(enum gui_attr a, const char *s, ...)
 {
 	va_list l;
 	va_start(l, s);
-	gui_status_addl(s, l);
+	gui_status_addl(a, s, l);
 	va_end(l);
 }
 
@@ -246,8 +259,10 @@ void gui_draw()
 		}
 	}
 
+	attron( COLOR_PAIR(COLOR_BLUE) | A_BOLD);
 	for(; y < max_y - 1; y++)
 		mvaddstr(y, 0, "~\n");
+	attroff(COLOR_PAIR(COLOR_BLUE) | A_BOLD);
 
 	gui_position_cursor(NULL);
 	refresh();

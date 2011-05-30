@@ -46,7 +46,7 @@ void cmd_r(int argc, char **argv, int force, struct range *rng)
 	char *cmd;
 
 	if(argc != 2){
-		gui_status("usage: r[!] cmd/file");
+		gui_status(GUI_ERR, "usage: r[!] cmd/file");
 		return;
 	}
 
@@ -55,7 +55,7 @@ void cmd_r(int argc, char **argv, int force, struct range *rng)
 	if(force){
 		struct list *l = pipe_read(cmd);
 		if(!l)
-			gui_status("pipe error: %s", strerror(errno));
+			gui_status(GUI_ERR, "pipe error: %s", strerror(errno));
 		else if(l->data){
 			buffer_insertlistafter(
 					global_buffer,
@@ -65,13 +65,13 @@ void cmd_r(int argc, char **argv, int force, struct range *rng)
 			buffer_modified(global_buffer) = 1;
 		}else{
 			list_free(l);
-			gui_status("%s: no output", cmd);
+			gui_status(GUI_ERR, "%s: no output", cmd);
 		}
 	}else{
 		buffer_t *tmpbuf = readfile(cmd, 0);
 
 		if(!tmpbuf)
-			gui_status("read: %s", strerror(errno));
+			gui_status(GUI_ERR, "read: %s", strerror(errno));
 		else{
 			buffer_insertlistafter(global_buffer,
 					buffer_getindex(global_buffer, gui_y()),
@@ -93,10 +93,10 @@ void cmd_w(int argc, char **argv, int force, struct range *rng)
 
 	if(rng->start != -1 || rng->end != -1){
 usage:
-		gui_status("usage: w[qe][![!]] file|command");
+		gui_status(GUI_ERR, "usage: w[qe][![!]] file|command");
 		return;
 	}else if(buffer_readonly(global_buffer)){
-		gui_status("buffer is read-only");
+		gui_status(GUI_ERR, "buffer is read-only");
 		return;
 	}
 
@@ -124,7 +124,7 @@ usage:
 			struct stat st;
 
 			if(!stat(argv[1], &st)){
-				gui_status("not over-writing %s", argv[1]);
+				gui_status(GUI_ERR, "not over-writing %s", argv[1]);
 				return;
 			}
 		}
@@ -134,17 +134,17 @@ usage:
 		goto usage;
 
 	}else if(!buffer_hasfilename(global_buffer)){
-		gui_status("buffer has no filename");
+		gui_status(GUI_ERR, "buffer has no filename");
 		return;
 	}
 
 	nw = buffer_write(global_buffer);
 	if(nw == -1){
-		gui_status("Couldn't write \"%s\": %s", buffer_filename(global_buffer), strerror(errno));
+		gui_status(GUI_ERR, "Couldn't write \"%s\": %s", buffer_filename(global_buffer), strerror(errno));
 		return;
 	}
 	buffer_modified(global_buffer) = 0;
-	gui_status("\"%s\" %dL, %dC written", buffer_filename(global_buffer),
+	gui_status(GUI_NONE, "\"%s\" %dL, %dC written", buffer_filename(global_buffer),
 			buffer_nlines(global_buffer) - !buffer_eol(global_buffer), nw);
 
 	switch(after){
@@ -163,12 +163,12 @@ usage:
 void cmd_q(int argc, char **argv, int force, struct range *rng)
 {
 	if(argc != 1 || rng->start != -1 || rng->end != -1){
-		gui_status("usage: q[!]");
+		gui_status(GUI_ERR, "usage: q[!]");
 		return;
 	}
 
 	if(!force && buffer_modified(global_buffer))
-		gui_status("unsaved");
+		gui_status(GUI_ERR, "unsaved");
 	else
 		global_running = 0;
 }
@@ -180,7 +180,7 @@ void cmd_bang(int argc, char **argv, int force, struct range *rng)
 		struct list *l;
 
 		if(argc < 2){
-			gui_status("usage: [range]!cmd");
+			gui_status(GUI_ERR, "usage: [range]!cmd");
 			return;
 		}
 
@@ -193,10 +193,10 @@ void cmd_bang(int argc, char **argv, int force, struct range *rng)
 				buffer_modified(global_buffer) = 1;
 			}else{
 				list_free(l);
-				gui_status("%s: no output", argv[1]);
+				gui_status(GUI_ERR, "%s: no output", argv[1]);
 			}
 		}else{
-			gui_status("pipe_readwrite() error: %s", strerror(errno));
+			gui_status(GUI_ERR, "pipe_readwrite() error: %s", strerror(errno));
 		}
 		return;
 	}
@@ -213,12 +213,12 @@ void cmd_bang(int argc, char **argv, int force, struct range *rng)
 void cmd_e(int argc, char **argv, int force, struct range *rng)
 {
 	if(argc != 2){
-		gui_status("usage: e[!] fname");
+		gui_status(GUI_ERR, "usage: e[!] fname");
 		return;
 	}
 
 	if(!force && buffer_modified(global_buffer)){
-		gui_status("unsaved");
+		gui_status(GUI_ERR, "unsaved");
 	}else{
 		buffer_free(global_buffer);
 		global_buffer = readfile(argv[1], 0);
@@ -229,7 +229,7 @@ void cmd_e(int argc, char **argv, int force, struct range *rng)
 void cmd_new(int argc, char **argv, int force, struct range *rng)
 {
 	if(argc != 1)
-		gui_status("usage: new[!]");
+		gui_status(GUI_ERR, "usage: new[!]");
 
 	buffer_free(global_buffer);
 	global_buffer = readfile(argv[1], 0);
@@ -245,14 +245,14 @@ void cmd_set(int argc, char **argv, int force, struct range *rng)
 
 		do
 			if(vars_isbool(type))
-				gui_status_add("%s: %s", vars_tostring(type), *vars_get(type, global_buffer) ? "true" : "false");
+				gui_status_add(-1, "%s: %s", vars_tostring(type), *vars_get(type, global_buffer) ? "true" : "false");
 			else
-				gui_status_add("%s: %d", vars_tostring(type), *vars_get(type, global_buffer));
+				gui_status_add(-1, "%s: %d", vars_tostring(type), *vars_get(type, global_buffer));
 		while(++type != VARS_UNKNOWN);
 
-		gui_status("any key to continue...");
+		gui_status(GUI_NONE, "any key to continue...");
 		gui_peekch();
-		gui_status("");
+		gui_status(GUI_NONE, "");
 		return;
 	}
 
@@ -268,18 +268,18 @@ void cmd_set(int argc, char **argv, int force, struct range *rng)
 			bool = 1;
 
 		if((type = vars_gettype(wordstart)) == VARS_UNKNOWN){
-			gui_status("unknown variable \"%s\"", wordstart);
+			gui_status(GUI_ERR, "unknown variable \"%s\"", wordstart);
 			return;
 		}
 
 		if(vars_isbool(type)){
 			vars_set(type, global_buffer, bool);
 		}else if(gotbool){
-			gui_status("\"%s\" is not a bool", vars_tostring(type));
+			gui_status(GUI_ERR, "\"%s\" is not a bool", vars_tostring(type));
 			return;
 		}else{
 			if(++i == argc)
-				gui_status("need value for \"%s\"", vars_tostring(type));
+				gui_status(GUI_ERR, "need value for \"%s\"", vars_tostring(type));
 			else
 				vars_set(type, global_buffer, atoi(argv[i]));
 		}
@@ -302,7 +302,7 @@ buffer_t *readfile(const char *filename, int ro)
 				 * end up here on failed read:
 				 * open empty file and continue
 				 */
-				gui_status("\"%s\" [%s]", filename, errno ? strerror(errno) : "unknown error - binary file?");
+				gui_status(GUI_ERR, "\"%s\" [%s]", filename, errno ? strerror(errno) : "unknown error - binary file?");
 			else
 				/* something like "./uvi file_that_doesn\'t_exist */
 				goto newfile;
@@ -313,9 +313,9 @@ buffer_t *readfile(const char *filename, int ro)
 				buffer_readonly(b) = 1;
 
 			if(nread == 0)
-				gui_status("(empty file)%s", buffer_readonly(b) ? " [read only]" : "");
+				gui_status(GUI_NONE, "(empty file)%s", buffer_readonly(b) ? " [read only]" : "");
 			else
-				gui_status("%s%s: %dC, %dL%s", filename,
+				gui_status(GUI_NONE, "%s%s: %dC, %dL%s", filename,
 						buffer_readonly(b) ? " [read only]" : "",
 						buffer_nchars(b), buffer_nlines(b),
 						buffer_eol(b) ? "" : " [noeol]");
@@ -324,7 +324,7 @@ buffer_t *readfile(const char *filename, int ro)
 newfile:
 		/* new file */
 		b = buffer_new_empty();
-		gui_status("(new file)");
+		gui_status(GUI_NONE, "(new file)");
 	}
 	return b;
 }
@@ -339,7 +339,7 @@ void shellout(const char *cmd, struct list *l)
 		if(pipe_write(cmd, l) == -1){
 			int e = errno;
 			gui_init();
-			gui_status("pipe error: %s", strerror(e));
+			gui_status(GUI_ERR, "pipe error: %s", strerror(e));
 			return;
 		}
 		ret = 0;
@@ -434,7 +434,7 @@ void command_run(char *in)
 	s = parserange(in, &rng, &lim);
 
 	if(!s){
-		gui_status("couldn't parse range");
+		gui_status(GUI_ERR, "couldn't parse range");
 		return;
 	}else if(HAVE_RANGE && *s == '\0'){
 		/* just a number, move to that line */
@@ -458,7 +458,7 @@ void command_run(char *in)
 	free(argv);
 
 	if(!found)
-		gui_status("not an editor command: \"%s\"", s);
+		gui_status(GUI_ERR, "not an editor command: \"%s\"", s);
 }
 
 void dumpbuffer(buffer_t *b)

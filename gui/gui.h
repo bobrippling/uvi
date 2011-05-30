@@ -19,10 +19,16 @@ int gui_getch(void);
 int gui_peekch(void);
 int gui_prompt(const char *p, char *buf, int siz);
 
-void gui_status( const char *, ...);
-void gui_statusl(const char *, va_list);
-void gui_status_addl(const char *s, va_list l);
-void gui_status_add(const char *s, ...);
+enum gui_attr
+{
+	GUI_NONE,
+	GUI_ERR,
+};
+
+void gui_status(     enum gui_attr, const char *, ...);
+void gui_statusl(    enum gui_attr, const char *, va_list);
+void gui_status_add( enum gui_attr, const char *s, ...);
+void gui_status_addl(enum gui_attr, const char *s,va_list);
 
 void gui_clrtoeol(void);
 

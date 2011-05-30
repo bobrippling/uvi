@@ -51,7 +51,7 @@ static int search(int next, int rev)
 
 	if(next){
 		if(!*search_str){
-			gui_status("no previous search");
+			gui_status(GUI_ERR, "no previous search");
 			return 1;
 		}
 		rev = rev - search_rev; /* obey the previous "?" or "/" */
@@ -149,7 +149,7 @@ void showgirl(unsigned int page)
 	wordend = wordstart = line + gui_x();
 
 	if(!iswordchar(*wordstart)){
-		gui_status("invalid word");
+		gui_status(GUI_ERR, "invalid word");
 		return;
 	}
 
@@ -219,7 +219,7 @@ static void showpos()
 {
 	const int i = buffer_nlines(global_buffer);
 
-	gui_status("\"%s\"%s %d/%d %.2f%%",
+	gui_status(GUI_NONE, "\"%s\"%s %d/%d %.2f%%",
 			buffer_filename(global_buffer),
 			buffer_modified(global_buffer) ? " [Modified]" : "",
 			1 + gui_y(), i,
@@ -396,7 +396,7 @@ static void join(unsigned int ntimes)
 		ntimes = 1;
 
 	if(gui_y() + ntimes >= (unsigned)buffer_nlines(global_buffer)){
-		gui_status("can't join %d line%s", ntimes,
+		gui_status(GUI_ERR, "can't join %d line%s", ntimes,
 				ntimes > 1 ? "s" : "");
 		return;
 	}
@@ -501,7 +501,7 @@ int gui_main(const char *filename, char readonly)
 						multiple = multiple * 10 + c - '0'; \
 						resetmultiple = 0; \
 					}else \
-						gui_status("range too large"); \
+						gui_status(GUI_ERR, "range too large"); \
 						/*resetmultiple = 1;*/ \
 				while(0)
 
@@ -518,7 +518,7 @@ int gui_main(const char *filename, char readonly)
 switch_start:
 		c = gui_getch();
 		if(iseditchar(c) && buffer_readonly(global_buffer)){
-			gui_status("global_buffer is read-only");
+			gui_status(GUI_ERR, "global_buffer is read-only");
 			continue;
 		}
 
@@ -535,7 +535,7 @@ switch_start:
 					multiple = prevmultiple;
 					goto switch_start;
 				}else
-					gui_status("no previous command");
+					gui_status(GUI_ERR, "no previous command");
 				break;
 
 			case 'm':
@@ -543,7 +543,7 @@ switch_start:
 				if(mark_valid(c))
 					mark_set(c, gui_y(), gui_x());
 				else
-					gui_status("invalid mark");
+					gui_status(GUI_ERR, "invalid mark");
 				break;
 
 			case CTRL_AND('g'):
