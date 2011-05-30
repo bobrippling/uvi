@@ -697,6 +697,7 @@ case_i:
 						gui_scroll(CURSOR_BOTTOM);
 						break;
 				}
+				viewchanged = 1;
 				break;
 
 			case CTRL_AND('['):
