@@ -53,18 +53,19 @@ static int search(int next)
 			gui_status("no previous search");
 			return 1;
 		}
-	}else if(gui_getstr(searchstr, sizeof searchstr))
+	}else if(gui_prompt("/", searchstr, sizeof searchstr))
 		return 1;
 
-	if((p = strchr(searchstr, '\n')))
-		*p = '\0';
 
 	/* TODO: allow SIGINT to stop search */
 	/* FIXME: start at curpos */
-	for(y = 0, l = buffer_gethead(global_buffer); l; l = l->next, y++)
+	for(y = gui_y() + 1, l = buffer_getindex(global_buffer, y);
+			l;
+			l = l->next, y++)
+
 		if((p = strstr(l->data, searchstr))){ /* TODO: regex */
 			int x = p - (char *)l->data;
-			gui_move(x, y);
+			gui_move(y, x);
 			break;
 		}
 
@@ -552,12 +553,16 @@ switch_start:
 				SET_DOT();
 				break;
 
+			case 's':
+				flag = 1;
 			case 'X':
 			case 'x':
 				SET_MOTION(c == 'X' ? MOTION_BACKWARD_LETTER : MOTION_FORWARD_LETTER);
 				delete(&motion);
 				bufferchanged = 1;
 				SET_DOT();
+				if(flag)
+					insert(0);
 				break;
 
 			case 'C':
@@ -647,7 +652,7 @@ case_i:
 			case 'n':
 				flag = 1;
 			case '/':
-				viewchanged = search(flag);
+				viewchanged = !search(flag);
 				break;
 
 			case '>':
