@@ -13,7 +13,7 @@ uvi: ${OBJS} config.mk
 	${CC} ${CFLAGS} -c -o $@ $<
 
 clean:
-	${Q}rm -f uvi `find -iname \*.o`
+	rm -f uvi `find -iname \*.o`
 
 .PHONY: clean
 
