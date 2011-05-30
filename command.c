@@ -100,7 +100,7 @@ usage:
 		return;
 	}
 
-	if(!strcmp(argv[0], "wq"))
+	if(!strcmp(argv[0], "wq") || !strcmp(argv[0], "x"))
 		after = QUIT;
 	else if(!strcmp(argv[0], "we"))
 		after = EDIT;
@@ -110,7 +110,7 @@ usage:
 	if(argc > 1 && argv[1][0] == '!'){
 		/* pipe */
 		char *cmd = argv_to_str(argc, argv);
-		char *bang = strchr(cmd, '!') + 1;
+		char *bang = cmd + 1;
 
 		shellout(bang, buffer_gethead(global_buffer));
 
@@ -406,6 +406,7 @@ void command_run(char *in)
 		{ "!",  cmd_bang },
 		{ "we", cmd_w },
 		{ "wq", cmd_w },
+		{ "x",  cmd_w },
 		CMD(r),
 		CMD(w),
 		CMD(q),
