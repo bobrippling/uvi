@@ -7,11 +7,12 @@ typedef struct
 	/* TODO: jump list to lines->gethead(), etc */
 
 	char *fname;
-	int changed; /* internal bool for list consistency */
 	int readonly;
 	int modified;
 	int eol;
 
+	/* internal variables */
+	int dirty;
 	int nlines;
 } buffer_t;
 
@@ -50,15 +51,15 @@ void buffer_dump(buffer_t *, FILE *);
 
 
 /* functions that change the buffer */
-#define buffer_insertbefore(b, l, d)      ( (b)->changed = 1, list_insertbefore      ( l, d )         )
-#define buffer_insertafter(b, l, d)       ( (b)->changed = 1, list_insertafter       ( l, d )         )
-#define buffer_append(b, l, d)            ( (b)->changed = 1, list_append            ( l, d )         )
-#define buffer_insertlistbefore(b, l, m)  ( (b)->changed = 1, list_insertlistbefore  ( l, m )         )
-#define buffer_insertlistafter(b, l, m)   ( (b)->changed = 1, list_insertlistafter   ( l, m )         )
-#define buffer_appendlist(b, l)           ( (b)->changed = 1, list_appendlist        ( b2l(b), l )    )
+#define buffer_insertbefore(b, l, d)      ( (b)->dirty = 1, list_insertbefore      ( l, d )         )
+#define buffer_insertafter(b, l, d)       ( (b)->dirty = 1, list_insertafter       ( l, d )         )
+#define buffer_append(b, l, d)            ( (b)->dirty = 1, list_append            ( l, d )         )
+#define buffer_insertlistbefore(b, l, m)  ( (b)->dirty = 1, list_insertlistbefore  ( l, m )         )
+#define buffer_insertlistafter(b, l, m)   ( (b)->dirty = 1, list_insertlistafter   ( l, m )         )
+#define buffer_appendlist(b, l)           ( (b)->dirty = 1, list_appendlist        ( b2l(b), l )    )
 
-#define buffer_extract(b, l)              ( (b)->changed = 1, list_extract           (l)              )
-#define buffer_remove(b, l)               ( (b)->changed = 1, list_remove            (l)              )
+#define buffer_extract(b, l)              ( (b)->dirty = 1, list_extract           (l)              )
+#define buffer_remove(b, l)               ( (b)->dirty = 1, list_remove            (l)              )
 
 
 /* read only functions */

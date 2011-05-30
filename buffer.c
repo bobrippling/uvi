@@ -119,7 +119,7 @@ int buffer_read(buffer_t **buffer, const char *fname)
 
 	b->modified = !(b->eol = haseol);
 
-	b->changed = 1;
+	b->dirty = 1;
 	/* this is an internal line-change memory (not to do with saving) */
 
 	if(nread == 0){
@@ -287,7 +287,7 @@ void buffer_replace(buffer_t *b, struct list *l)
 {
 	list_free(b->lines);
 	b->lines = l;
-	b->changed = 1;
+	b->dirty = 1;
 }
 
 int buffer_nchars(buffer_t *b)
@@ -308,9 +308,9 @@ int buffer_nchars(buffer_t *b)
 
 int buffer_nlines(buffer_t *b)
 {
-	if(b->changed){
+	if(b->dirty){
 		b->nlines = list_count(b->lines);
-		b->changed = 0;
+		b->dirty = 0;
 	}
 
 	return b->nlines;
@@ -345,7 +345,7 @@ struct list *buffer_extract_range(buffer_t *buffer, struct range *rng)
 		*(char * /* smallest possible */)l->data = '\0';
 	}
 
-	buffer->changed = 1;
+	buffer->dirty = 1;
 
 	return extracted;
 }
