@@ -35,6 +35,8 @@ struct list *buffer_extract_range(buffer_t *, struct range *);
 
 void buffer_dump(buffer_t *, FILE *);
 
+int buffer_line_isspace(const char *);
+
 /* list wrappers */
 #define b2l(b) ((b)->lines)
 
