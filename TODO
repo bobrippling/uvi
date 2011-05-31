@@ -1,4 +1,4 @@
-ncurses.c:
+ncurses:
 	change 'w' and 'b' to toggle between /\s/ and !/\s/ like gui textboxes
 
 	only syntax highlight what's on screen?
@@ -16,7 +16,6 @@ ncurses.c:
 
 command.c:
 	add range option to filters/pipes
-	:x - :wq, but only write if changed
 	use $SHELL in shellout()
 
 regex:
@@ -32,10 +31,9 @@ side scrolling with tabs - fix
 fix backspace on tabbed lines
 ddp
 
-uvi todo <<!
-w
-!
-fails with no-fname
-
 [[
 ]]
+
+uvi <<!
+:wq! /dev/null
+!
