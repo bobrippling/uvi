@@ -4,6 +4,7 @@
 #include <ctype.h>
 #include <stdarg.h>
 #include <string.h>
+#include <time.h>
 
 #include "../range.h"
 #include "../util/list.h"

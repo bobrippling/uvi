@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <pwd.h>
+#include <time.h>
 
 #include "util/alloc.h"
 #include "range.h"
@@ -24,6 +25,7 @@ buffer_t *buffer_new(char *p)
 
 	b->lines = list_new(p);
 	b->nlines = b->eol = 1;
+	b->opentime = time(NULL);
 
 	return b;
 }
@@ -256,6 +258,8 @@ bail:
 	else
 		nwrite += w;
 
+	b->opentime = time(NULL);
+
 bail:
 	eno = errno;
 	if(fclose(f))
@@ -355,6 +359,19 @@ void buffer_dump(buffer_t *b, FILE *f)
 	struct list *head;
 	for(head = buffer_gethead(b); head; head = head->next)
 		fprintf(f, "%s\n", (char *)head->data);
+}
+
+int buffer_external_modified(buffer_t *b)
+{
+	struct stat st;
+
+	if(!buffer_hasfilename(b))
+		return 0;
+
+	if(stat(buffer_filename(b), &st))
+		return 0;
+
+	return st.st_ctime > buffer_opentime(b);
 }
 
 int buffer_line_isspace(const char *s)

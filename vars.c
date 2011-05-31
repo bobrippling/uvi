@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <setjmp.h>
 #include <string.h>
+#include <time.h>
 
 #include "util/alloc.h"
 #include "range.h"

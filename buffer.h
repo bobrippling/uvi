@@ -14,12 +14,15 @@ typedef struct
 	/* internal variables */
 	int dirty;
 	int nlines;
+	time_t opentime;
 } buffer_t;
 
 buffer_t *buffer_new(char *);
 buffer_t *buffer_new_empty(void);
 int buffer_read(buffer_t **, const char *);
 int buffer_write(buffer_t *);
+int buffer_external_modified(buffer_t *);
+
 void buffer_free(buffer_t *);
 void buffer_free_nolist(buffer_t *); /* free(), leaving the list in memory */
 
@@ -45,6 +48,7 @@ int buffer_line_isspace(const char *);
 #define buffer_modified(b)                ((b)->modified)
 #define buffer_readonly(b)                ((b)->readonly)
 #define buffer_eol(b)                     ((b)->eol)
+#define buffer_opentime(b)                ((b)->opentime)
 
 #define buffer_filename(b)                ((b)->fname ? (b)->fname : "(empty file)")
 #define buffer_hasfilename(b)             (!!(b)->fname)
@@ -60,7 +64,6 @@ int buffer_line_isspace(const char *);
 
 #define buffer_extract(b, l)              ( (b)->dirty = 1, list_extract           (l)              )
 #define buffer_remove(b, l)               ( (b)->dirty = 1, list_remove            (l)              )
-
 
 /* read only functions */
 #define buffer_getindex(b, m)             list_getindex ( b2l(b), m)

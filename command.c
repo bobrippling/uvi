@@ -7,6 +7,7 @@
 #include <ctype.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
+#include <time.h>
 
 #include "range.h"
 #include "buffer.h"
@@ -139,9 +140,14 @@ usage:
 		return;
 	}
 
+	if(!force && buffer_external_modified(global_buffer)){
+		gui_status(GUI_ERR, "buffer changed externally since last read");
+		return;
+	}
+
 	nw = buffer_write(global_buffer);
 	if(nw == -1){
-		gui_status(GUI_ERR, "Couldn't write \"%s\": %s", buffer_filename(global_buffer), strerror(errno));
+		gui_status(GUI_ERR, "couldn't write \"%s\": %s", buffer_filename(global_buffer), strerror(errno));
 		return;
 	}
 	buffer_modified(global_buffer) = 0;

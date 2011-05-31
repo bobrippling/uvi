@@ -4,6 +4,7 @@
 #include <locale.h>
 #include <string.h>
 #include <stdarg.h>
+#include <time.h>
 
 #include "main.h"
 #include "range.h"

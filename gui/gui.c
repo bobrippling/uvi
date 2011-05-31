@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <signal.h>
 #include <ctype.h>
+#include <time.h>
 
 #include "../range.h"
 #include "../util/list.h"

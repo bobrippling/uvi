@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <time.h>
 #include "range.h"
 #include "buffer.h"
 #include "global.h"

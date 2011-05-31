@@ -5,6 +5,7 @@
 #include <limits.h>
 #include <ctype.h>
 #include <unistd.h>
+#include <time.h>
 
 #include "../range.h"
 #include "../buffer.h"
