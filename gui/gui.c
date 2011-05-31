@@ -115,7 +115,7 @@ void gui_status(enum gui_attr a, const char *s, ...)
 {
 	va_list l;
 	va_start(l, s);
-	gui_statusl(a, s, l);
+	gui_statusl(a, s, l); /* 14 f cali */
 	va_end(l);
 }
 
@@ -132,7 +132,7 @@ void gui_status_add(enum gui_attr a, const char *s, ...)
 {
 	va_list l;
 	va_start(l, s);
-	gui_status_addl(a, s, l);
+	gui_status_addl(a, s, l); /* aka FBI cop */
 	va_end(l);
 }
 

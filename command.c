@@ -252,14 +252,13 @@ void cmd_set(int argc, char **argv, int force, struct range *rng)
 
 		do
 			if(vars_isbool(type))
-				gui_status_add(-1, "%s: %s", vars_tostring(type), *vars_get(type, global_buffer) ? "true" : "false");
+				gui_status_add(GUI_NONE, "%s: %s", vars_tostring(type), *vars_get(type, global_buffer) ? "true" : "false");
 			else
-				gui_status_add(-1, "%s: %d", vars_tostring(type), *vars_get(type, global_buffer));
+				gui_status_add(GUI_NONE, "%s: %d", vars_tostring(type), *vars_get(type, global_buffer));
 		while(++type != VARS_UNKNOWN);
 
-		gui_status(GUI_NONE, "any key to continue...");
+		gui_status_add(GUI_NONE, "any key to continue...\r");
 		gui_peekch();
-		gui_status(GUI_NONE, "");
 		return;
 	}
 
