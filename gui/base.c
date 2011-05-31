@@ -453,23 +453,17 @@ static int iseditchar(int c)
 	return 0;
 }
 
-int gui_main(const char *filename, int readonly)
+void run()
 {
-	int c, bufferchanged = 1, viewchanged = 1, ret = 0, multiple = 0;
-	int prevcmd = '\0', prevmultiple = 0;
 	struct motion motion;
-
-	if(!isatty(0))
-		fputs("uvi: warning: input is not a terminal\n", stderr);
-	if(!isatty(1))
-		fputs("uvi: warning: output is not a terminal\n", stderr);
-
-	gui_init();
-	global_buffer = readfile(filename, readonly);
-
+	int bufferchanged = 1;
+	int viewchanged = 0;
+	int prevcmd = 0, prevmultiple = 0;
+	int multiple = 0;
 
 	do{
 		int flag = 0, resetmultiple = 1;
+		int c;
 
 		if(bufferchanged){
 			bufferchanged = 0;
@@ -706,17 +700,22 @@ case_i:
 		if(resetmultiple)
 			multiple = 0;
 	}while(global_running);
+#undef INC_MULTIPLE
+#undef SET_DOT
+}
 
+int gui_main(const char *filename, int readonly)
+{
+	if(!isatty(0))
+		fputs("uvi: warning: input is not a terminal\n", stderr);
+	if(!isatty(1))
+		fputs("uvi: warning: output is not a terminal\n", stderr);
+
+	gui_init();
+	global_buffer = readfile(filename, readonly);
+	run();
 	gui_term();
 	buffer_free(global_buffer);
 
-	/*
-	 * apparently this uses uninitialised memory
-	 * signal(SIGINT,  oldinth);
-	 * signal(SIGSEGV, oldsegh);
-	 */
-
-	return ret;
-#undef INC_MULTIPLE
-#undef SET_DOT
+	return 0;
 }
