@@ -684,6 +684,22 @@ case_i:
 			case CTRL_AND('['):
 				break;
 
+			case 'Z':
+			{
+				char buf[8];
+				c = gui_getch();
+#define MAP(c, cmd) case c: strcpy(buf, cmd); command_run(buf); break
+				switch(c){
+					MAP('Z', "x");
+					MAP('Q', "q!");
+
+					default:
+						gui_status(GUI_ERR, "unknown Z postfix");
+				}
+				break;
+#undef MAP
+			}
+
 			default:
 				if(isdigit(c) && (c == '0' ? multiple : 1))
 					INC_MULTIPLE();

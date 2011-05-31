@@ -136,8 +136,13 @@ usage:
 		goto usage;
 
 	}else if(!buffer_hasfilename(global_buffer)){
-		gui_status(GUI_ERR, "buffer has no filename");
-		return;
+		if(buffer_modified(global_buffer)){
+			gui_status(GUI_ERR, "buffer has no filename");
+			return;
+		}else{
+			/* just quit */
+			goto after;
+		}
 	}
 
 	if(!force && buffer_external_modified(global_buffer)){
@@ -154,6 +159,7 @@ usage:
 	gui_status(GUI_NONE, "\"%s\" %dL, %dC written", buffer_filename(global_buffer),
 			buffer_nlines(global_buffer) - !buffer_eol(global_buffer), nw);
 
+after:
 	switch(after){
 		case EDIT:
 			buffer_free(global_buffer);
