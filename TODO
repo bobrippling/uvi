@@ -26,6 +26,8 @@ copy vim - change attributes on stdin (tcsetattr), so it works with poormanseper
 
 binary file handling? - '\0' for e.g
 
+side scrolling with tabs - fix
+
 'nu'
 fix backspace on tabbed lines
 ddp
