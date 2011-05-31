@@ -96,6 +96,24 @@ void gui_term()
 ATTR_FN(attron)
 ATTR_FN(attroff)
 
+static void gui_status_trim(const char *fmt, va_list l)
+{
+	char buffer[256];
+	int len;
+
+	vsnprintf(buffer, sizeof buffer, fmt, l);
+
+	if((len = strlen(buffer) - 1) >= COLS){
+		int i = COLS-4;
+		if(i < 0)
+			i = 0;
+		strcpy(buffer + i, "...");
+		/* FIXME? new line + confirm */
+	}
+
+	addstr(buffer);
+}
+
 void gui_statusl(enum gui_attr a, const char *s, va_list l)
 {
 	int y, x;
@@ -106,7 +124,7 @@ void gui_statusl(enum gui_attr a, const char *s, va_list l)
 	gui_clrtoeol();
 
 	gui_attron(a);
-	vwprintw(stdscr, s, l);
+	gui_status_trim(s, l);
 	gui_attroff(a);
 
 	move(y, x);
@@ -124,7 +142,7 @@ void gui_status_addl(enum gui_attr a, const char *s, va_list l)
 {
 	move(LINES - 1, 0);
 	gui_attron(a);
-	vwprintw(stdscr, s, l);
+	gui_status_trim(s, l);
 	gui_attron(a);
 	scrl(1);
 }
@@ -392,6 +410,17 @@ void gui_move(int y, int x)
 
 	pos_x = x;
 	pos_y = y;
+}
+
+void gui_inc_cursor(int iy)
+{
+	int y, x;
+	getyx(stdscr, y, x);
+	if(iy)
+		y++;
+	else
+		x++;
+	move(y, x);
 }
 
 void gui_inc(int n)

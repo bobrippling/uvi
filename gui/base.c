@@ -125,10 +125,12 @@ void shift(unsigned int nlines, int indent)
 
 void tilde(unsigned int rep)
 {
-	char *data = (char *)buffer_getindex(global_buffer, gui_x())->data;
+	char *data = (char *)buffer_getindex(global_buffer, gui_y())->data;
 	char *pos = data + gui_x();
 
-	while(rep--){
+	gui_move(gui_y(), gui_x() + rep);
+
+	while(rep --> 0){
 		if(islower(*pos))
 			*pos = toupper(*pos);
 		else
@@ -139,8 +141,6 @@ void tilde(unsigned int rep)
 		if(!*++pos)
 			break;
 	}
-
-	gui_move(gui_x() + pos - data, gui_y());
 
 	buffer_modified(global_buffer) = 1;
 }
@@ -240,8 +240,10 @@ static void insert(int append)
 	char **lines = umalloc(nlines * sizeof *lines);
 	struct list *iter;
 
-	if(append)
+	if(append){
 		gui_move(gui_y(), ++x);
+		gui_inc_cursor(0);
+	}
 
 	for(;;){
 		int esc = gui_getstr(buf, sizeof buf);
@@ -305,6 +307,7 @@ static void open(int before)
 		gui_move(gui_y(), 0);
 	}else{
 		buffer_insertafter(global_buffer, here, ustrdup(""));
+		gui_inc_cursor(1);
 		gui_move(gui_y() + 1, gui_x());
 	}
 
@@ -659,6 +662,7 @@ case_i:
 			case '~':
 				tilde(multiple ? multiple : 1);
 				SET_DOT();
+				bufferchanged = 1;
 				break;
 
 			case 'K':
