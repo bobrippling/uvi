@@ -3,7 +3,7 @@ include config.mk
 OBJS = main.o buffer.o range.o command.o vars.o \
 	util/list.o util/alloc.o util/io.o util/pipe.o \
 	gui/gui.o gui/motion.o gui/marks.o gui/base.o \
-	global.o
+	global.o rc.o
 
 
 uvi: ${OBJS} config.mk
@@ -13,7 +13,7 @@ uvi: ${OBJS} config.mk
 	${CC} ${CFLAGS} -c -o $@ $<
 
 clean:
-	${Q}rm -f uvi `find -iname \*.o`
+	rm -f uvi `find -iname \*.o`
 
 .PHONY: clean
 

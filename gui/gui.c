@@ -12,6 +12,10 @@
 #include "gui.h"
 #include "../global.h"
 
+#define GUI_TAB_INDENT(x) \
+	(global_settings.tabstop - (x) % global_settings.tabstop)
+
+
 typedef struct
 {
 	const char *const start, *const end;
@@ -20,23 +24,17 @@ typedef struct
 
 /*#include "../config.h"*/
 static void gui_position_cursor(const char *line);
+static void gui_attron( enum gui_attr);
+static void gui_attroff(enum gui_attr);
 
 int pos_y = 0, pos_x = 0;
 int pos_top = 0;
-int max_x = 0, max_y = 0;
 
 int gui_x(){return pos_x;}
 int gui_y(){return pos_y;}
-int gui_max_x(){return max_x;}
-int gui_max_y(){return max_y;}
+int gui_max_x(){return COLS;}
+int gui_max_y(){return LINES;}
 int gui_top(){return pos_top;}
-
-static void sigwinch(int sig)
-{
-	(void)sig;
-	getmaxyx(stdscr, max_y, max_x);
-	fprintf(stderr, "sigwinch: (%d, %d)\n", max_y, max_x);
-}
 
 int gui_init()
 {
@@ -67,9 +65,6 @@ int gui_init()
 			init_pair(COLOR_BLUE,    COLOR_BLUE,    -1);
 			init_pair(COLOR_YELLOW,  COLOR_YELLOW,  -1);
 		}
-
-		signal(SIGWINCH, sigwinch);
-		sigwinch(SIGWINCH);
 	}
 
 	refresh();
@@ -81,47 +76,62 @@ void gui_term()
 	endwin();
 }
 
-void gui_statusl(const char *s, va_list l)
+#define ATTR_FN(x) \
+	static void gui_ ## x(enum gui_attr a) \
+	{ \
+		switch(a){ \
+			case GUI_ERR: \
+				x(COLOR_PAIR(COLOR_RED) | A_BOLD); \
+				break; \
+			case GUI_IS_NOT_PRINT: \
+				x(COLOR_PAIR(COLOR_BLUE)); \
+				break; \
+			case GUI_NONE: \
+				break; \
+		} \
+	}
+
+ATTR_FN(attron)
+ATTR_FN(attroff)
+
+void gui_statusl(enum gui_attr a, const char *s, va_list l)
 {
 	int y, x;
 
 	getyx(stdscr, y, x);
 
-	move(max_y - 1, 0);
+	move(LINES - 1, 0);
 	gui_clrtoeol();
 
-#ifdef VIEW_COLOUR
-	if(global_settings.colour)
-		coloron(COLOR_RED);
-#endif
+	gui_attron(a);
 	vwprintw(stdscr, s, l);
-#ifdef VIEW_COLOUR
-	if(global_settings.colour)
-		coloroff(COLOR_RED);
-#endif
+	gui_attroff(a);
+
 	move(y, x);
 }
 
-void gui_status(const char *s, ...)
+void gui_status(enum gui_attr a, const char *s, ...)
 {
 	va_list l;
 	va_start(l, s);
-	gui_statusl(s, l);
+	gui_statusl(a, s, l);
 	va_end(l);
 }
 
-void gui_status_addl(const char *s, va_list l)
+void gui_status_addl(enum gui_attr a, const char *s, va_list l)
 {
-	move(max_y - 1, 0);
+	move(LINES - 1, 0);
+	gui_attron(a);
 	vwprintw(stdscr, s, l);
+	gui_attron(a);
 	scrl(1);
 }
 
-void gui_status_add(const char *s, ...)
+void gui_status_add(enum gui_attr a, const char *s, ...)
 {
 	va_list l;
 	va_start(l, s);
-	gui_status_addl(s, l);
+	gui_status_addl(a, s, l);
 	va_end(l);
 }
 
@@ -156,21 +166,58 @@ void gui_clrtoeol()
 int gui_getstr(char *s, int size)
 {
 	char *const start = s;
-	/*return getnstr(s, size) == OK ? 0 : 1;*/
+	int y, x, xstart;
+
+	getyx(stdscr, y, x);
+	xstart = x;
+
 	while(size > 0){
 		int c;
 
 		c = gui_getch();
 
 		switch(c){
-			/* TODO: ^U, ^W, etc */
+			/* TODO: ^V */
 
-			case '\b':
-			case '\177':
+			case CTRL_AND('U'):
+				x = xstart;
+				size += s - start;
+				s = start;
+				move(y, x);
+				clrtoeol();
+				break;
+
+			case CTRL_AND('W'):
+			{
+				char *p;
+
+				if(s == start)
+					break;
+
+				p = s - 1;
+				while(p > start && isspace(*p))
+					p--;
+
+				while(p > start && !isspace(*p))
+					p--;
+
+				x = 1 + p - start;
+				size += x - 1;
+				s = p;
+				move(y, x);
+				clrtoeol();
+				break;
+			}
+
+			case CTRL_AND('?'):
+			case CTRL_AND('H'):
+			case 263:
+			case 127:
 				if(s > start){
 					s--;
 					size++;
-					gui_addch('\b');
+					x--;
+					move(y, x);
 					break;
 				}
 				/* else fall through */
@@ -187,6 +234,7 @@ int gui_getstr(char *s, int size)
 
 			default:
 				*s++ = c;
+				x++;
 				size--;
 				gui_addch(c);
 		}
@@ -196,7 +244,7 @@ int gui_getstr(char *s, int size)
 
 int gui_prompt(const char *p, char *buf, int siz)
 {
-	move(max_y - 1, 0);
+	move(LINES - 1, 0);
 	gui_clrtoeol();
 	addstr(p);
 	return gui_getstr(buf, siz);
@@ -214,7 +262,7 @@ void gui_draw()
 	int y;
 
 	for(l = buffer_getindex(global_buffer, pos_top), y = 0;
-			l && y < max_y - 1;
+			l && y < LINES - 1;
 			l = l->next, y++){
 
 		char *p;
@@ -224,16 +272,15 @@ void gui_draw()
 		clrtoeol();
 
 		for(p = l->data, i = 0;
-				*p && i < max_x;
+				*p && i < COLS;
 				p++){
 
 			switch(*p){
 				case '\t':
-					/* FIXME: proper tabs != 8 spaces */
 					if(global_settings.showtabs)
-						i += 8;
+						i += 2;
 					else
-						i += global_settings.tabstop;
+						i += GUI_TAB_INDENT(i);
 					break;
 
 				default:
@@ -246,8 +293,10 @@ void gui_draw()
 		}
 	}
 
-	for(; y < max_y - 1; y++)
+	attron( COLOR_PAIR(COLOR_BLUE) | A_BOLD);
+	for(; y < LINES - 1; y++)
 		mvaddstr(y, 0, "~\n");
+	attroff(COLOR_PAIR(COLOR_BLUE) | A_BOLD);
 
 	gui_position_cursor(NULL);
 	refresh();
@@ -265,34 +314,48 @@ void gui_addch(int c)
 		if(global_settings.showtabs){
 			addstr("^I");
 		}else{
-			c = global_settings.tabstop;
+			int x, y;
+			int ntabs;
 
-			while(c--)
+			getyx(stdscr, y, x);
+			(void)y;
+
+			ntabs = GUI_TAB_INDENT(x);
+
+			while(ntabs --> 0)
 				addch(' ');
 		}
-	}else
+	}else if(isprint(c) || c == '\n'){
 		addch(c);
+	}else{
+		gui_attron( GUI_IS_NOT_PRINT);
+		printw("^%c", c + 'A' - 1);
+		gui_attroff(GUI_IS_NOT_PRINT);
+	}
 }
 
 static void gui_position_cursor(const char *line)
 {
 	int x;
-	int ntabs;
-	int nnp;
+	int i;
 
 	if(!line)
 		line = buffer_getindex(global_buffer, pos_y)->data;
 
-	for(ntabs = 0, nnp = 0, x = 0; x < pos_x; x++)
-		if(line[x] == '\t')
-			ntabs++;
-		else if(!isprint(line[x]))
-			nnp++;
+	x = 0;
 
-	move(pos_y - pos_top,
-			nnp   * 2 +
-			ntabs * (global_settings.showtabs ? 2 : global_settings.tabstop) +
-			x - ntabs - nnp);
+	for(i = 0; i < pos_x; i++)
+		if(line[i] == '\t'){
+			if(global_settings.showtabs)
+				x += 2;
+			else
+				x += GUI_TAB_INDENT(x);
+		}else if(!isprint(line[i]))
+			x += 2;
+		else
+			x++;
+
+	move(pos_y - pos_top, x);
 }
 
 void gui_move(int y, int x)
@@ -335,8 +398,8 @@ void gui_inc(int n)
 		if(pos_y >= nl)
 			pos_y = nl - 1;
 
-		if(pos_y > pos_top + max_y - 2 - SCROLL_OFF)
-			pos_top = pos_y - max_y + 2 + SCROLL_OFF;
+		if(pos_y > pos_top + LINES - 2 - SCROLL_OFF)
+			pos_top = pos_y - LINES + 2 + SCROLL_OFF;
 	}
 }
 
@@ -363,7 +426,7 @@ void gui_move_motion(struct motion *m)
 	bp.x      = &x;
 	bp.y      = &y;
 	si.top    = pos_top;
-	si.height = max_y;
+	si.height = LINES;
 
 	if(!applymotion(m, &bp, &si))
 		gui_move(y, x);
@@ -394,25 +457,25 @@ int gui_scroll(enum scroll s)
 			break;
 
 		case PAGE_UP:
-			pos_top -= max_y;
+			pos_top -= LINES;
 			check = 1;
 			ret = 1;
 			break;
 
 		case PAGE_DOWN:
-			pos_top += max_y;
+			pos_top += LINES;
 			check = 1;
 			ret = 1;
 			break;
 
 		case HALF_UP:
-			pos_top -= max_y / 2;
+			pos_top -= LINES / 2;
 			check = 1;
 			ret = 1;
 			break;
 
 		case HALF_DOWN:
-			pos_top += max_y / 2;
+			pos_top += LINES / 2;
 			check = 1;
 			ret = 1;
 			break;
@@ -422,11 +485,11 @@ int gui_scroll(enum scroll s)
 			break;
 
 		case CURSOR_BOTTOM:
-			pos_top = pos_y - max_y + 1;
+			pos_top = pos_y - LINES + 1;
 			break;
 
 		case CURSOR_MIDDLE:
-			pos_top = pos_y - max_y / 2;
+			pos_top = pos_y - LINES / 2;
 			break;
 	}
 
@@ -434,7 +497,7 @@ int gui_scroll(enum scroll s)
 		pos_top = 0;
 
 	if(check){
-		const int lim = pos_top + max_y - 1 - SCROLL_OFF;
+		const int lim = pos_top + LINES - 1 - SCROLL_OFF;
 		if(pos_y >= lim)
 			pos_y = lim - 1;
 		if(pos_y < pos_top)
@@ -465,7 +528,7 @@ void gui_drawbuffer(buffer_t *b)
 	if(global_settings.colour){
 		while(l){
 			char *c = l->data;
-			int lim = max_x - 1, i;
+			int lim = COLS - 1, i;
 
 			while(*c && lim > 0){
 				checkcolour(c, &waitlen, &colour_on,
@@ -508,12 +571,12 @@ void gui_drawbuffer(buffer_t *b)
 	}else
 		while(l){
 			if(strchr(l->data, '\t')){
-				/* write at most max_x-1 chars */
+				/* write at most COLS-1 chars */
 				char *iter;
 				int pos;
 
 				for(iter = l->data, pos = 0;
-						*iter && pos < max_x;
+						*iter && pos < COLS;
 						iter++, pos++){
 
 					if(*iter == '\t')
@@ -529,8 +592,8 @@ void gui_drawbuffer(buffer_t *b)
 					gui_addch(*iter);
 				}
 			}else{
-				fprintf(stderr, "addnstr('%s', %d - 1);\n", l->data, max_x);
-				addnstr(l->data, max_x - 1);
+				fprintf(stderr, "addnstr('%s', %d - 1);\n", l->data, COLS);
+				addnstr(l->data, COLS - 1);
 			}
 			addch('\n');
 
@@ -542,7 +605,7 @@ void gui_drawbuffer(buffer_t *b)
 	if(global_settings.colour)
 		coloron(COLOR_BLUE, A_BOLD);
 
-	while(++y <= max_y)
+	while(++y <= LINES)
 		addstr("~\n");
 
 	if(global_settings.colour)

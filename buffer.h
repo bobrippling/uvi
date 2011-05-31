@@ -34,9 +34,9 @@ void buffer_setfilename(buffer_t *, const char *);
 void buffer_remove_range(buffer_t *, struct range *);
 struct list *buffer_extract_range(buffer_t *, struct range *);
 
-#ifdef _STDIO_H
 void buffer_dump(buffer_t *, FILE *);
-#endif
+
+int buffer_line_isspace(const char *);
 
 /* list wrappers */
 #define b2l(b) ((b)->lines)

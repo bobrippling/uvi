@@ -31,7 +31,7 @@ REPEAT_FUNC(replace);
 
 /* extra */
 static int  colon(void);
-static int  search(int);
+static int  search(int, int);
 REPEAT_FUNC(showgirl);
 
 static int iseditchar(int);
@@ -39,36 +39,48 @@ static int iseditchar(int);
 static void showpos(void);
 
 
-static char searchstr[256] = { 0 };
+static char search_str[256] = { 0 };
+static int  search_rev = 0;
 
 
-static int search(int next)
+static int search(int next, int rev)
 {
 	struct list *l;
 	char *p;
 	int y;
+	int found = 0;
 
 	if(next){
-		if(!*searchstr){
-			gui_status("no previous search");
+		if(!*search_str){
+			gui_status(GUI_ERR, "no previous search");
 			return 1;
 		}
-	}else if(gui_getstr(searchstr, sizeof searchstr))
-		return 1;
-
-	if((p = strchr(searchstr, '\n')))
-		*p = '\0';
+		rev = rev - search_rev; /* obey the previous "?" or "/" */
+	}else{
+		search_rev = rev;
+		if(gui_prompt(rev ? "?" : "/", search_str, sizeof search_str))
+			return 1;
+	}
 
 	/* TODO: allow SIGINT to stop search */
 	/* FIXME: start at curpos */
-	for(y = 0, l = buffer_gethead(global_buffer); l; l = l->next, y++)
-		if((p = strstr(l->data, searchstr))){ /* TODO: regex */
+	for(y = gui_y() + (rev ? -1 : 1),
+			l = buffer_getindex(global_buffer, y);
+			l;
+			l = (rev ? l->prev : l->next),
+			rev ? y-- : y++)
+
+		if((p = strstr(l->data, search_str))){ /* TODO: regex */
 			int x = p - (char *)l->data;
-			gui_move(x, y);
+			found = 1;
+			gui_move(y, x);
 			break;
 		}
 
-	return 0;
+	if(!found)
+		gui_status(GUI_ERR, "not found");
+
+	return !found;
 }
 
 void shift(unsigned int nlines, int indent)
@@ -142,7 +154,7 @@ void showgirl(unsigned int page)
 	wordend = wordstart = line + gui_x();
 
 	if(!iswordchar(*wordstart)){
-		gui_status("invalid word");
+		gui_status(GUI_ERR, "invalid word");
 		return;
 	}
 
@@ -212,7 +224,7 @@ static void showpos()
 {
 	const int i = buffer_nlines(global_buffer);
 
-	gui_status("\"%s\"%s %d/%d %.2f%%",
+	gui_status(GUI_NONE, "\"%s\"%s %d/%d %.2f%%",
 			buffer_filename(global_buffer),
 			buffer_modified(global_buffer) ? " [Modified]" : "",
 			1 + gui_y(), i,
@@ -372,7 +384,7 @@ static void join(unsigned int ntimes)
 		ntimes = 1;
 
 	if(gui_y() + ntimes >= (unsigned)buffer_nlines(global_buffer)){
-		gui_status("can't join %d line%s", ntimes,
+		gui_status(GUI_ERR, "can't join %d line%s", ntimes,
 				ntimes > 1 ? "s" : "");
 		return;
 	}
@@ -477,7 +489,7 @@ int gui_main(const char *filename, int readonly)
 						multiple = multiple * 10 + c - '0'; \
 						resetmultiple = 0; \
 					}else \
-						gui_status("range too large"); \
+						gui_status(GUI_ERR, "range too large"); \
 						/*resetmultiple = 1;*/ \
 				while(0)
 
@@ -494,7 +506,7 @@ int gui_main(const char *filename, int readonly)
 switch_start:
 		c = gui_getch();
 		if(iseditchar(c) && buffer_readonly(global_buffer)){
-			gui_status("global_buffer is read-only");
+			gui_status(GUI_ERR, "global_buffer is read-only");
 			continue;
 		}
 
@@ -511,16 +523,17 @@ switch_start:
 					multiple = prevmultiple;
 					goto switch_start;
 				}else
-					gui_status("no previous command");
+					gui_status(GUI_ERR, "no previous command");
 				break;
 
 			case 'm':
 				c = gui_getch();
 				if(mark_valid(c)){
 					mark_set(c, gui_y(), gui_x());
-					gui_status("'%c' => (%d, %d)", c, gui_x(), gui_y());
-				}else
-					gui_status("invalid mark");
+					gui_status(GUI_NONE, "'%c' => (%d, %d)", c, gui_x(), gui_y());
+				}else{
+					gui_status(GUI_ERR, "invalid mark");
+				}
 				break;
 
 			case CTRL_AND('g'):
@@ -536,12 +549,16 @@ switch_start:
 				SET_DOT();
 				break;
 
+			case 's':
+				flag = 1;
 			case 'X':
 			case 'x':
 				SET_MOTION(c == 'X' ? MOTION_BACKWARD_LETTER : MOTION_FORWARD_LETTER);
 				delete(&motion);
 				bufferchanged = 1;
 				SET_DOT();
+				if(flag)
+					insert(0);
 				break;
 
 			case 'C':
@@ -629,10 +646,16 @@ case_i:
 				break;
 
 			case 'n':
-				flag = 1;
+			case 'N':
 			case '/':
-				viewchanged = search(flag);
+			case '?':
+			{
+				int rev  = c == '?' || c == 'N';
+				int next = tolower(c) == 'n';
+
+				viewchanged = !search(next, rev);
 				break;
+			}
 
 			case '>':
 				flag = 1;
@@ -664,6 +687,7 @@ case_i:
 						gui_scroll(CURSOR_BOTTOM);
 						break;
 				}
+				viewchanged = 1;
 				break;
 
 			case CTRL_AND('['):

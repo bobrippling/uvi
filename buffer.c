@@ -356,3 +356,17 @@ void buffer_dump(buffer_t *b, FILE *f)
 	for(head = buffer_gethead(b); head; head = head->next)
 		fprintf(f, "%s\n", (char *)head->data);
 }
+
+int buffer_line_isspace(const char *s)
+{
+	for(;;)
+		switch(*s++){
+			default:
+				return 0;
+			case '\0':
+				return 1;
+			case '\t':
+			case ' ':
+				break;
+		}
+}

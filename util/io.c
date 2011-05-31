@@ -114,3 +114,11 @@ int fgetline(char **s, FILE *in, char *haseol)
 		}
 	}while(1);
 }
+
+void chomp_line()
+{
+	int c;
+	c = getchar();
+	if(c != '\n' && c != EOF)
+		while((c = getchar()) != '\n' && c != EOF);
+}

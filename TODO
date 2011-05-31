@@ -1,9 +1,6 @@
 ncurses.c:
 	change 'w' and 'b' to toggle between /\s/ and !/\s/ like gui textboxes
 
-	int ntabs = curpos / 8;
-	mov(ntabs * 8 + 8)
-
 	only syntax highlight what's on screen?
 	:e autocomplete?
 
@@ -14,6 +11,8 @@ ncurses.c:
 	SIGWINCH - handle
 
 	^Vx[0-9]+ = hex char insert - ^Vx1 inserts '\x01'
+
+	gui_getstr(): display non printable chars correctly on deletion
 
 command.c:
 	add range option to filters/pipes
@@ -26,3 +25,14 @@ regex:
 copy vim - change attributes on stdin (tcsetattr), so it works with poormanseperation.sh
 
 binary file handling? - '\0' for e.g
+
+file changed while edited - check
+
+'nu'
+fix backspace on tabbed lines
+ddp
+
+uvi todo <<!
+w
+!
+fails with no-fname

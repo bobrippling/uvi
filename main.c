@@ -11,6 +11,7 @@
 #include "global.h"
 #include "gui/motion.h"
 #include "gui/gui.h"
+#include "rc.h"
 
 static void usage(const char *);
 
@@ -48,6 +49,8 @@ int main(int argc, const char **argv)
 	signal(SIGINT,  &sigh);
 	signal(SIGTERM, &sigh);
 	signal(SIGQUIT, &sigh);
+
+	rc_read();
 
 	for(i = 1; i < argc; i++)
 		if(argv_options && *argv[i] == '-'){

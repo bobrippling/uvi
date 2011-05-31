@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "range.h"
 #include "buffer.h"
 #include "global.h"

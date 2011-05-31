@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
 #include <ctype.h>
@@ -85,7 +86,7 @@ int getmotion(struct motion *m)
 			case MOTION_TIL:
 				m->extra = gui_getch();
 				if(!isprint(m->extra)){
-					gui_status("unknown character");
+					gui_status(GUI_ERR, "unknown character");
 					return 1;
 				}
 				return 0;
@@ -98,12 +99,12 @@ int getmotion(struct motion *m)
 						m->motion = MOTION_MARK;
 						m->extra = c;
 					}else{
-						gui_status("mark '%c' not set", c);
+						gui_status(GUI_ERR, "mark '%c' not set", c);
 						return 1;
 					}
 				}else{
 					if(c != CTRL_AND('['))
-						gui_status("invalid mark");
+						gui_status(GUI_ERR, "invalid mark");
 					return 1;
 				}
 				return 0;
@@ -252,12 +253,42 @@ int applymotion(struct motion *motion, struct bufferpos *pos,
 			return 0;
 
 		case MOTION_PARA_PREV:
-			/* FIXME TODO: ntimes */;
-			return 1;
-
 		case MOTION_PARA_NEXT:
-			/* FIXME TODO: ntimes */;
-			return 1;
+		{
+			const int rev = motion->motion == MOTION_PARA_PREV;
+			int y = *pos->y;
+			struct list *l = buffer_getindex(global_buffer, y);
+#define NEXT() \
+			do \
+				if(rev){ \
+					l = l->prev; \
+					y--; \
+				}else{ \
+					l = l->next; \
+					y++; \
+				} \
+			while(0)
+
+			while(buffer_line_isspace(l->data))
+				/* on a space, move until we find a non-space */
+				NEXT();
+
+			/* find a space */
+			while(l){
+				if(buffer_line_isspace(l->data))
+					break;
+				NEXT();
+			}
+
+			if(l)
+				*pos->y = y;
+			else
+				*pos->y = rev ? 0 : buffer_nlines(global_buffer);
+
+			*pos->x = 0;
+			return 0;
+#undef NEXT
+		}
 
 		case MOTION_PAREN_MATCH:
 			percent(pos);
