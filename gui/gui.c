@@ -29,13 +29,14 @@ static void gui_attron( enum gui_attr);
 static void gui_attroff(enum gui_attr);
 
 int pos_y = 0, pos_x = 0;
-int pos_top = 0;
+int pos_top = 0, pos_left = 0;
 
 int gui_x(){return pos_x;}
 int gui_y(){return pos_y;}
 int gui_max_x(){return COLS;}
 int gui_max_y(){return LINES;}
 int gui_top(){return pos_top;}
+int gui_left(){return pos_left;}
 
 int gui_init()
 {
@@ -273,7 +274,7 @@ void gui_draw()
 		clrtoeol();
 
 		for(p = l->data, i = 0;
-				*p && i < COLS;
+				*p && i < pos_left + COLS;
 				p++){
 
 			switch(*p){
@@ -290,7 +291,8 @@ void gui_draw()
 					i++;
 			}
 
-			gui_addch(*p);
+			if(i > pos_left) /* here so we get tabs right */
+				gui_addch(*p);
 		}
 	}
 
@@ -298,7 +300,6 @@ void gui_draw()
 	for(; y < LINES - 1; y++)
 		mvaddstr(y, 0, "~\n");
 	attroff(COLOR_PAIR(COLOR_BLUE) | A_BOLD);
-
 	gui_position_cursor(NULL);
 	refresh();
 }
@@ -356,7 +357,7 @@ static void gui_position_cursor(const char *line)
 		else
 			x++;
 
-	move(pos_y - pos_top, x);
+	move(pos_y - pos_top, x - pos_left);
 }
 
 void gui_move(int y, int x)
@@ -379,6 +380,11 @@ void gui_move(int y, int x)
 	if(x > len)
 		x = len;
 
+	if(x >= pos_left + COLS)
+		pos_left = x - COLS + 1;
+	else if(x < pos_left)
+		pos_left = x;
+
 	if(y > pos_y)
 		gui_inc(y - pos_y);
 	else
@@ -386,7 +392,6 @@ void gui_move(int y, int x)
 
 	pos_x = x;
 	pos_y = y;
-	gui_position_cursor(line);
 }
 
 void gui_inc(int n)

@@ -476,10 +476,6 @@ int gui_main(const char *filename, int readonly)
 			viewchanged = 1;
 		}
 		if(viewchanged){
-			/*
-			 * cursor must be updated before
-			 * the pad is refreshed
-			 */
 			gui_draw();
 			viewchanged = 0;
 		}

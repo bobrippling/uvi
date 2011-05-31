@@ -10,6 +10,7 @@ int gui_y(void);
 int gui_max_x(void);
 int gui_max_y(void);
 int gui_top(void);
+int gui_left(void);
 
 void gui_addch(int c);
 void gui_mvaddch(int y, int x, int c);
