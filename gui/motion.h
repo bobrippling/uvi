@@ -32,6 +32,10 @@ enum motiontype
 
 	MOTION_FIND             = 'f',
 	MOTION_TIL              = 't',
+	MOTION_FIND_REV         = 'F',
+	MOTION_TIL_REV          = 'T',
+	MOTION_FIND_NEXT        = ';',
+	MOTION_FIND_PREV        = ',',
 
 	MOTION_NOMOVE           =  0 /* used for dd, cc and x */
 };

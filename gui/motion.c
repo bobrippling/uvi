@@ -46,11 +46,23 @@ builtin_motions[] = {
 	[MOTION_MARK]            = { 0, 0 },
 
 	[MOTION_FIND]            = { 0, 0 },
-	[MOTION_TIL]             = { 0, 0 }
+	[MOTION_TIL]             = { 1, 0 },
+	[MOTION_FIND_REV]        = { 0, 0 },
+	[MOTION_TIL_REV]         = { 1, 0 },
+	[MOTION_FIND_NEXT]       = { 0, 0 },
+
+	[MOTION_NOMOVE]          = { 0, 0 },
 };
 
+static int last_find_c = 0, last_find_til = 0, last_find_rev = 0;
+
 int islinemotion(struct motion *m) { return builtin_motions[m->motion].is_line; }
-int istilmotion( struct motion *m) { return builtin_motions[m->motion].is_til; }
+int istilmotion( struct motion *m)
+{
+	return m->motion == MOTION_FIND_NEXT ?
+		last_find_til :
+		builtin_motions[m->motion].is_til;
+}
 
 /* for percent() */
 static char bracketdir(char);
@@ -83,13 +95,35 @@ int getmotion(struct motion *m)
 			case MOTION_ABSOLUTE_DOWN:
 				return 0;
 
+			case MOTION_FIND_PREV:
+			case MOTION_FIND_NEXT:
+				m->extra  = last_find_c;
+				if(last_find_rev ^ (m->motion == MOTION_FIND_PREV))
+					if(last_find_til)
+						m->motion = MOTION_TIL_REV;
+					else
+						m->motion = MOTION_FIND_REV;
+				else
+					if(last_find_til)
+						m->motion = MOTION_TIL;
+					else
+						m->motion = MOTION_FIND;
+				fprintf(stderr, "MOTION_FIND_NEXT -> { \"%s%s\", '%c' }\n",
+						last_find_rev ? "rev_" : "", last_find_til ? "til":"find", m->extra);
+				return 0;
+
 			case MOTION_FIND:
 			case MOTION_TIL:
+			case MOTION_FIND_REV:
+			case MOTION_TIL_REV:
 				m->extra = gui_getch();
 				if(!isprint(m->extra)){
 					gui_status(GUI_ERR, "unknown character");
 					return 1;
 				}
+				last_find_c = m->extra;
+				last_find_til = m->motion == MOTION_TIL      || m->motion == MOTION_TIL_REV;
+				last_find_rev = m->motion == MOTION_FIND_REV || m->motion == MOTION_TIL_REV;
 				return 0;
 
 			case MOTION_MARK:
@@ -175,15 +209,26 @@ int applymotion(struct motion *motion, struct bufferpos *pos,
 				*pos->x = 0;
 			return 0;
 
+		case MOTION_FIND_NEXT: /* should never get this */
+		case MOTION_FIND_PREV: /* or this */
 		case MOTION_TIL:
 		case MOTION_FIND:
 			charpos++; /* search _after_ the current position */
 			while(*charpos && *charpos != motion->extra)
 				charpos++;
-
 			if(*charpos != '\0')
 				*pos->x = charpos - charstart - (motion->motion == MOTION_TIL);
 			return 0;
+
+		case MOTION_TIL_REV:
+		case MOTION_FIND_REV:
+			charpos--;
+			while(charpos >= charstart && *charpos != motion->extra)
+				charpos--;
+			if(charpos >= charstart && *charpos == motion->extra)
+				*pos->x = charpos - charstart + (motion->motion == MOTION_TIL);
+			return 0;
+
 
 		case MOTION_ABSOLUTE_RIGHT:
 			while(*charpos != '\0')
