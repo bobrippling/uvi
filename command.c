@@ -300,9 +300,6 @@ buffer_t *readfile(const char *filename, int ro)
 		int nread = buffer_read(&b, filename);
 
 		if(nread == -1){
-			b = buffer_new_empty();
-			buffer_setfilename(b, filename);
-
 			if(errno != ENOENT)
 				/*
 				 * end up here on failed read:
@@ -330,6 +327,8 @@ buffer_t *readfile(const char *filename, int ro)
 newfile:
 		/* new file */
 		b = buffer_new_empty();
+		if(filename)
+			buffer_setfilename(b, filename);
 		gui_status(GUI_NONE, "(new file)");
 	}
 	return b;
