@@ -92,6 +92,7 @@ void cmd_w(int argc, char **argv, int force, struct range *rng)
 {
 	enum { QUIT, EDIT, NONE } after = NONE;
 	int nw;
+	int x = 0;
 
 	if(rng->start != -1 || rng->end != -1){
 usage:
@@ -102,12 +103,17 @@ usage:
 		return;
 	}
 
-	if(!strcmp(argv[0], "wq") || !strcmp(argv[0], "x"))
+	if(!strcmp(argv[0], "wq")){
 		after = QUIT;
-	else if(!strcmp(argv[0], "we"))
+	}else if(!strcmp(argv[0], "x")){
+		after = QUIT;
+		x = 1;
+
+	}else if(!strcmp(argv[0], "we")){
 		after = EDIT;
-	else if(strcmp(argv[0], "w"))
+	}else if(strcmp(argv[0], "w")){
 		goto usage;
+	}
 
 	if(argc > 1 && argv[1][0] == '!'){
 		/* pipe */
@@ -149,6 +155,9 @@ usage:
 		gui_status(GUI_ERR, "buffer changed externally since last read");
 		return;
 	}
+
+	if(x && !buffer_modified(global_buffer))
+		goto after;
 
 	nw = buffer_write(global_buffer);
 	if(nw == -1){
