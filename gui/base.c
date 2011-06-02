@@ -237,12 +237,13 @@ static void insert(int append)
 	char buf[256];
 	int i = 0, x = gui_x();
 	int nlines = 10;
+	int offset;
 	char **lines = umalloc(nlines * sizeof *lines);
 	struct list *iter;
 
 	if(append){
-		gui_move(gui_y(), ++x);
 		gui_inc_cursor(0);
+		x++;
 	}
 
 	for(;;){
@@ -259,6 +260,7 @@ static void insert(int append)
 
 
 	iter = buffer_getindex(global_buffer, gui_y());
+	offset = !(x > (signed)strlen(iter->data));
 	{
 		char *ins = (char *)iter->data + x;
 		char *after = ustrdup(ins);
@@ -282,13 +284,13 @@ static void insert(int append)
 			for(j = i - 1; j > 0; j--)
 				buffer_insertafter(global_buffer, iter, lines[j]);
 
-			gui_move(gui_y() + i - 1, strlen(after) + strlen(lines[i-1]));
+			gui_move(gui_y() + i - offset, strlen(after) + strlen(lines[i-1]));
 		}else{
 			/* tag v_after on the end */
 			char *old = iter->data;
 			iter->data = ustrcat(iter->data, *lines, after, NULL);
 			free(old);
-			gui_move(gui_y(), gui_x() + strlen(*lines) - 1);
+			gui_move(gui_y(), gui_x() + strlen(*lines) - offset);
 		}
 	}
 
@@ -698,7 +700,7 @@ case_i:
 					MAP('Q', "q!");
 
 					default:
-						gui_status(GUI_ERR, "unknown Z postfix");
+						gui_status(GUI_ERR, "unknown Z postfix", c);
 				}
 				break;
 #undef MAP

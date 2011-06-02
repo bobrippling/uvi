@@ -410,6 +410,7 @@ void gui_move(int y, int x)
 
 	pos_x = x;
 	pos_y = y;
+	gui_position_cursor(line);
 }
 
 void gui_inc_cursor(int iy)
@@ -421,6 +422,7 @@ void gui_inc_cursor(int iy)
 	else
 		x++;
 	move(y, x);
+	refresh();
 }
 
 void gui_inc(int n)
