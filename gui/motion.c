@@ -364,11 +364,12 @@ int applymotion(struct motion *motion, struct bufferpos *pos,
 
 	return 1;
 MOTION_GOTO:
-	if(0 <= motion->ntimes &&
-			motion->ntimes <= buffer_nlines(global_buffer)-1){
+	if(motion->ntimes > 0 &&
+		 motion->ntimes <= buffer_nlines(global_buffer)){
 		*pos->y = motion->ntimes - 1;
 		return 0;
 	}
+	gui_status(GUI_ERR, "line %d out of range", motion->ntimes);
 	return 1;
 }
 
