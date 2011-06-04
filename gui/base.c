@@ -458,7 +458,7 @@ static int iseditchar(int c)
 	return 0;
 }
 
-void run()
+void gui_run()
 {
 	struct motion motion;
 	int bufferchanged = 1;
@@ -724,20 +724,4 @@ case_i:
 	}while(global_running);
 #undef INC_MULTIPLE
 #undef SET_DOT
-}
-
-int gui_main(const char *filename, int readonly)
-{
-	if(!isatty(0))
-		fputs("uvi: warning: input is not a terminal\n", stderr);
-	if(!isatty(1))
-		fputs("uvi: warning: output is not a terminal\n", stderr);
-
-	gui_init();
-	global_buffer = readfile(filename, readonly);
-	run();
-	gui_term();
-	buffer_free(global_buffer);
-
-	return 0;
 }

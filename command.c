@@ -371,7 +371,7 @@ void shellout(const char *cmd, struct list *l)
 	else if(WEXITSTATUS(ret))
 		printf("%s returned %d\n", cmd, WEXITSTATUS(ret));
 
-	fputs("Press enter to continue...", stdout);
+	fputs("Any key to continue...\n", stdout);
 	fflush(stdout);
 
 	chomp_line();

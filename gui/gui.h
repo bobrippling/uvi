@@ -3,7 +3,7 @@
 
 int  gui_init(void);
 void gui_term(void);
-int  gui_main(const char *filename, int readonly);
+void gui_run(void);
 
 int gui_x(void);
 int gui_y(void);

@@ -4,6 +4,8 @@
 #include <string.h>
 #include <setjmp.h>
 #include <unistd.h>
+#include <termios.h>
+#include <curses.h>
 
 #include "alloc.h"
 #include "io.h"
@@ -118,7 +120,20 @@ int fgetline(char **s, FILE *in, char *haseol)
 void chomp_line()
 {
 	int c;
+	struct termios attr;
+
+	tcgetattr(0, &attr);
+
+	attr.c_cc[VMIN] = sizeof(char);
+	attr.c_lflag   &= ~(ICANON | ECHO);
+
+	tcsetattr(0, TCSANOW, &attr);
+
 	c = getchar();
-	if(c != '\n' && c != EOF)
-		while((c = getchar()) != '\n' && c != EOF);
+
+	attr.c_cc[VMIN] = 0;
+	attr.c_lflag   |= ICANON | ECHO;
+	tcsetattr(0, TCSANOW, &attr);
+
+	ungetch(c);
 }
