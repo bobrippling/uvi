@@ -254,7 +254,7 @@ struct list *buffer_extract_range(buffer_t *buffer, struct range *rng)
 
 	l = list_getindex(buffer->lines, rng->start);
 
-	extracted = list_extract_range(&l, rng->end - rng->start);
+	extracted = list_extract_range(&l, rng->end - rng->start + 1);
 	newpos = l;
 
 	/* l must be used below, since buffer->lines is now invalid */

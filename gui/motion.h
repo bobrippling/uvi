@@ -48,16 +48,6 @@ struct motion
 	char extra;
 };
 
-struct builtin_motion
-{
-	int is_til, is_line;
-	/*
-	 * is this motion a 'til' motion, i.e.
-	 * should we go up to but not including
-	 * the final char of the motion (when deleting)
-	 */
-};
-
 struct bufferpos
 {
 	int *x, *y;
@@ -79,5 +69,7 @@ int applymotion(struct motion *, struct bufferpos *, struct screeninfo *);
 
 int islinemotion(struct motion *m);
 int istilmotion( struct motion *m);
+
+const char *motion_str(struct motion *);
 
 #endif

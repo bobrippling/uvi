@@ -345,7 +345,7 @@ static void open(int before)
 	insert(0);
 }
 
-static void delete(struct motion *mparam)
+static void delete(struct motion *motion)
 {
 	struct bufferpos topos;
 	struct screeninfo si;
@@ -356,7 +356,7 @@ static void delete(struct motion *mparam)
 	si.top = gui_top();
 	si.height = gui_max_y();
 
-	if(!applymotion(mparam, &topos, &si)){
+	if(!applymotion(motion, &topos, &si)){
 		struct range from;
 
 		from.start = gui_y();
@@ -368,16 +368,18 @@ static void delete(struct motion *mparam)
 			from.end = t;
 		}
 
-
-		if(islinemotion(mparam)){
+		if(islinemotion(motion)){
 			/* delete lines between gui_y() and y, inclusive */
+			fprintf(stderr, "delete(): motion: %s, deleting lines %d thru %d, inc.\n",
+					motion_str(motion), from.start, from.end);
+
 			buffer_remove_range(global_buffer, &from);
 			gui_move(gui_y(), gui_x());
 		}else{
 			char *data = buffer_getindex(global_buffer, gui_y())->data;
 			int gx = gui_x();
 
-			if(from.start < from.end){
+			if(from.start < from.end + 1){
 				/* there are also lines to remove */
 				from.start++;
 				buffer_remove_range(global_buffer, &from);
@@ -395,7 +397,7 @@ static void delete(struct motion *mparam)
 				gx = t;
 			}
 
-			if(istilmotion(mparam))
+			if(istilmotion(motion))
 				x++;
 
 			/* remove the chars between gx and x, inclusive */
@@ -721,7 +723,7 @@ case_i:
 
 			case 'Z':
 			{
-				char buf[8];
+				char buf[4];
 				c = gui_getch();
 #define MAP(c, cmd) case c: strcpy(buf, cmd); command_run(buf); break
 				switch(c){

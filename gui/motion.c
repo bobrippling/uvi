@@ -17,41 +17,50 @@
 #define iswordpart(c) (isalnum(c) || (c) == '_')
 
 static struct builtin_motion
-builtin_motions[] = {
-	[MOTION_FORWARD_LETTER]  = { 1, 0 },
-	[MOTION_BACKWARD_LETTER] = { 1, 0 },
+{
+	int is_til, is_line;
+	/*
+	 * is this motion a 'til' motion, i.e.
+	 * should we go up to but not including
+	 * the final char of the motion (when deleting)
+	 */
 
-	[MOTION_FORWARD_WORD]    = { 1, 0 },
-	[MOTION_BACKWARD_WORD]   = { 1, 0 },
+	int is_ntimes;
+} builtin_motions[] = {
+	[MOTION_FORWARD_LETTER]  = { 1, 0, 1 },
+	[MOTION_BACKWARD_LETTER] = { 1, 0, 1 },
 
-	[MOTION_LINE_START]      = { 0, 0 },
+	[MOTION_FORWARD_WORD]    = { 1, 0, 1 },
+	[MOTION_BACKWARD_WORD]   = { 1, 0, 1 },
 
-	[MOTION_DOWN]            = { 0, 1 },
-	[MOTION_UP]              = { 0, 1 },
+	[MOTION_LINE_START]      = { 0, 0, 0 },
 
-	[MOTION_SCREEN_TOP]      = { 0, 1 },
-	[MOTION_SCREEN_MIDDLE]   = { 0, 1 },
-	[MOTION_SCREEN_BOTTOM]   = { 0, 1 },
+	[MOTION_DOWN]            = { 0, 1, 1 },
+	[MOTION_UP]              = { 0, 1, 1 },
 
-	[MOTION_PARA_PREV]       = { 0, 1 },
-	[MOTION_PARA_NEXT]       = { 0, 1 },
+	[MOTION_SCREEN_TOP]      = { 0, 1, 0 },
+	[MOTION_SCREEN_MIDDLE]   = { 0, 1, 0 },
+	[MOTION_SCREEN_BOTTOM]   = { 0, 1, 0 },
 
-	[MOTION_PAREN_MATCH]     = { 0, 0 },
+	[MOTION_PARA_PREV]       = { 0, 1, 1 },
+	[MOTION_PARA_NEXT]       = { 0, 1, 1 },
 
-	[MOTION_ABSOLUTE_LEFT]   = { 0, 0 },
-	[MOTION_ABSOLUTE_RIGHT]  = { 0, 0 },
-	[MOTION_ABSOLUTE_UP]     = { 0, 1 },
-	[MOTION_ABSOLUTE_DOWN]   = { 0, 1 },
+	[MOTION_PAREN_MATCH]     = { 0, 0, 1 },
 
-	[MOTION_MARK]            = { 0, 0 },
+	[MOTION_ABSOLUTE_LEFT]   = { 0, 0, 0 },
+	[MOTION_ABSOLUTE_RIGHT]  = { 0, 0, 0 },
+	[MOTION_ABSOLUTE_UP]     = { 0, 1, 0 },
+	[MOTION_ABSOLUTE_DOWN]   = { 0, 1, 0 },
 
-	[MOTION_FIND]            = { 0, 0 },
-	[MOTION_TIL]             = { 1, 0 },
-	[MOTION_FIND_REV]        = { 0, 0 },
-	[MOTION_TIL_REV]         = { 1, 0 },
-	[MOTION_FIND_NEXT]       = { 0, 0 },
+	[MOTION_MARK]            = { 0, 0, 0 },
 
-	[MOTION_NOMOVE]          = { 0, 0 },
+	[MOTION_FIND]            = { 0, 0, 1 },
+	[MOTION_TIL]             = { 1, 0, 1 },
+	[MOTION_FIND_REV]        = { 0, 0, 1 },
+	[MOTION_TIL_REV]         = { 1, 0, 1 },
+	[MOTION_FIND_NEXT]       = { 0, 0, 1 },
+
+	[MOTION_NOMOVE]          = { 0, 1, 0 },
 };
 
 static int last_find_c = 0, last_find_til = 0, last_find_rev = 0;
@@ -68,6 +77,11 @@ int istilmotion( struct motion *m)
 static char bracketdir(char);
 static char bracketrev(char);
 static void percent(struct bufferpos *);
+
+static int applymotion2(
+		struct motion *motion,
+		struct bufferpos *pos,
+		struct screeninfo *si);
 
 
 int getmotion(struct motion *m)
@@ -157,6 +171,22 @@ int getmotion(struct motion *m)
 int applymotion(struct motion *motion, struct bufferpos *pos,
 		struct screeninfo *si)
 {
+	if(motion->ntimes == 0)
+		motion->ntimes = 1;
+
+	do
+		if(applymotion2(motion, pos, si))
+			return 1;
+		else if(!builtin_motions[motion->motion].is_ntimes)
+			return 0;
+	while(motion->ntimes --> 1);
+
+	return 0;
+}
+
+int applymotion2(struct motion *motion, struct bufferpos *pos,
+		struct screeninfo *si)
+{
 	/*
 	 * basically, it works like this (for word navigation):
 	 * if we're on a char, move until we're not on a char
@@ -169,14 +199,12 @@ int applymotion(struct motion *motion, struct bufferpos *pos,
 
 	switch(motion->motion){
 		case MOTION_UP:
-			/* TODO: ntimes */;
 			if(*pos->y > 0)
 				--*pos->y;
 			return 0;
 
 		case MOTION_DOWN:
 		{
-			/* TODO: ntimes */;
 			int nlines = buffer_nlines(global_buffer);
 
 			if(nlines < 0)
@@ -241,7 +269,6 @@ int applymotion(struct motion *motion, struct bufferpos *pos,
 		case MOTION_FORWARD_WORD:
 		case MOTION_BACKWARD_WORD:
 		{
-			/* TODO: ntimes */
 			const int cmp = iswordpart(*charpos);
 
 			if(motion->motion == MOTION_FORWARD_WORD){
@@ -259,13 +286,11 @@ int applymotion(struct motion *motion, struct bufferpos *pos,
 		}
 
 		case MOTION_FORWARD_LETTER:
-			/* TODO: ntimes */
 			if(charpos[1] != '\0')
 				++*pos->x;
 			return 0;
 
 		case MOTION_BACKWARD_LETTER:
-			/* TODO: ntimes */
 			if(*pos->x > 0)
 				--*pos->x;
 			return 0;
@@ -350,7 +375,7 @@ int applymotion(struct motion *motion, struct bufferpos *pos,
 		case MOTION_ABSOLUTE_DOWN:
 		{
 			int last;
-			if(motion->ntimes)
+			if(motion->ntimes > 1)
 				goto MOTION_GOTO;
 
 			last = buffer_nlines(global_buffer) - 1;
@@ -470,4 +495,37 @@ static char bracketrev(char b)
 
 		default: return '\0';
 	}
+}
+
+const char *motion_str(struct motion *m)
+{
+#define S(x) case x: return #x
+	switch(m->motion){
+		S(MOTION_FORWARD_LETTER);
+		S(MOTION_BACKWARD_LETTER);
+		S(MOTION_FORWARD_WORD);
+		S(MOTION_BACKWARD_WORD);
+		S(MOTION_LINE_START);
+		S(MOTION_DOWN);
+		S(MOTION_UP);
+		S(MOTION_SCREEN_TOP);
+		S(MOTION_SCREEN_MIDDLE);
+		S(MOTION_SCREEN_BOTTOM);
+		S(MOTION_PARA_PREV);
+		S(MOTION_PARA_NEXT);
+		S(MOTION_PAREN_MATCH);
+		S(MOTION_ABSOLUTE_LEFT);
+		S(MOTION_ABSOLUTE_RIGHT);
+		S(MOTION_ABSOLUTE_UP);
+		S(MOTION_ABSOLUTE_DOWN);
+		S(MOTION_MARK);
+		S(MOTION_FIND);
+		S(MOTION_TIL);
+		S(MOTION_FIND_REV);
+		S(MOTION_TIL_REV);
+		S(MOTION_FIND_NEXT);
+		S(MOTION_FIND_PREV);
+		S(MOTION_NOMOVE);
+	}
+	return NULL;
 }
