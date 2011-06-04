@@ -413,6 +413,33 @@ void parsecmd(char *s, int *pargc, char ***pargv, int *pforce)
 	*pargc = n;
 }
 
+void filtercmd(int *pargc, char ***pargv)
+{
+	char **argv;
+	int argc, i;
+
+	argv = *pargv;
+	argc = *pargc;
+
+	for(i = 0; i < argc; i++){
+		char *p = strchr(argv[i], '~');
+
+		if(p && (p > argv[i] ? p[-1] != '\\' : 1)){
+			const char *home = getenv("HOME");
+
+			if(!home)
+				home = "/";
+
+			*p++ = '\0';
+
+			argv[i] = ustrprintf("%s%s%s", argv[i], home, p);
+		}else{
+			argv[i] = ustrdup(argv[i]);
+		}
+	}
+
+}
+
 void command_run(char *in)
 {
 	static const struct
@@ -464,6 +491,7 @@ void command_run(char *in)
 		rng.start = rng.end = -1;
 
 	parsecmd(s, &argc, &argv, &force);
+	filtercmd(&argc, &argv);
 
 	found = 0;
 	for(i = 0; i < LEN(funcs); i++)
@@ -473,6 +501,8 @@ void command_run(char *in)
 			break;
 		}
 
+	for(i = 0; i < argc; i++)
+		free(argv[i]);
 	free(argv);
 
 	if(!found)
