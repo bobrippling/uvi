@@ -35,7 +35,7 @@ gui/base.o: gui/base.c gui/../range.h gui/../buffer.h gui/../command.h \
  gui/../util/list.h gui/../global.h gui/motion.h gui/../util/alloc.h \
  gui/gui.h gui/marks.h gui/../main.h
 gui/gui.o: gui/gui.c gui/../range.h gui/../util/list.h gui/../buffer.h \
- gui/motion.h gui/gui.h gui/../global.h
+ gui/motion.h gui/gui.h gui/../global.h gui/../util/alloc.h
 gui/marks.o: gui/marks.c gui/marks.h
 gui/motion.o: gui/motion.c gui/../range.h gui/../util/list.h gui/../buffer.h \
  gui/motion.h gui/gui.h gui/marks.h gui/../global.h

@@ -31,7 +31,7 @@ REPEAT_FUNC(tilde);
 REPEAT_FUNC(replace);
 
 /* extra */
-static int  colon(void);
+static void colon(void);
 static int  search(int, int);
 REPEAT_FUNC(showgirl);
 
@@ -40,8 +40,8 @@ static int iseditchar(int);
 static void showpos(void);
 
 
-static char search_str[256] = { 0 };
-static int  search_rev = 0;
+static char *search_str = NULL;
+static int  search_rev  = 0;
 
 
 static int search(int next, int rev)
@@ -52,14 +52,14 @@ static int search(int next, int rev)
 	int found = 0;
 
 	if(next){
-		if(!*search_str){
+		if(!search_str || !*search_str){
 			gui_status(GUI_ERR, "no previous search");
 			return 1;
 		}
 		rev = rev - search_rev; /* obey the previous "?" or "/" */
 	}else{
 		search_rev = rev;
-		if(gui_prompt(rev ? "?" : "/", search_str, sizeof search_str))
+		if(gui_prompt(rev ? "?" : "/", &search_str))
 			return 1;
 	}
 
@@ -234,7 +234,6 @@ static void showpos()
 
 static void insert(int append)
 {
-	char buf[256];
 	int i = 0, x = gui_x();
 	int nlines = 10;
 	int offset;
@@ -247,9 +246,10 @@ static void insert(int append)
 	}
 
 	for(;;){
-		int esc = gui_getstr(buf, sizeof buf);
+		char *buf = NULL;
+		int esc = gui_getstr(&buf);
 
-		lines[i] = ustrdup(buf);
+		lines[i] = buf;
 		if(++i >= nlines)
 			lines = urealloc(lines, (nlines += 10) * sizeof *lines);
 
@@ -258,9 +258,38 @@ static void insert(int append)
 			break;
 	}
 
+#if 0
+	if(global_settings.autoindent){
+		struct list *lprev = buffer_getindex(global_buffer, pos_y - 1);
+
+		if(lprev){
+			const char *prev = lprev->data;
+			int nsp = 0;
+
+			while(*prev)
+				switch(*prev){
+					case '\t':
+						nsp += global_settings.tabstop;
+						break;
+					case ' ':
+						nsp++;
+						break;
+					default:
+						goto lewpfin;
+				}
+
+lewpfin:
+			/* assuming tab indent */
+			nsp /= global_settings.tabstop;
+
+			while(nsp --> 0)
+				ustrcat(&start, &size, "\t", NULL);
+		}
+	}
+#endif
 
 	iter = buffer_getindex(global_buffer, gui_y());
-	offset = !(x > (signed)strlen(iter->data));
+	offset = x <= (signed)strlen(iter->data);
 	{
 		char *ins = (char *)iter->data + x;
 		char *after = ustrdup(ins);
@@ -270,16 +299,11 @@ static void insert(int append)
 		if(i > 1){
 			/* add all lines, then join with v_after */
 			int j;
-			char *old = iter->data;
-			iter->data = ustrcat(iter->data, *lines, NULL);
-			free(old);
-			free(*lines);
+
+			ustrcat((char **)&iter->data, NULL, *lines, NULL);
 
 			/* tag v_after onto the last line */
-			old = lines[i-1];
-			lines[i-1] = ustrcat(lines[i-1], after, NULL);
-			free(old);
-			free(after);
+			ustrcat(&lines[i-1], NULL, after, NULL);
 
 			for(j = i - 1; j > 0; j--)
 				buffer_insertafter(global_buffer, iter, lines[j]);
@@ -287,11 +311,11 @@ static void insert(int append)
 			gui_move(gui_y() + i - offset, strlen(after) + strlen(lines[i-1]));
 		}else{
 			/* tag v_after on the end */
-			char *old = iter->data;
-			iter->data = ustrcat(iter->data, *lines, after, NULL);
-			free(old);
+			ustrcat((char **)&iter->data, NULL, *lines, after, NULL);
 			gui_move(gui_y(), gui_x() + strlen(*lines) - offset);
 		}
+		free(*lines);
+		free(after);
 	}
 
 	buffer_modified(global_buffer) = 1;
@@ -417,11 +441,11 @@ static void join(unsigned int ntimes)
 	buffer_modified(global_buffer) = 1;
 }
 
-static int colon()
+static void colon()
 {
-	char in[128];
+	char *in = NULL;
 
-	if(!gui_prompt(":", in, sizeof in)){
+	if(!gui_prompt(":", &in)){
 		char *c = strchr(in, '\n');
 
 		if(c)
@@ -430,7 +454,7 @@ static int colon()
 		command_run(in);
 	}
 
-	return 1;
+	free(in);
 }
 
 static int iseditchar(int c)

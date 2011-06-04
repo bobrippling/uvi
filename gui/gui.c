@@ -5,6 +5,7 @@
 #include <signal.h>
 #include <ctype.h>
 #include <time.h>
+#include <stdlib.h>
 
 #include "../range.h"
 #include "../util/list.h"
@@ -12,6 +13,7 @@
 #include "motion.h"
 #include "gui.h"
 #include "../global.h"
+#include "../util/alloc.h"
 
 #define GUI_TAB_INDENT(x) \
 	(global_settings.tabstop - (x) % global_settings.tabstop)
@@ -183,15 +185,26 @@ void gui_clrtoeol()
 	clrtoeol();
 }
 
-int gui_getstr(char *s, int size)
+int gui_getstr(char **ps)
 {
-	char *const start = s;
+	int size;
+	char *start;
 	int y, x, xstart;
+	int i;
+
+	if(*ps){
+		free(*ps);
+		*ps = NULL;
+	}
+
+	start = umalloc(size = 256);
 
 	getyx(stdscr, y, x);
+
 	xstart = x;
 
-	while(size > 0){
+	i = 0;
+	for(;;){
 		int c;
 
 		c = gui_getch();
@@ -201,8 +214,7 @@ int gui_getstr(char *s, int size)
 
 			case CTRL_AND('U'):
 				x = xstart;
-				size += s - start;
-				s = start;
+				i = 0;
 				move(y, x);
 				clrtoeol();
 				break;
@@ -211,19 +223,17 @@ int gui_getstr(char *s, int size)
 			{
 				char *p;
 
-				if(s == start)
+				if(i == 0)
 					break;
 
-				p = s - 1;
+				p = start + i - 1;
 				while(p > start && isspace(*p))
 					p--;
 
 				while(p > start && !isspace(*p))
 					p--;
 
-				x = 1 + p - start;
-				size += x - 1;
-				s = p;
+				x = 1 + (i = p - start);
 				move(y, x);
 				clrtoeol();
 				break;
@@ -233,41 +243,39 @@ int gui_getstr(char *s, int size)
 			case CTRL_AND('H'):
 			case 263:
 			case 127:
-				if(s > start){
-					s--;
-					size++;
-					x--;
-					move(y, x);
+				if(i > 0){
+					move(y, --x);
 					break;
 				}
 				/* else fall through */
 
 			case CTRL_AND('['):
-				*s = '\0';
+				start[i] = '\0';
+				*ps = start;
 				return 1;
 
 			case '\n':
 			case '\r':
-				*s = '\0';
+				start[i] = '\0';
 				gui_addch('\n');
+				*ps = start;
 				return 0;
 
 			default:
-				*s++ = c;
+				start[i] = c;
 				x++;
-				size--;
+				i++;
 				gui_addch(c);
 		}
 	}
-	return 0;
 }
 
-int gui_prompt(const char *p, char *buf, int siz)
+int gui_prompt(const char *p, char **pbuf)
 {
 	move(LINES - 1, 0);
 	gui_clrtoeol();
 	addstr(p);
-	return gui_getstr(buf, siz);
+	return gui_getstr(pbuf);
 }
 
 

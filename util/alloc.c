@@ -28,25 +28,29 @@ void *urealloc(void *p, size_t s)
 	return n;
 }
 
-char *ustrcat(const char *first, ...)
+void ustrcat(char **p, int *siz_arg, ...)
 {
-	int len = strlen(first);
+	int len;
 	va_list l;
 	const char *s;
-	char *ret;
+	int *siz = siz_arg ? siz_arg : &len;
 
-	va_start(l, first);
+	len = *p ? strlen(*p) + 1 : 0;
+
+	va_start(l, siz_arg);
 	while((s = va_arg(l, const char *)))
 		len += strlen(s);
 	va_end(l);
 
-	ret = umalloc(len + 1);
+	if(*siz <= len){
+		/* not enough room */
+		*p = realloc(*p, *siz = len + 1);
+		if(!*p)
+			die("ustrcat()");
+	}
 
-	strcpy(ret, first);
-	va_start(l, first);
+	va_start(l, siz_arg);
 	while((s = va_arg(l, const char *)))
-		strcat(ret, s);
+		strcat(*p, s);
 	va_end(l);
-
-	return ret;
 }
