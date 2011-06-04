@@ -19,7 +19,7 @@ typedef struct
 
 buffer_t *buffer_new(char *);
 buffer_t *buffer_new_empty(void);
-int buffer_read(buffer_t **, const char *);
+int buffer_read(buffer_t **, FILE *f);
 int buffer_write(buffer_t *);
 int buffer_external_modified(buffer_t *);
 
@@ -50,7 +50,7 @@ int buffer_line_isspace(const char *);
 #define buffer_eol(b)                     ((b)->eol)
 #define buffer_opentime(b)                ((b)->opentime)
 
-#define buffer_filename(b)                ((b)->fname ? (b)->fname : "(empty file)")
+#define buffer_filename(b)                ((b)->fname ? (b)->fname : "(no name)")
 #define buffer_hasfilename(b)             (!!(b)->fname)
 
 

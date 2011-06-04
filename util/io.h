@@ -1,8 +1,8 @@
 #ifndef IO_H
 #define IO_H
 
-int fgetline( char **line, FILE *, char *haseol);
-/*int fdgetline(char **s, char **buffer, int fd);*/
+struct list *fgetlines(FILE *f, int *haseol);
 void chomp_line(void);
+void *readfile(const char *filename, int ro);
 
 #endif

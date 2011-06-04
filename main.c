@@ -15,6 +15,7 @@
 #include "gui/gui.h"
 #include "rc.h"
 #include "command.h"
+#include "util/io.h"
 
 static void usage(const char *);
 
@@ -76,6 +77,9 @@ int main(int argc, const char **argv)
 						fprintf(stderr, "unknown option: \"%s\"\n", argv[i]);
 						usage(*argv);
 				}
+			}else if(!strcmp(argv[i], "-")){
+				argv_options = 0;
+				fname = argv[i];
 			}else{
 				fprintf(stderr, "invalid option: \"%s\"\n", argv[i]);
 				usage(*argv);

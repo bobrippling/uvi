@@ -7,7 +7,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <pwd.h>
 #include <time.h>
 
 #include "util/alloc.h"
@@ -15,8 +14,6 @@
 #include "buffer.h"
 #include "util/list.h"
 #include "util/io.h"
-
-static char canwrite(mode_t, uid_t, gid_t);
 
 buffer_t *buffer_new(char *p)
 {
@@ -48,114 +45,38 @@ void buffer_setfilename(buffer_t *b, const char *s)
 		b->fname = NULL;
 }
 
-int buffer_read(buffer_t **buffer, const char *fname)
+int buffer_read(buffer_t **buffer, FILE *f)
 {
-#define b (*buffer)
-#define FCLOSE(f) do if(f != stdin) fclose(f); while(0)
-	FILE *f;
-	struct list *tmp;
-	struct stat st;
-	int nread = 0, nlines = 0;
-	char *s, haseol = 1;
+	buffer_t *b = buffer_new(NULL);
 
-	if(!strcmp(fname, "-"))
-		f = stdin;
-	else
-		f = fopen(fname, "r");
+	b->lines = fgetlines(f, &b->eol);
 
-	if(!f)
-		return -1;
-	else if(ftell(f) == -1){
-		/*
-		 * if ftell fails, errno = EBADF (non-seekable)
-		 * FIXME: don't seek when reading files, peek instead?
-		 */
-		const int e2 = errno;
-		FCLOSE(f);
-		errno = e2;
+	if(!b->lines){
+		buffer_free_nolist(b);
 		return -1;
 	}
 
-	b = buffer_new(NULL);
-	tmp = b->lines;
+	b->nlines = list_count(b->lines);
 
-	do{
-		int thisread;
-
-		if((thisread = fgetline(&s, f, &haseol)) < 0){
-			int eno = errno;
-
-			buffer_free(b);
-			b = NULL;
-
-			if(f != stdin && fclose(f) /* error */ && !eno)
-				eno = errno;
-
-			errno = eno;
-			return -1;
-		}else if(thisread == 0){
-			/* assert(feof()) */
-			if(f != stdin && fclose(f)){
-				int eno = errno;
-
-				buffer_free(b);
-				b = NULL;
-
-				errno = eno;
-				return -1;
-			}
-
-			break;
-		}
-
-		nread += thisread;
-		nlines++;
-
-		list_append(tmp, s);
-		tmp = list_gettail(tmp);
-	}while(1);
-
-
-	b->fname = umalloc(1+strlen(fname));
-	strcpy(b->fname, fname);
-
-	b->modified = !(b->eol = haseol);
+	b->modified = !b->eol;
 
 	b->dirty = 1;
 	/* this is an internal line-change memory (not to do with saving) */
 
-	if(nread == 0){
+	if(b->nlines == 0){
 		/* create a line + set modified */
-		b->modified = 1;
-		s = umalloc(sizeof(char));
+		char *s = umalloc(sizeof(char));
+
 		*s = '\0';
 		list_append(b->lines, s);
+
+		b->modified = 1;
 	}
 
-	if(!stat(fname, &st))
-		b->readonly = !canwrite(st.st_mode, st.st_uid, st.st_gid);
-	else
-		b->readonly = 0;
+	*buffer = b;
 
-	b->nlines  = nlines;
-
-	return nread;
+	return buffer_nchars(b);
 #undef b
-}
-
-static char canwrite(mode_t mode, uid_t uid, gid_t gid)
-{
-	if(mode & 02)
-		return 1;
-
-	/* can't be bothered checking all groups */
-	if((mode & 020) && gid == getgid())
-		return 1;
-
-	if((mode & 0200) && uid == getuid())
-		return 1;
-
-	return 0;
 }
 
 /* returns bytes written */
