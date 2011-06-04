@@ -28,6 +28,21 @@ void *urealloc(void *p, size_t s)
 	return n;
 }
 
+char *ustrprintf(const char *fmt, ...)
+{
+	char *s = NULL;
+	va_list l;
+	int i;
+
+	va_start(l, fmt);
+	i = vasprintf(&s, fmt, l);
+	va_end(l);
+
+	if(i == -1)
+		die("vasprintf()");
+	return s;
+}
+
 void ustrcat(char **p, int *siz_arg, ...)
 {
 	int len;

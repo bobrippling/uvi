@@ -1,6 +1,7 @@
-#include <ncurses.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <errno.h>
 #include <limits.h>
 #include <ctype.h>
@@ -232,11 +233,33 @@ static void showpos()
 			100.0f * (float)(1 + gui_y()) /(float)i);
 }
 
+static int findindent(const char *s)
+{
+	int indent = 0;
+
+	while(*s)
+		switch(*s++){
+			case '\t':
+				indent += global_settings.tabstop;
+				break;
+			case ' ':
+				indent++;
+				break;
+			default:
+				goto lewpfin;
+		}
+
+lewpfin:
+	/* assuming tab indent */
+	return indent / global_settings.tabstop;
+}
+
 static void insert(int append)
 {
 	int i = 0, x = gui_x();
 	int nlines = 10;
 	int offset;
+	int indent = 0;
 	char **lines = umalloc(nlines * sizeof *lines);
 	struct list *iter;
 
@@ -245,48 +268,30 @@ static void insert(int append)
 		x++;
 	}
 
-	for(;;){
-		char *buf = NULL;
-		int esc = gui_getstr(&buf);
+	if(global_settings.autoindent){
+		struct list *lprev = buffer_getindex(global_buffer, gui_y() - 1);
+		if(lprev)
+			indent = findindent(lprev->data);
+	}
 
-		lines[i] = buf;
+	for(;;){
+		int esc;
+
+		while(indent --> 0)
+			gui_ungetch('\t');
+
+		lines[i] = NULL;
+		esc = gui_getstr(&lines[i], 0);
 		if(++i >= nlines)
 			lines = urealloc(lines, (nlines += 10) * sizeof *lines);
 
 		if(esc)
-			/* escape */
+			/* ^[ */
 			break;
+
+		if(global_settings.autoindent)
+			indent = findindent(lines[i-1]);
 	}
-
-#if 0
-	if(global_settings.autoindent){
-		struct list *lprev = buffer_getindex(global_buffer, pos_y - 1);
-
-		if(lprev){
-			const char *prev = lprev->data;
-			int nsp = 0;
-
-			while(*prev)
-				switch(*prev){
-					case '\t':
-						nsp += global_settings.tabstop;
-						break;
-					case ' ':
-						nsp++;
-						break;
-					default:
-						goto lewpfin;
-				}
-
-lewpfin:
-			/* assuming tab indent */
-			nsp /= global_settings.tabstop;
-
-			while(nsp --> 0)
-				ustrcat(&start, &size, "\t", NULL);
-		}
-	}
-#endif
 
 	iter = buffer_getindex(global_buffer, gui_y());
 	offset = x <= (signed)strlen(iter->data);
@@ -539,7 +544,7 @@ switch_start:
 
 			case '.':
 				if(prevcmd){
-					ungetch(prevcmd);
+					gui_ungetch(prevcmd);
 					multiple = prevmultiple;
 					goto switch_start;
 				}else
@@ -593,7 +598,7 @@ switch_start:
 				break;
 
 			case 'S':
-				ungetch('c');
+				gui_ungetch('c');
 			case 'c':
 				flag = 1;
 			case 'd':
@@ -602,7 +607,7 @@ switch_start:
 					/* allow dd or cc (or dc or cd... but yeah) */
 					SET_MOTION(MOTION_NOMOVE);
 				}else{
-					ungetch(c);
+					gui_ungetch(c);
 					if(getmotion(&motion))
 						break;
 				}
@@ -734,7 +739,7 @@ case_i:
 				if(isdigit(c) && (c == '0' ? multiple : 1))
 					INC_MULTIPLE();
 				else{
-					ungetch(c);
+					gui_ungetch(c);
 					motion.ntimes = multiple;
 					if(!getmotion(&motion)){
 						gui_move_motion(&motion);

@@ -30,8 +30,11 @@ static void gui_position_cursor(const char *line);
 static void gui_attron( enum gui_attr);
 static void gui_attroff(enum gui_attr);
 
-int pos_y = 0, pos_x = 0;
-int pos_top = 0, pos_left = 0;
+static int unget_i        = 0;
+static int unget_buf[256] = { 0 };
+
+static int pos_y = 0, pos_x = 0;
+static int pos_top = 0, pos_left = 0;
 
 int gui_x(){return pos_x;}
 int gui_y(){return pos_y;}
@@ -163,9 +166,10 @@ int gui_getch()
 
 	refresh();
 
-	/* XXX: don't use read(), we need C's buffered i/o for ungetch() */
-	/* FIXME: check for EINTR? */
-	c = getch();
+	if(unget_i == 0)
+		c = getch();
+	else
+		c = unget_buf[--unget_i];
 
 	if(c == CTRL_AND('c'))
 		raise(SIGINT);
@@ -173,10 +177,16 @@ int gui_getch()
 	return c;
 }
 
+void gui_ungetch(int c)
+{
+	if(unget_i < (signed)(sizeof(unget_buf)/sizeof(unget_buf[0])))
+		unget_buf[unget_i++] = c;
+}
+
 int gui_peekch()
 {
 	int c = gui_getch();
-	ungetch(c);
+	gui_ungetch(c);
 	return c;
 }
 
@@ -185,7 +195,7 @@ void gui_clrtoeol()
 	clrtoeol();
 }
 
-int gui_getstr(char **ps)
+int gui_getstr(char **ps, int bspc_cancel)
 {
 	int size;
 	char *start;
@@ -245,8 +255,10 @@ int gui_getstr(char **ps)
 			case 127:
 				if(i > 0){
 					move(y, --x);
+					i--;
 					break;
-				}
+				}else if(!bspc_cancel)
+					break;
 				/* else fall through */
 
 			case CTRL_AND('['):
@@ -275,7 +287,7 @@ int gui_prompt(const char *p, char **pbuf)
 	move(LINES - 1, 0);
 	gui_clrtoeol();
 	addstr(p);
-	return gui_getstr(pbuf);
+	return gui_getstr(pbuf, 1);
 }
 
 
