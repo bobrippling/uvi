@@ -4,13 +4,25 @@
 #include <string.h>
 #include <setjmp.h>
 #include <unistd.h>
+#include <termios.h>
+#include <curses.h>
+#include <pwd.h>
+#include <time.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/mman.h>
 
 #include "alloc.h"
+#include "../range.h"
+#include "../buffer.h"
 #include "io.h"
 #include "../main.h"
+#include "../gui/motion.h"
+#include "../gui/gui.h"
+#include "../util/list.h"
 
-#define BUFFER_SIZE 128
-/* nearest 2^n, st > 80 */
+int canwrite(mode_t mode, uid_t uid, gid_t gid);
 
 /*
 FIXME
@@ -59,66 +71,183 @@ newline:
 }
 */
 
-int fgetline(char **s, FILE *in, char *haseol)
+static struct list *mmap_to_lines(char *mem, int *haseol, size_t len)
 {
-	size_t buffer_size = BUFFER_SIZE;
-	char *c;
-	const long offset = ftell(in);
+	struct list *head = list_new(NULL), *cur = head;
+	char *last = mem + len;
+	char *a, *b;
 
-	*s = umalloc(buffer_size);
+	for(a = b = mem; a < last; a++)
+		if(*a == '\n'){
+			char *data = umalloc(a - b + 1);
 
-	do{
-		if(!fgets(*s, buffer_size, in)){
-			int eno = errno;
-			if(feof(in)){
-				/* no chars read */
-				free(*s);
-				return 0;
-			}
+			memcpy(data, b, a - b);
 
-			free(*s);
-			*s = NULL;
-			errno = eno;
-			return -1;
+			data[a - b] = '\0';
+
+			list_append(cur, data);
+			cur = list_gettail(cur);
+			b = a + 1;
 		}
 
-		if((c = strchr(*s, '\n'))){
-			/* in an ideal world... */
-			*c = '\0';
-			*haseol = 1;
-			return 1 + strlen(*s);
-		}else if(feof(in)){
-			/* no eol... jerks */
-			*haseol = 0;
-			return strlen(*s);
-		}else{
-			/* need a bigger biffer for this line */
-			/* and buffer, too */
-			char *tmp;
-			buffer_size *= 2;
+	if(!(*haseol = a == b)){
+		char *rest = umalloc(a - b + 1);
+		memcpy(rest, b, a - b);
+		rest[a - b] = '\0';
+		list_append(cur, rest);
+	}
 
-			tmp = realloc(*s, buffer_size);
-			if(!tmp){
-				free(*s);
-				fprintf(stderr, __FILE__":%d: realloc failed, size %lu\n", __LINE__, buffer_size);
-				die("realloc()");
+	return head;
+}
+
+struct list *fgetlines(FILE *f, int *haseol)
+{
+	struct stat st;
+	struct list *l;
+	int fd;
+	void *mem;
+
+	fd = fileno(f);
+	if(fd == -1)
+		return NULL;
+
+	if(fstat(fd, &st) == -1)
+		return NULL;
+
+	if(st.st_size == 0)
+		goto fallback; /* could be stdin */
+
+	mem = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+
+	if(mem == MAP_FAILED){
+		if(errno == EINVAL){
+			/* fallback to fread - probably stdin */
+			char buffer[256];
+			struct list *l;
+			struct list *i;
+
+fallback:
+			i = l = list_new(NULL);
+
+			while(fgets(buffer, sizeof buffer, f)){
+				char *nl = strchr(buffer, '\n');
+				if(nl)
+					*nl = '\0';
+				list_append(i, ustrdup(buffer));
+				i = list_gettail(i);
 			}
-			*s = tmp;
-			if(fseek(in, offset, SEEK_SET) == -1){
-				int eno = errno;
-				free(*s);
-				*s = NULL;
-				errno = eno;
-				return -1;
+
+			if(ferror(f)){
+				list_free(l);
+				return NULL;
 			}
+			return l;
 		}
-	}while(1);
+
+		return NULL;
+	}
+
+	l = mmap_to_lines(mem, haseol, st.st_size);
+	munmap(mem, st.st_size);
+
+	return l;
 }
 
 void chomp_line()
 {
 	int c;
+	struct termios attr;
+
+	tcgetattr(0, &attr);
+
+	attr.c_cc[VMIN] = sizeof(char);
+	attr.c_lflag   &= ~(ICANON | ECHO);
+
+	tcsetattr(0, TCSANOW, &attr);
+
 	c = getchar();
-	if(c != '\n' && c != EOF)
-		while((c = getchar()) != '\n' && c != EOF);
+
+	attr.c_cc[VMIN] = 0;
+	attr.c_lflag   |= ICANON | ECHO;
+	tcsetattr(0, TCSANOW, &attr);
+
+	ungetch(c);
+}
+
+int canwrite(mode_t mode, uid_t uid, gid_t gid)
+{
+	if(mode & 02)
+		return 1;
+
+	/* can't be bothered checking all groups */
+	if((mode & 020) && gid == getgid())
+		return 1;
+
+	if((mode & 0200) && uid == getuid())
+		return 1;
+
+	return 0;
+}
+
+void *readfile(const char *filename, int ro)
+{
+	buffer_t *b = NULL;
+
+	if(filename){
+		FILE *f;
+
+		if(strcmp(filename, "-")){
+			f = fopen(filename, "r");
+		}else{
+			f = stdin;
+		}
+
+		if(f){
+			int nread = buffer_read(&b, f);
+
+			if(nread == -1){
+				if(errno != ENOENT)
+					gui_status(GUI_ERR, "\"%s\" [%s]",
+							filename,
+							errno ? strerror(errno) : "unknown error - binary file?");
+
+			}else{
+				/* end up here on successful read */
+				struct stat st;
+
+				if(ro)
+					buffer_readonly(b) = 1;
+				else if(!stat(filename, &st))
+					buffer_readonly(b) = !canwrite(st.st_mode, st.st_uid, st.st_gid);
+				else
+					buffer_readonly(b) = 0;
+
+				if(nread == 0)
+					gui_status(GUI_NONE, "(empty file)%s", buffer_readonly(b) ? " [read only]" : "");
+				else
+					gui_status(GUI_NONE, "%s%s: %dC, %dL%s", filename,
+							buffer_readonly(b) ? " [read only]" : "",
+							buffer_nchars(b), buffer_nlines(b),
+							buffer_eol(b) ? "" : " [noeol]");
+			}
+
+			if(f == stdin){
+				freopen("/dev/tty", "r", stdin);
+			}else{
+				fclose(f);
+			}
+		}else{
+			gui_status(GUI_ERR, "%s: %s", filename, strerror(errno));
+		}
+
+	}else{
+		gui_status(GUI_NONE, "(new file)");
+	}
+
+	if(!b)
+		b = buffer_new_empty();
+	if(filename && strcmp(filename, "-"))
+		buffer_setfilename(b, filename);
+
+	return b;
 }

@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <time.h>
+#include <unistd.h>
 
 #include "main.h"
 #include "range.h"
@@ -13,6 +14,8 @@
 #include "gui/motion.h"
 #include "gui/gui.h"
 #include "rc.h"
+#include "command.h"
+#include "util/io.h"
 
 static void usage(const char *);
 
@@ -51,8 +54,6 @@ int main(int argc, const char **argv)
 	signal(SIGTERM, &sigh);
 	signal(SIGQUIT, &sigh);
 
-	rc_read();
-
 	for(i = 1; i < argc; i++)
 		if(argv_options && *argv[i] == '-'){
 			if(strlen(argv[i]) == 2){
@@ -76,6 +77,9 @@ int main(int argc, const char **argv)
 						fprintf(stderr, "unknown option: \"%s\"\n", argv[i]);
 						usage(*argv);
 				}
+			}else if(!strcmp(argv[i], "-")){
+				argv_options = 0;
+				fname = argv[i];
 			}else{
 				fprintf(stderr, "invalid option: \"%s\"\n", argv[i]);
 				usage(*argv);
@@ -88,5 +92,21 @@ int main(int argc, const char **argv)
 				usage(*argv);
 		}
 
-	return gui_main(fname, readonly);
+	if(!isatty(0))
+		fputs("uvi: warning: input is not a terminal\n", stderr);
+	if(!isatty(1))
+		fputs("uvi: warning: output is not a terminal\n", stderr);
+
+	gui_init();
+	gui_term();
+	rc_read();
+
+	gui_init();
+	global_buffer = readfile(fname, readonly);
+	gui_run();
+
+	gui_term();
+	buffer_free(global_buffer);
+
+	return 0;
 }

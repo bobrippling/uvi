@@ -142,13 +142,8 @@ usage:
 		goto usage;
 
 	}else if(!buffer_hasfilename(global_buffer)){
-		if(buffer_modified(global_buffer)){
-			gui_status(GUI_ERR, "buffer has no filename");
-			return;
-		}else{
-			/* just quit */
-			goto after;
-		}
+		gui_status(GUI_ERR, "buffer has no filename");
+		return;
 	}
 
 	if(!force && buffer_external_modified(global_buffer)){
@@ -307,48 +302,6 @@ void cmd_set(int argc, char **argv, int force, struct range *rng)
 	}
 }
 
-buffer_t *readfile(const char *filename, int ro)
-{
-	buffer_t *b = NULL;
-
-	if(filename){
-		int nread = buffer_read(&b, filename);
-
-		if(nread == -1){
-			if(errno != ENOENT)
-				/*
-				 * end up here on failed read:
-				 * open empty file and continue
-				 */
-				gui_status(GUI_ERR, "\"%s\" [%s]", filename, errno ? strerror(errno) : "unknown error - binary file?");
-			else
-				/* something like "./uvi file_that_doesn\'t_exist */
-				goto newfile;
-
-		}else{
-			/* end up here on successful read */
-			if(ro)
-				buffer_readonly(b) = 1;
-
-			if(nread == 0)
-				gui_status(GUI_NONE, "(empty file)%s", buffer_readonly(b) ? " [read only]" : "");
-			else
-				gui_status(GUI_NONE, "%s%s: %dC, %dL%s", filename,
-						buffer_readonly(b) ? " [read only]" : "",
-						buffer_nchars(b), buffer_nlines(b),
-						buffer_eol(b) ? "" : " [noeol]");
-		}
-	}else{
-newfile:
-		/* new file */
-		b = buffer_new_empty();
-		if(filename)
-			buffer_setfilename(b, filename);
-		gui_status(GUI_NONE, "(new file)");
-	}
-	return b;
-}
-
 void shellout(const char *cmd, struct list *l)
 {
 	int ret;
@@ -371,7 +324,7 @@ void shellout(const char *cmd, struct list *l)
 	else if(WEXITSTATUS(ret))
 		printf("%s returned %d\n", cmd, WEXITSTATUS(ret));
 
-	fputs("Press enter to continue...", stdout);
+	fputs("Any key to continue...\n", stdout);
 	fflush(stdout);
 
 	chomp_line();

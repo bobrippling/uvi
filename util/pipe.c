@@ -1,4 +1,3 @@
-#define _POSIX_SOURCE
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -162,31 +161,18 @@ static int parent_write(int fd, struct list *l)
 
 static struct list *parent_read(int fd)
 {
-	char *line = NULL;
-	int ret, saveerrno;
-	char unused;
-	struct list *l = list_new(NULL);
+	struct list *l;
+	int unused;
 	FILE *f = fdopen(fd, "r");
-	saveerrno = errno;
 
-	if(!f){
-		errno = saveerrno;
+	if(!f)
 		return NULL;
-	}
 
-	while((ret = fgetline(&line, f, &unused)) > 0)
-		list_append(l, line);
-
-	saveerrno = errno;
-
-	/*close(fds[READ_FD]);*/
+	l = fgetlines(f, &unused);
 	fclose(f);
 
-	if(ret == -1){
-		list_free(l);
-		errno = saveerrno;
+	if(!l)
 		return NULL;
-	}
 
 	return list_gethead(l);
 }

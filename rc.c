@@ -85,7 +85,7 @@ int rc_read()
 	fclose(f);
 
 	if(haderr){
-		fputs("enter to continue...", stderr);
+		fputs("enter to continue...\n", stderr);
 		chomp_line();
 	}
 
