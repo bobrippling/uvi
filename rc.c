@@ -29,6 +29,7 @@ int rc_read()
 	FILE *f;
 	int ret = 0;
 	int haderr = 0;
+	int lineno = 1;
 
 	if(!fname)
 		return 1;
@@ -41,12 +42,6 @@ int rc_read()
 #define MAKE_NUL(c) \
 			if((p = strchr(buf, c))) \
 				*p = '\0';
-
-#define ERR(...) \
-		do{ \
-			fprintf(stderr, __VA_ARGS__); \
-			haderr = 1; \
-		}while(0)
 
 		enum vartype type;
 		char *p;
@@ -68,16 +63,28 @@ int rc_read()
 		if(p)
 			p++;
 
+#define PRE "%s:%d: "
+#define ARGS fname, lineno
+
 		type = vars_gettype(start);
 		if(type == VARS_UNKNOWN){
-			ERR("%s: unknown variable \"%s\"\n", fname, start);
+			fprintf(stderr, PRE "unknown variable \"%s\"\n", ARGS, start);
+			haderr = 1;
 		}else if(vars_isbool(type)){
-			vars_set(type, global_buffer, bool);
+			if(p){
+				fprintf(stderr, PRE "extraneous data (%s)\n", ARGS, p);
+				haderr = 1;
+			}else{
+				vars_set(type, global_buffer, bool);
+			}
 		}else if(p){
 			vars_set(type, global_buffer, atoi(p));
 		}else{
-			ERR("%s: need value for %s\n", fname, start);
+			fprintf(stderr, PRE "need value for %s\n", ARGS, start);
+			haderr = 1;
 		}
+
+		lineno++;
 	}
 
 	if(ferror(f))
@@ -85,7 +92,7 @@ int rc_read()
 	fclose(f);
 
 	if(haderr){
-		fputs("enter to continue...\n", stderr);
+		fputs("any key to continue...\n", stderr);
 		chomp_line();
 	}
 
