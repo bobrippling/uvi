@@ -379,29 +379,26 @@ static void delete(struct motion *motion)
 			char *data = buffer_getindex(global_buffer, gui_y())->data;
 			int gx = gui_x();
 
-			if(from.start < from.end + 1){
+			/* TODO */
+			if(from.start < from.end){
 				/* there are also lines to remove */
-				from.start++;
 				buffer_remove_range(global_buffer, &from);
 
-				/* join line from.end with current */
-				join(1);
-
 				data = buffer_getindex(global_buffer, from.start)->data;
+			}else{
+				/* gx should be left-most */
+				if(gx > x){
+					int t = x;
+					x = gx;
+					gx = t;
+				}
+
+				if(istilmotion(motion))
+					x++;
+
+				/* remove the chars between gx and x, inclusive */
+				memmove(data + gx, data + x, strlen(data + x) + 1);
 			}
-
-			/* gx should be left-most */
-			if(gx > x){
-				int t = x;
-				x = gx;
-				gx = t;
-			}
-
-			if(istilmotion(motion))
-				x++;
-
-			/* remove the chars between gx and x, inclusive */
-			memmove(data + gx, data + x, strlen(data + x) + 1);
 
 			gui_move(gui_y(), gx);
 		}
