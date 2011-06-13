@@ -141,7 +141,12 @@ usage:
 	}else if(argc != 1){
 		goto usage;
 
-	}else if(!buffer_hasfilename(global_buffer)){
+	}
+
+	if(x && !buffer_modified(global_buffer))
+		goto after;
+
+	if(!buffer_hasfilename(global_buffer)){
 		gui_status(GUI_ERR, "buffer has no filename");
 		return;
 	}
@@ -150,9 +155,6 @@ usage:
 		gui_status(GUI_ERR, "buffer changed externally since last read");
 		return;
 	}
-
-	if(x && !buffer_modified(global_buffer))
-		goto after;
 
 	nw = buffer_write(global_buffer);
 	if(nw == -1){
@@ -245,11 +247,26 @@ void cmd_e(int argc, char **argv, int force, struct range *rng)
 
 void cmd_new(int argc, char **argv, int force, struct range *rng)
 {
-	if(argc != 1)
+	if(argc != 1){
 		gui_status(GUI_ERR, "usage: new[!]");
+		return;
+	}
 
-	buffer_free(global_buffer);
-	global_buffer = readfile(argv[1], 0);
+	if(!force && buffer_modified(global_buffer)){
+		gui_status(GUI_ERR, "new: buffer modified");
+	}else{
+		buffer_free(global_buffer);
+		global_buffer = buffer_new_empty();
+	}
+}
+
+void cmd_where(int argc, char **argv, int force, struct range *rng)
+{
+	if(argc != 1 || force || rng->start != -1 || rng->end != -1)
+		gui_status(GUI_ERR, "usage: %s", *argv);
+	else
+		gui_status(GUI_NONE, "x=%d y=%d left=%d top=%d",
+				gui_x(), gui_y(), gui_left(), gui_top());
 }
 
 void cmd_set(int argc, char **argv, int force, struct range *rng)
@@ -402,9 +419,11 @@ void command_run(char *in)
 	} funcs[] = {
 #define CMD(x) { #x, cmd_##x }
 		{ "!",  cmd_bang },
+		{ "?",  cmd_where },
 		{ "we", cmd_w },
 		{ "wq", cmd_w },
 		{ "x",  cmd_w },
+		CMD(new),
 		CMD(r),
 		CMD(w),
 		CMD(q),
