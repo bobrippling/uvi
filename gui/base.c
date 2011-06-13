@@ -362,16 +362,12 @@ static void delete(struct motion *motion)
 
 		if(from.start > from.end){
 			int t = from.start;
-			fprintf(stderr, "switching: from.start=%d <--> from.end=%d\n", from.start, from.end);
 			from.start = from.end;
 			from.end = t;
 		}
 
 		if(islinemotion(motion)){
 			/* delete lines between gui_y() and y, inclusive */
-			fprintf(stderr, "delete(): motion: %s, deleting lines %d thru %d, inc.\n",
-					motion_str(motion), from.start, from.end);
-
 			buffer_remove_range(global_buffer, &from);
 			gui_move(gui_y(), gui_x());
 		}else{
