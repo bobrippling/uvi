@@ -9,6 +9,8 @@
 #include "buffer.h"
 #include "vars.h"
 #include "global.h"
+#include "gui/motion.h"
+#include "gui/gui.h"
 
 #define LEN(x) ((sizeof(x) / sizeof(x[0])))
 
@@ -82,4 +84,12 @@ enum vartype vars_gettype(const char *s)
 		if(vars[i].nam && !strcmp(vars[i].nam, s))
 			return i;
 	return VARS_UNKNOWN;
+}
+
+void vars_show(enum vartype t)
+{
+	if(vars_isbool(t))
+		gui_status_add(GUI_NONE, "%s%s", *vars_get(t, global_buffer) ? "" : "no", vars_tostring(t));
+	else
+		gui_status_add(GUI_NONE, "%s=%d", vars_tostring(t), *vars_get(t, global_buffer));
 }

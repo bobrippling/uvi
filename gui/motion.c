@@ -111,7 +111,7 @@ int getmotion(struct motion *m)
 
 			case MOTION_FIND_PREV:
 			case MOTION_FIND_NEXT:
-				m->extra  = last_find_c;
+				m->extra = last_find_c;
 				if(last_find_rev ^ (m->motion == MOTION_FIND_PREV))
 					if(last_find_til)
 						m->motion = MOTION_TIL_REV;
@@ -130,7 +130,7 @@ int getmotion(struct motion *m)
 			case MOTION_TIL_REV:
 				m->extra = gui_getch();
 				if(!isprint(m->extra)){
-					gui_status(GUI_ERR, "unknown character");
+					gui_status(GUI_ERR, "unknown find character");
 					return 1;
 				}
 				last_find_c = m->extra;

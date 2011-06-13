@@ -362,6 +362,7 @@ static void delete(struct motion *motion)
 
 		if(from.start > from.end){
 			int t = from.start;
+			fprintf(stderr, "switching: from.start=%d <--> from.end=%d\n", from.start, from.end);
 			from.start = from.end;
 			from.end = t;
 		}
@@ -375,33 +376,36 @@ static void delete(struct motion *motion)
 			gui_move(gui_y(), gui_x());
 		}else{
 			char *data = buffer_getindex(global_buffer, gui_y())->data;
-			int gx = gui_x();
+			int startx = gui_x();
 
 			if(from.start < from.end){
 				/* there are also lines to remove */
-				from.start++;
 				buffer_remove_range(global_buffer, &from);
 
-				/* join line from.end with current */
-				join(1);
-
 				data = buffer_getindex(global_buffer, from.start)->data;
+			}else{
+				/* startx should be left-most */
+				if(startx > x){
+					int t = x;
+					x = startx;
+					startx = t;
+				}
+
+				switch(motion->motion){
+					case MOTION_FIND:
+					case MOTION_TIL:
+					case MOTION_FIND_REV:
+					case MOTION_TIL_REV:
+						x++;
+					default:
+						break;
+				}
+
+				/* remove the chars between startx and x, inclusive */
+				memmove(data + startx, data + x, strlen(data + x) + 1);
 			}
 
-			/* gx should be left-most */
-			if(gx > x){
-				int t = x;
-				x = gx;
-				gx = t;
-			}
-
-			if(istilmotion(motion))
-				x++;
-
-			/* remove the chars between gx and x, inclusive */
-			memmove(data + gx, data + x, strlen(data + x) + 1);
-
-			gui_move(gui_y(), gx);
+			gui_move(gui_y(), startx);
 		}
 
 		buffer_modified(global_buffer) = 1;

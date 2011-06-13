@@ -273,49 +273,61 @@ void cmd_set(int argc, char **argv, int force, struct range *rng)
 {
 	enum vartype type = 0;
 	int i;
+	int wait = 0;
 
 	if(argc == 1){
 		/* set dump */
-
 		do
-			if(vars_isbool(type))
-				gui_status_add(GUI_NONE, "%s: %s", vars_tostring(type), *vars_get(type, global_buffer) ? "true" : "false");
-			else
-				gui_status_add(GUI_NONE, "%s: %d", vars_tostring(type), *vars_get(type, global_buffer));
-		while(++type != VARS_UNKNOWN);
+			vars_show(type++);
+		while(type != VARS_UNKNOWN);
+		wait = 1;
+	}else
+		for(i = 1; i < argc; i++){
+			char *wordstart;
+			int bool, gotbool = 0;
+			int q = 0;
+			int j;
 
+			if(!strncmp(wordstart = argv[i], "no", 2)){
+				bool = 0;
+				wordstart += 2;
+				gotbool = 1;
+			}else
+				bool = 1;
+
+			j = strlen(wordstart)-1;
+			if(wordstart[j] == '?'){
+				q = 1;
+				wordstart[j] = '\0';
+			}
+
+			if((type = vars_gettype(wordstart)) == VARS_UNKNOWN){
+				gui_status(GUI_ERR, "unknown variable \"%s\"", wordstart);
+				return;
+			}
+
+			if(q){
+				vars_show(type);
+				wait = 1;
+			}else if(vars_isbool(type)){
+				vars_set(type, global_buffer, bool);
+			}else if(gotbool){
+				gui_status(GUI_ERR, "\"%s\" is not a bool", vars_tostring(type));
+				return;
+			}else{
+				if(++i == argc){
+					gui_status(GUI_ERR, "need value for \"%s\"", vars_tostring(type));
+					return;
+				}else{
+					vars_set(type, global_buffer, atoi(argv[i]));
+				}
+			}
+		}
+
+	if(wait){
 		gui_status_add(GUI_NONE, "any key to continue...\r");
 		gui_peekch();
 		return;
-	}
-
-	for(i = 1; i < argc; i++){
-		char *wordstart;
-		int bool, gotbool = 0;
-
-		if(!strncmp(wordstart = argv[1], "no", 2)){
-			bool = 0;
-			wordstart += 2;
-			gotbool = 1;
-		}else
-			bool = 1;
-
-		if((type = vars_gettype(wordstart)) == VARS_UNKNOWN){
-			gui_status(GUI_ERR, "unknown variable \"%s\"", wordstart);
-			return;
-		}
-
-		if(vars_isbool(type)){
-			vars_set(type, global_buffer, bool);
-		}else if(gotbool){
-			gui_status(GUI_ERR, "\"%s\" is not a bool", vars_tostring(type));
-			return;
-		}else{
-			if(++i == argc)
-				gui_status(GUI_ERR, "need value for \"%s\"", vars_tostring(type));
-			else
-				vars_set(type, global_buffer, atoi(argv[i]));
-		}
 	}
 }
 
