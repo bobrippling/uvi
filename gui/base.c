@@ -258,14 +258,12 @@ static void insert(int append)
 {
 	int i = 0, x = gui_x();
 	int nlines = 10;
-	int offset;
 	int indent = 0;
 	char **lines = umalloc(nlines * sizeof *lines);
-	struct list *iter;
 
 	if(append){
-		gui_inc_cursor(0);
 		x++;
+		gui_inc_cursor();
 	}
 
 	if(global_settings.autoindent){
@@ -293,12 +291,13 @@ static void insert(int append)
 			indent = findindent(lines[i-1]);
 	}
 
-	iter = buffer_getindex(global_buffer, gui_y());
-	offset = x <= (signed)strlen(iter->data);
 	{
-		char *ins = (char *)iter->data + x;
-		char *after = ustrdup(ins);
+		struct list *iter = buffer_getindex(global_buffer, gui_y());
+		char *ins;
+		char *after;
 
+		ins = (char *)iter->data + x;
+		after = ustrdup(ins);
 		*ins = '\0';
 
 		if(i > 1){
@@ -313,11 +312,11 @@ static void insert(int append)
 			for(j = i - 1; j > 0; j--)
 				buffer_insertafter(global_buffer, iter, lines[j]);
 
-			gui_move(gui_y() + i - offset, strlen(after) + strlen(lines[i-1]));
+			gui_move(gui_y() + i, strlen(after) + strlen(lines[i-1]));
 		}else{
 			/* tag v_after on the end */
 			ustrcat((char **)&iter->data, NULL, *lines, after, NULL);
-			gui_move(gui_y(), gui_x() + strlen(*lines) - offset);
+			gui_move(gui_y(), gui_x() + strlen(*lines) - !append); /* if append, no need to hopback */
 		}
 		free(*lines);
 		free(after);
@@ -338,7 +337,6 @@ static void open(int before)
 		gui_move(gui_y(), 0);
 	}else{
 		buffer_insertafter(global_buffer, here, ustrdup(""));
-		gui_inc_cursor(1);
 		gui_move(gui_y() + 1, gui_x());
 	}
 
@@ -379,7 +377,7 @@ static void delete(struct motion *motion)
 			char *data = buffer_getindex(global_buffer, gui_y())->data;
 			int gx = gui_x();
 
-			if(from.start < from.end + 1){
+			if(from.start < from.end){
 				/* there are also lines to remove */
 				from.start++;
 				buffer_remove_range(global_buffer, &from);
@@ -533,7 +531,7 @@ void gui_run()
 switch_start:
 		c = gui_getch();
 		if(iseditchar(c) && buffer_readonly(global_buffer)){
-			gui_status(GUI_ERR, "global_buffer is read-only");
+			gui_status(GUI_ERR, "buffer is read-only");
 			continue;
 		}
 

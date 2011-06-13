@@ -253,10 +253,21 @@ int gui_getstr(char **ps, int bspc_cancel)
 			case CTRL_AND('H'):
 			case 263:
 			case 127:
-				if(i > 0){
-					move(y, --x);
-					i--;
+				if(i --> 0){
+					char c = start[i];
+
+					if(isprint(c))
+						move(y, --x);
+					else if(c == '\t')
+						if(global_settings.showtabs)
+							move(y, x -= 2);
+						else
+							move(y, x -= global_settings.tabstop);
+					else
+						move(y, x -= 2);
+
 					break;
+
 				}else if(!bspc_cancel)
 					break;
 				/* else fall through */
@@ -350,27 +361,36 @@ void gui_mvaddch(int y, int x, int c)
 
 void gui_addch(int c)
 {
-	if(c == '\t'){
-		if(global_settings.showtabs){
-			addstr("^I");
-		}else{
-			int x, y;
-			int ntabs;
+	switch(c){
+		case '\t':
+			if(global_settings.showtabs){
+				addstr("^I");
+			}else{
+				int x, y;
+				int ntabs;
 
-			getyx(stdscr, y, x);
-			(void)y;
+				getyx(stdscr, y, x);
+				(void)y;
 
-			ntabs = GUI_TAB_INDENT(x);
+				ntabs = GUI_TAB_INDENT(x);
 
-			while(ntabs --> 0)
-				addch(' ');
-		}
-	}else if(isprint(c) || c == '\n'){
-		addch(c);
-	}else{
-		gui_attron( GUI_IS_NOT_PRINT);
-		printw("^%c", c + 'A' - 1);
-		gui_attroff(GUI_IS_NOT_PRINT);
+				while(ntabs --> 0)
+					addch(' ');
+			}
+			break;
+
+		default:
+			if(!isprint(c)){
+				fprintf(stderr, "print unprintable: %d (%c)\n", c, c);
+				gui_attron( GUI_IS_NOT_PRINT);
+				printw("^%c", c + 'A' - 1);
+				gui_attroff(GUI_IS_NOT_PRINT);
+			}
+			/* else fall */
+
+		case '\n':
+			addch(c);
+			break;
 	}
 }
 
@@ -398,6 +418,11 @@ static void gui_position_cursor(const char *line)
 	move(pos_y - pos_top, x - pos_left);
 }
 
+void gui_inc_cursor()
+{
+	move(pos_y, pos_x + 1);
+}
+
 void gui_move(int y, int x)
 {
 	const char *line;
@@ -415,7 +440,9 @@ void gui_move(int y, int x)
 	if(len < 0)
 		len = 0;
 
-	if(x > len)
+	if(x < 0)
+		x = 0;
+	else if(x > len)
 		x = len;
 
 	if(x >= pos_left + COLS)
@@ -431,18 +458,6 @@ void gui_move(int y, int x)
 	pos_x = x;
 	pos_y = y;
 	gui_position_cursor(line);
-}
-
-void gui_inc_cursor(int iy)
-{
-	int y, x;
-	getyx(stdscr, y, x);
-	if(iy)
-		y++;
-	else
-		x++;
-	move(y, x);
-	refresh();
 }
 
 void gui_inc(int n)
@@ -542,7 +557,7 @@ int gui_scroll(enum scroll s)
 			break;
 
 		case CURSOR_BOTTOM:
-			pos_top = pos_y - LINES + 1;
+			pos_top = pos_y - LINES + 2;
 			break;
 
 		case CURSOR_MIDDLE:
@@ -557,8 +572,8 @@ int gui_scroll(enum scroll s)
 		const int lim = pos_top + LINES - 1 - SCROLL_OFF;
 		if(pos_y >= lim)
 			pos_y = lim - 1;
-		if(pos_y < pos_top)
-			pos_y = pos_top;
+		if(pos_y < pos_top + (pos_top ? SCROLL_OFF : 0))
+			pos_y = pos_top + (pos_top ? SCROLL_OFF : 0);
 	}
 
 	gui_move(pos_y, pos_x);

@@ -237,11 +237,17 @@ void *readfile(const char *filename, int ro)
 				fclose(f);
 			}
 		}else{
+			if(errno == ENOENT)
+				goto newfile;
 			gui_status(GUI_ERR, "%s: %s", filename, strerror(errno));
 		}
 
 	}else{
-		gui_status(GUI_NONE, "(new file)");
+newfile:
+		if(filename)
+			gui_status(GUI_NONE, "%s: new file", filename);
+		else
+			gui_status(GUI_NONE, "(new file)");
 	}
 
 	if(!b)

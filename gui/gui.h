@@ -58,7 +58,7 @@ void gui_inc(int n);
 void gui_dec(int n);
 void gui_move(int y, int x);
 void gui_move_motion(struct motion *);
-void gui_inc_cursor(int inc_y);
+void gui_inc_cursor(void);
 
 void gui_clip(void);
 void gui_draw(void);

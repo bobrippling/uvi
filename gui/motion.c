@@ -122,8 +122,6 @@ int getmotion(struct motion *m)
 						m->motion = MOTION_TIL;
 					else
 						m->motion = MOTION_FIND;
-				fprintf(stderr, "MOTION_FIND_NEXT -> { \"%s%s\", '%c' }\n",
-						last_find_rev ? "rev_" : "", last_find_til ? "til":"find", m->extra);
 				return 0;
 
 			case MOTION_FIND:
