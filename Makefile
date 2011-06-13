@@ -23,12 +23,15 @@ clean:
  util/alloc.h util/pipe.h global.h gui/motion.h gui/gui.h util/io.h
 ./global.o: global.c range.h buffer.h global.h
 ./main.o: main.c main.h range.h buffer.h global.h gui/motion.h gui/gui.h \
- rc.h
+ rc.h command.h util/io.h
 ./range.o: range.c range.h
 ./rc.o: rc.c rc.h range.h buffer.h vars.h global.h util/io.h
-./vars.o: vars.c util/alloc.h range.h buffer.h vars.h global.h
+./vars.o: vars.c util/alloc.h range.h buffer.h vars.h global.h gui/motion.h \
+ gui/gui.h
 util/alloc.o: util/alloc.c util/alloc.h util/../main.h
-util/io.o: util/io.c util/alloc.h util/io.h util/../main.h
+util/io.o: util/io.c util/alloc.h util/../range.h util/../buffer.h util/io.h \
+ util/../main.h util/../gui/motion.h util/../gui/gui.h \
+ util/../util/list.h
 util/list.o: util/list.c util/list.h util/alloc.h
 util/pipe.o: util/pipe.c util/list.h util/io.h util/pipe.h util/alloc.h
 gui/base.o: gui/base.c gui/../range.h gui/../buffer.h gui/../command.h \

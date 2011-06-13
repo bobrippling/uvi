@@ -1,7 +1,6 @@
 ncurses:
 	change 'w' and 'b' to toggle between /\s/ and !/\s/ like gui textboxes
 
-	only syntax highlight what's on screen?
 	:e autocomplete?
 
 	'u' (aka undo)
@@ -18,8 +17,7 @@ command.c:
 	add range option to filters/pipes
 	use $SHELL in shellout()
 
-regex:
-	simple (vi(1) - see '/'): ^$.[]*
+simple (vi(1) - see '/'): ^$.[]*
 
 copy vim - change attributes on stdin (tcsetattr), so it works with poormanseperation.sh
 
@@ -34,10 +32,11 @@ ddp
 [[
 ]]
 
-uvi <<!
-:wq! /dev/null
-!
-
 * and #
 
 ~ is handled by buffer_read(), nowhere else
+
+fix:
+uvi <<!
+:r!echo hi
+!
