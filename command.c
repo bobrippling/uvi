@@ -395,31 +395,38 @@ void parsecmd(char *s, int *pargc, char ***pargv, int *pforce)
 	*pargc = n;
 }
 
-void filtercmd(int *pargc, char ***pargv)
+void char_replace(int c, const char *rep, int argc, char **argv)
 {
-	char **argv;
-	int argc, i;
-
-	argv = *pargv;
-	argc = *pargc;
+	int i;
 
 	for(i = 0; i < argc; i++){
-		char *p = strchr(argv[i], '~');
+		char *p = strchr(argv[i], c);
 
 		if(p && (p > argv[i] ? p[-1] != '\\' : 1)){
-			const char *home = getenv("HOME");
-
-			if(!home)
-				home = "/";
-
+			char *sav = argv[i];
 			*p++ = '\0';
 
-			argv[i] = ustrprintf("%s%s%s", argv[i], home, p);
-		}else{
-			argv[i] = ustrdup(argv[i]);
+			argv[i] = ustrprintf("%s%s%s", argv[i], rep, p);
+			free(sav);
 		}
 	}
+}
 
+void filter_cmd(int argc, char **argv)
+{
+	const char *home;
+	int i;
+
+	if(!(home = getenv("HOME")))
+		home = "/";
+
+	for(i = 0; i < argc; i++)
+		argv[i] = ustrdup(argv[i]);
+
+	char_replace('~', home, argc, argv);
+
+	if(buffer_hasfilename(global_buffer))
+		char_replace('#', buffer_filename(global_buffer), argc, argv);
 }
 
 void command_run(char *in)
@@ -475,7 +482,7 @@ void command_run(char *in)
 		rng.start = rng.end = -1;
 
 	parsecmd(s, &argc, &argv, &force);
-	filtercmd(&argc, &argv);
+	filter_cmd(argc, argv);
 
 	found = 0;
 	for(i = 0; i < LEN(funcs); i++)
