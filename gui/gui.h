@@ -16,8 +16,8 @@ void gui_addch(int c);
 void gui_ungetch(int c);
 void gui_mvaddch(int y, int x, int c);
 
-int gui_getstr(char **, int bspc_cancel);
-int gui_prompt(const char *p, char **);
+int gui_getstr(char **ps, int bspc_cancel, intellisensef);
+int gui_prompt(const char *p, char **, intellisensef);
 int gui_getch(void);
 int gui_peekch(void);
 

@@ -19,6 +19,8 @@ typedef struct
 
 buffer_t *buffer_new(char *);
 buffer_t *buffer_new_empty(void);
+buffer_t *buffer_new_list(struct list *l);
+
 int buffer_read(buffer_t **, FILE *f);
 int buffer_write(buffer_t *);
 int buffer_external_modified(buffer_t *);

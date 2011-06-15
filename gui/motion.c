@@ -10,6 +10,7 @@
 #include "../util/list.h"
 #include "../buffer.h"
 #include "motion.h"
+#include "intellisense.h"
 #include "gui.h"
 #include "marks.h"
 #include "../global.h"

@@ -19,6 +19,7 @@
 #include "io.h"
 #include "../main.h"
 #include "../gui/motion.h"
+#include "../gui/intellisense.h"
 #include "../gui/gui.h"
 #include "../util/list.h"
 
@@ -78,7 +79,7 @@ static struct list *mmap_to_lines(char *mem, int *haseol, size_t len)
 	char *a, *b;
 
 	for(a = b = mem; a < last; a++)
-		if(*a == '\n'){
+		if(*a == '\n'){ /* TODO: memchr() */
 			char *data = umalloc(a - b + 1);
 
 			memcpy(data, b, a - b);
@@ -206,10 +207,9 @@ void *readfile(const char *filename, int ro)
 			int nread = buffer_read(&b, f);
 
 			if(nread == -1){
-				if(errno != ENOENT)
-					gui_status(GUI_ERR, "\"%s\" [%s]",
-							filename,
-							errno ? strerror(errno) : "unknown error - binary file?");
+				gui_status(GUI_ERR, "\"%s\" [%s]",
+						filename,
+						errno ? strerror(errno) : "unknown error - binary file?");
 
 			}else{
 				/* end up here on successful read */

@@ -20,6 +20,7 @@
 #include "util/pipe.h"
 #include "global.h"
 #include "gui/motion.h"
+#include "gui/intellisense.h"
 #include "gui/gui.h"
 #include "util/io.h"
 

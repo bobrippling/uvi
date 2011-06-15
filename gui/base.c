@@ -15,11 +15,13 @@
 #include "../global.h"
 #include "motion.h"
 #include "../util/alloc.h"
+#include "intellisense.h"
 #include "gui.h"
 #include "marks.h"
 #include "../main.h"
+#include "intellisense.h"
+#include "../util/str.h"
 
-#define iswordchar(c) (isalnum(c) || c == '_')
 #define REPEAT_FUNC(nam) static void nam(unsigned int)
 
 /* text altering */
@@ -60,7 +62,7 @@ static int search(int next, int rev)
 		rev = rev - search_rev; /* obey the previous "?" or "/" */
 	}else{
 		search_rev = rev;
-		if(gui_prompt(rev ? "?" : "/", &search_str))
+		if(gui_prompt(rev ? "?" : "/", &search_str, NULL))
 			return 1;
 	}
 
@@ -148,40 +150,24 @@ void tilde(unsigned int rep)
 
 void showgirl(unsigned int page)
 {
-	char *const line = buffer_getindex(global_buffer, gui_y())->data;
-	char *wordstart, *wordend, *word;
-	int save;
+	char *word = word_at(buffer_getindex(global_buffer, gui_y())->data, gui_x());
+	char *buf;
 	int len;
 
-	wordend = wordstart = line + gui_x();
-
-	if(!iswordchar(*wordstart)){
+	if(!word){
 		gui_status(GUI_ERR, "invalid word");
 		return;
 	}
 
-	while(--wordstart >= line && iswordchar(*wordstart));
-	wordstart++;
+	buf = umalloc(len = strlen(word) + 16);
 
-	while(iswordchar(*wordend))
-		wordend++;
-
-	len = wordend - wordstart;
-
-	word = umalloc(len += 8);
-	len--;
-	strncpy(word, wordstart, len);
-	word[len] = '\0'; /* TODO test */
-
-	save = wordend[1];
-	wordend[1] = '\0';
 	if(page)
-		snprintf(word, len, "man %d %s", page, wordstart);
+		snprintf(buf, len, "man %d %s", page, word);
 	else
-		snprintf(word, len, "man %s", wordstart);
-	wordend[1] = save;
+		snprintf(buf, len, "man %s", word);
 
-	shellout(word, NULL);
+	shellout(buf, NULL);
+	free(buf);
 	free(word);
 }
 
@@ -279,7 +265,7 @@ static void insert(int append)
 			gui_ungetch('\t');
 
 		lines[i] = NULL;
-		esc = gui_getstr(&lines[i], 0);
+		esc = gui_getstr(&lines[i], 0, intellisense_insert);
 		if(++i >= nlines)
 			lines = urealloc(lines, (nlines += 10) * sizeof *lines);
 
@@ -450,7 +436,7 @@ static void colon()
 {
 	char *in = NULL;
 
-	if(!gui_prompt(":", &in)){
+	if(!gui_prompt(":", &in, NULL)){
 		char *c = strchr(in, '\n');
 
 		if(c)

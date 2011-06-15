@@ -11,6 +11,7 @@
 #include "../util/list.h"
 #include "../buffer.h"
 #include "motion.h"
+#include "intellisense.h"
 #include "gui.h"
 #include "../global.h"
 #include "../util/alloc.h"
@@ -195,7 +196,7 @@ void gui_clrtoeol()
 	clrtoeol();
 }
 
-int gui_getstr(char **ps, int bspc_cancel)
+int gui_getstr(char **ps, int bspc_cancel, intellisensef intellisense)
 {
 	int size;
 	char *start;
@@ -218,6 +219,11 @@ int gui_getstr(char **ps, int bspc_cancel)
 		int c;
 
 		c = gui_getch();
+
+		if(i == size){
+			size += 64;
+			start = urealloc(start, size);
+		}
 
 		switch(c){
 			/* TODO: ^V */
@@ -284,6 +290,14 @@ int gui_getstr(char **ps, int bspc_cancel)
 				*ps = start;
 				return 0;
 
+			case CTRL_AND('N'):
+				if(intellisense && !intellisense(&start, &size, &i, c)){
+					/* redraw the line */
+					x = xstart + strlen(start);
+					mvprintw(y, xstart, "%s", start);
+				}
+				break;
+
 			default:
 				start[i] = c;
 				x++;
@@ -293,12 +307,12 @@ int gui_getstr(char **ps, int bspc_cancel)
 	}
 }
 
-int gui_prompt(const char *p, char **pbuf)
+int gui_prompt(const char *p, char **pbuf, intellisensef is)
 {
 	move(LINES - 1, 0);
 	gui_clrtoeol();
 	addstr(p);
-	return gui_getstr(pbuf, 1);
+	return gui_getstr(pbuf, 1, is);
 }
 
 
@@ -381,7 +395,7 @@ void gui_addch(int c)
 
 		default:
 			if(!isprint(c)){
-				fprintf(stderr, "print unprintable: %d (%c)\n", c, c);
+				/*fprintf(stderr, "print unprintable: %d (%c)\n", c, c);*/
 				gui_attron( GUI_IS_NOT_PRINT);
 				printw("^%c", c + 'A' - 1);
 				gui_attroff(GUI_IS_NOT_PRINT);

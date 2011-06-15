@@ -15,16 +15,22 @@
 #include "util/list.h"
 #include "util/io.h"
 
-buffer_t *buffer_new(char *p)
+buffer_t *buffer_new_list(struct list *l)
 {
 	buffer_t *b = umalloc(sizeof(*b));
 	memset(b, '\0', sizeof(*b));
 
-	b->lines = list_new(p);
+	b->lines = l;
+
 	b->nlines = b->eol = 1;
 	b->opentime = time(NULL);
 
 	return b;
+}
+
+buffer_t *buffer_new(char *p)
+{
+	return buffer_new_list(list_new(p));
 }
 
 buffer_t *buffer_new_empty()
@@ -47,17 +53,18 @@ void buffer_setfilename(buffer_t *b, const char *s)
 
 int buffer_read(buffer_t **buffer, FILE *f)
 {
-	buffer_t *b = buffer_new(NULL);
+	struct list *l;
+	buffer_t *b;
+	int eol;
 
-	b->lines = fgetlines(f, &b->eol);
-
-	if(!b->lines){
-		buffer_free_nolist(b);
+	l = fgetlines(f, &eol);
+	if(!l)
 		return -1;
-	}
 
+	b = buffer_new_list(l);
+
+	b->eol = eol;
 	b->nlines = list_count(b->lines);
-
 	b->modified = !b->eol;
 
 	b->dirty = 1;

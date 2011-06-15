@@ -12,6 +12,7 @@
 #include "buffer.h"
 #include "global.h"
 #include "gui/motion.h"
+#include "gui/intellisense.h"
 #include "gui/gui.h"
 #include "rc.h"
 #include "command.h"

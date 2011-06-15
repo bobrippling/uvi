@@ -10,6 +10,7 @@
 #include "vars.h"
 #include "global.h"
 #include "gui/motion.h"
+#include "gui/intellisense.h"
 #include "gui/gui.h"
 
 #define LEN(x) ((sizeof(x) / sizeof(x[0])))
