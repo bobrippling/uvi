@@ -17,6 +17,7 @@
 #include "rc.h"
 #include "command.h"
 #include "util/io.h"
+#include "preserve.h"
 
 static void usage(const char *);
 
@@ -36,6 +37,7 @@ void die(const char *s)
 void sigh(const int sig)
 {
 	gui_term();
+	preserve(global_buffer);
 	fprintf(stderr, "We get signal %d\n", sig);
 	exit(sig + 128);
 }
@@ -54,6 +56,7 @@ int main(int argc, const char **argv)
 	signal(SIGINT,  &sigh);
 	signal(SIGTERM, &sigh);
 	signal(SIGQUIT, &sigh);
+	signal(SIGSEGV, &sigh);
 
 	for(i = 1; i < argc; i++)
 		if(argv_options && *argv[i] == '-'){

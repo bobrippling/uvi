@@ -40,3 +40,10 @@ fix:
 uvi <<!
 :r!echo hi
 !
+
+cat <<! | uvi <<tim
+hi
+there
+!
+2dd
+tim
