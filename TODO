@@ -40,3 +40,6 @@ fix:
 uvi <<!
 :r!echo hi
 !
+
+store list of words after each buffer insertion, rather than generate
+buffer_getwords() - ->dirty etc etc
