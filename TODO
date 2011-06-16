@@ -47,3 +47,6 @@ there
 !
 2dd
 tim
+
+store list of words after each buffer insertion, rather than generate
+buffer_getwords() - ->dirty etc etc
