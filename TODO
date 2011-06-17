@@ -40,6 +40,9 @@ fix:
 uvi <<!
 :r!echo hi
 !
+and
+:we test
+!
 
 cat <<! | uvi <<tim
 hi
@@ -50,3 +53,10 @@ tim
 
 store list of words after each buffer insertion, rather than generate
 buffer_getwords() - ->dirty etc etc
+
+uvi <<!
+G
+''
+!
+
+'scs' aka smartcase search

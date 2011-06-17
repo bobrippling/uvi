@@ -64,6 +64,8 @@ void gui_clip(void);
 void gui_draw(void);
 void gui_redraw(void);
 
+char *gui_current_word(void);
+
 #define CTRL_AND(c)  ((c) & 037)
 #define SCROLL_OFF 3
 

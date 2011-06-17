@@ -3,7 +3,7 @@ include config.mk
 OBJS = main.o buffer.o range.o command.o vars.o \
 	util/list.o util/alloc.o util/io.o util/pipe.o util/str.o \
 	gui/gui.o gui/motion.o gui/marks.o gui/base.o gui/intellisense.o \
-	global.o rc.o preserve.o
+	global.o rc.o preserve.o yank.o
 
 
 uvi: ${OBJS} config.mk
@@ -30,6 +30,7 @@ clean:
 ./rc.o: rc.c rc.h range.h buffer.h vars.h global.h util/io.h
 ./vars.o: vars.c util/alloc.h range.h buffer.h vars.h global.h gui/motion.h \
  gui/intellisense.h gui/gui.h
+./yank.o: yank.c util/alloc.h yank.h
 util/alloc.o: util/alloc.c util/alloc.h util/../main.h
 util/io.o: util/io.c util/alloc.h util/../range.h util/../buffer.h util/io.h \
  util/../main.h util/../gui/motion.h util/../gui/intellisense.h \

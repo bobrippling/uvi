@@ -15,6 +15,7 @@
 #include "gui.h"
 #include "../global.h"
 #include "../util/alloc.h"
+#include "../util/str.h"
 
 #define GUI_TAB_INDENT(x) \
 	(global_settings.tabstop - (x) % global_settings.tabstop)
@@ -592,6 +593,11 @@ int gui_scroll(enum scroll s)
 
 	gui_move(pos_y, pos_x);
 	return ret;
+}
+
+char *gui_current_word()
+{
+	return word_at(buffer_getindex(global_buffer, pos_y)->data, pos_x);
 }
 
 #if 0

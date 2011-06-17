@@ -21,14 +21,15 @@
 #include "../main.h"
 #include "intellisense.h"
 #include "../util/str.h"
+#include "../yank.h"
 
 #define REPEAT_FUNC(nam) static void nam(unsigned int)
 
 /* text altering */
 static void open(int); /* as in, 'o' & 'O' */
 static void shift(unsigned int, int);
-static void delete(struct motion *);
-static void insert(int insert /* bool */);
+static void insert(int append, int indent);
+REPEAT_FUNC(put);
 REPEAT_FUNC(join);
 REPEAT_FUNC(tilde);
 REPEAT_FUNC(replace);
@@ -45,6 +46,7 @@ static void showpos(void);
 
 static char *search_str = NULL;
 static int  search_rev  = 0;
+static int  yank_char = 0;
 
 
 static int search(int next, int rev)
@@ -150,7 +152,7 @@ void tilde(unsigned int rep)
 
 void showgirl(unsigned int page)
 {
-	char *word = word_at(buffer_getindex(global_buffer, gui_y())->data, gui_x());
+	char *word = gui_current_word();
 	char *buf;
 	int len;
 
@@ -240,7 +242,7 @@ lewpfin:
 	return indent / global_settings.tabstop;
 }
 
-static void insert(int append)
+static void insert(int append, int do_indent)
 {
 	int i = 0, x = gui_x();
 	int nlines = 10;
@@ -252,7 +254,7 @@ static void insert(int append)
 		gui_inc_cursor();
 	}
 
-	if(global_settings.autoindent){
+	if(do_indent && global_settings.autoindent){
 		struct list *lprev = buffer_getindex(global_buffer, gui_y() - 1);
 		if(lprev)
 			indent = findindent(lprev->data);
@@ -326,10 +328,13 @@ static void open(int before)
 		gui_move(gui_y() + 1, gui_x());
 	}
 
-	insert(0);
+	insert(0, 1);
 }
 
-static void delete(struct motion *motion)
+static void motion_cmd(struct motion *motion,
+		void (*f_line )(struct range *),
+		void (*f_range)(char *data, int startx, int endx)
+		)
 {
 	struct bufferpos topos;
 	struct screeninfo si;
@@ -354,17 +359,14 @@ static void delete(struct motion *motion)
 
 		if(islinemotion(motion)){
 			/* delete lines between gui_y() and y, inclusive */
-			buffer_remove_range(global_buffer, &from);
-			gui_move(gui_y(), gui_x());
+			f_line(&from);
 		}else{
 			char *data = buffer_getindex(global_buffer, gui_y())->data;
 			int startx = gui_x();
 
 			if(from.start < from.end){
 				/* there are also lines to remove */
-				buffer_remove_range(global_buffer, &from);
-
-				data = buffer_getindex(global_buffer, from.start)->data;
+				f_line(&from);
 			}else{
 				/* startx should be left-most */
 				if(startx > x){
@@ -383,15 +385,55 @@ static void delete(struct motion *motion)
 						break;
 				}
 
-				/* remove the chars between startx and x, inclusive */
-				memmove(data + startx, data + x, strlen(data + x) + 1);
+				f_range(data, startx, x);
 			}
 
 			gui_move(gui_y(), startx);
 		}
-
-		buffer_modified(global_buffer) = 1;
 	}
+}
+
+static void delete_line(struct range *from)
+{
+	buffer_remove_range(global_buffer, from);
+	gui_move(gui_y(), gui_x());
+	buffer_modified(global_buffer) = 1;
+}
+static void delete_range(char *data, int startx, int x)
+{
+	/* remove the chars between startx and x, inclusive */
+	memmove(data + startx, data + x, strlen(data + x) + 1);
+	buffer_modified(global_buffer) = 1;
+}
+
+static void yank_line(struct range *from)
+{
+	struct list *iter;
+	struct list *new;
+	int i;
+
+	new = list_new(NULL);
+
+	iter = buffer_getindex(global_buffer, from->start);
+	for(i = from->start; i <= from->end; i++, iter = iter->next)
+		list_append(new, ustrdup(iter->data));
+
+	yank_set_list(yank_char, new);
+}
+static void yank_range(char *data, int startx, int x)
+{
+	int len = x - startx;
+	char *dup = umalloc(len + 1);
+
+	strncpy(dup, data + startx, x - startx);
+	dup[len] = '\0';
+
+	yank_set_str(yank_char, dup);
+}
+
+static void put(unsigned int ntimes)
+{
+	/* TODO */
 }
 
 static void join(unsigned int ntimes)
@@ -565,20 +607,20 @@ switch_start:
 			case 'X':
 			case 'x':
 				SET_MOTION(c == 'X' ? MOTION_BACKWARD_LETTER : MOTION_FORWARD_LETTER);
-				delete(&motion);
+				motion_cmd(&motion, delete_line, delete_range);
 				bufferchanged = 1;
 				SET_DOT();
 				if(flag)
-					insert(0);
+					insert(0, 0);
 				break;
 
 			case 'C':
 				flag = 1;
 			case 'D':
 				SET_MOTION(MOTION_ABSOLUTE_RIGHT);
-				delete(&motion);
+				motion_cmd(&motion, delete_line, delete_range);
 				if(flag)
-					insert(1 /* append */);
+					insert(1 /* append */, 0);
 				bufferchanged = 1;
 				SET_DOT();
 				break;
@@ -588,6 +630,7 @@ switch_start:
 			case 'c':
 				flag = 1;
 			case 'd':
+case_d:
 				c = gui_getch();
 				if(c == 'd' || c == 'c'){
 					/* allow dd or cc (or dc or cd... but yeah) */
@@ -597,11 +640,44 @@ switch_start:
 					if(getmotion(&motion))
 						break;
 				}
-				delete(&motion);
+				motion_cmd(&motion, delete_line, delete_range);
 				viewchanged = 1;
 				if(flag)
-					insert(0);
+					insert(0, 0);
 				bufferchanged = 1;
+				SET_DOT();
+				break;
+
+			case '"':
+				yank_char = gui_getch();
+				if(!yank_char_valid(yank_char))
+					break;
+
+				c = gui_getch();
+				if(c == 'y')
+					goto case_y;
+				else if(c == 'd')
+					goto case_d;
+				else if(c == 'p')
+					goto case_p;
+				break;
+
+			case 'p':
+case_p:
+				put(multiple);
+				break;
+
+			case 'y':
+case_y:
+				c = gui_getch();
+				if(c == 'y'){
+					SET_MOTION(MOTION_NOMOVE);
+				}else{
+					gui_ungetch(c);
+					if(getmotion(&motion))
+						break;
+				}
+				motion_cmd(&motion, yank_line, yank_range);
 				SET_DOT();
 				break;
 
@@ -612,7 +688,7 @@ switch_start:
 				flag = 1;
 			case 'i':
 case_i:
-				insert(flag);
+				insert(flag, 0);
 				bufferchanged = 1;
 				SET_DOT();
 				break;
@@ -656,13 +732,36 @@ case_i:
 				gui_redraw();
 				break;
 
+			case '*':
+			case '#':
 			case 'n':
 			case 'N':
 			case '/':
 			case '?':
 			{
-				int rev  = c == '?' || c == 'N';
-				int next = tolower(c) == 'n';
+				int rev;
+				int next;
+
+				rev  = c == '?' || c == 'N' || c == '#';
+
+				if(c == '*' || c == '#'){
+					char *w = gui_current_word();
+
+					search_rev = c == '#';
+
+					if(!w){
+						gui_status(GUI_ERR, "no word selected");
+						break;
+					}
+
+					if(search_str)
+						free(search_str);
+
+					search_str = w;
+					next = 1;
+				}else{
+					next = tolower(c) == 'n';
+				}
 
 				viewchanged = !search(next, rev);
 				break;
