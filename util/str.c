@@ -2,6 +2,7 @@
 #include <string.h>
 #include <ctype.h>
 
+#include "../range.h"
 #include "list.h"
 #include "str.h"
 #include "alloc.h"

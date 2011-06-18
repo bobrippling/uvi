@@ -29,7 +29,7 @@
 static void open(int); /* as in, 'o' & 'O' */
 static void shift(unsigned int, int);
 static void insert(int append, int indent);
-REPEAT_FUNC(put);
+static void put(unsigned int ntimes, int rev);
 REPEAT_FUNC(join);
 REPEAT_FUNC(tilde);
 REPEAT_FUNC(replace);
@@ -380,6 +380,7 @@ static void motion_cmd(struct motion *motion,
 					case MOTION_TIL:
 					case MOTION_FIND_REV:
 					case MOTION_TIL_REV:
+					case MOTION_ABSOLUTE_RIGHT:
 						x++;
 					default:
 						break;
@@ -395,12 +396,19 @@ static void motion_cmd(struct motion *motion,
 
 static void delete_line(struct range *from)
 {
-	buffer_remove_range(global_buffer, from);
+	struct list *l = buffer_extract_range(global_buffer, from);
+	yank_set_list(yank_char, l);
 	gui_move(gui_y(), gui_x());
 	buffer_modified(global_buffer) = 1;
 }
 static void delete_range(char *data, int startx, int x)
 {
+	int len = x - startx;
+	char *dup = umalloc(len + 1);
+	strncpy(dup, data + startx, len);
+	dup[len] = '\0';
+	yank_set_str(yank_char, dup);
+
 	/* remove the chars between startx and x, inclusive */
 	memmove(data + startx, data + x, strlen(data + x) + 1);
 	buffer_modified(global_buffer) = 1;
@@ -408,17 +416,7 @@ static void delete_range(char *data, int startx, int x)
 
 static void yank_line(struct range *from)
 {
-	struct list *iter;
-	struct list *new;
-	int i;
-
-	new = list_new(NULL);
-
-	iter = buffer_getindex(global_buffer, from->start);
-	for(i = from->start; i <= from->end; i++, iter = iter->next)
-		list_append(new, ustrdup(iter->data));
-
-	yank_set_list(yank_char, new);
+	yank_set_list(yank_char, buffer_copy_range(global_buffer, from));
 }
 static void yank_range(char *data, int startx, int x)
 {
@@ -431,9 +429,45 @@ static void yank_range(char *data, int startx, int x)
 	yank_set_str(yank_char, dup);
 }
 
-static void put(unsigned int ntimes)
+static void put(unsigned int ntimes, int rev)
 {
-	/* TODO */
+	struct yank *ynk = yank_get(yank_char);
+
+	if(ynk->is_list){
+
+#define INS(f) \
+		f( \
+			global_buffer, \
+			buffer_getindex(global_buffer, gui_y()), \
+			list_copy(ynk->v, (void *(*)(void *))ustrdup) \
+		)
+
+		if(rev)
+			INS(buffer_insertlistbefore);
+		else
+			INS(buffer_insertlistafter);
+
+		gui_move(gui_y() + 1 - rev, gui_x());
+
+	}else{
+		struct list *l = buffer_getindex(global_buffer, gui_y());
+		const int x = gui_x() + 1 - rev;
+		char *data = l->data;
+		char *after = alloca(strlen(data + x) + 1);
+		char *new;
+
+		strcpy(after, data + x);
+		data[x] = '\0';
+
+		new = ustrprintf("%s%s%s", data, (char *)ynk->v, after);
+
+		free(l->data);
+		l->data = new;
+
+		gui_move(gui_y(), x + strlen(ynk->v) - 1);
+	}
+
+	buffer_modified(global_buffer) = 1;
 }
 
 static void join(unsigned int ntimes)
@@ -442,9 +476,6 @@ static void join(unsigned int ntimes)
 	struct range r;
 	char *alloced;
 	int len = 0;
-
-	if(ntimes == 0)
-		ntimes = 1;
 
 	if(gui_y() + ntimes >= (unsigned)buffer_nlines(global_buffer)){
 		gui_status(GUI_ERR, "can't join %d line%s", ntimes,
@@ -520,8 +551,11 @@ void gui_run()
 	struct motion motion;
 	int bufferchanged = 1;
 	int viewchanged = 0;
-	int prevcmd = 0, prevmultiple = 0;
-	int multiple = 0;
+	int prevcmd;
+	int multiple, prevmultiple;
+
+	prevcmd = 0;
+	prevmultiple = multiple = 0;
 
 	do{
 		int flag = 0, resetmultiple = 1;
@@ -563,6 +597,7 @@ switch_start:
 			continue;
 		}
 
+switch_switch:
 		switch(c){
 			case ':':
 				colon();
@@ -630,7 +665,6 @@ switch_start:
 			case 'c':
 				flag = 1;
 			case 'd':
-case_d:
 				c = gui_getch();
 				if(c == 'd' || c == 'c'){
 					/* allow dd or cc (or dc or cd... but yeah) */
@@ -652,23 +686,17 @@ case_d:
 				yank_char = gui_getch();
 				if(!yank_char_valid(yank_char))
 					break;
-
 				c = gui_getch();
-				if(c == 'y')
-					goto case_y;
-				else if(c == 'd')
-					goto case_d;
-				else if(c == 'p')
-					goto case_p;
-				break;
+				goto switch_switch;
 
+			case 'P':
+				flag = 1;
 			case 'p':
-case_p:
-				put(multiple);
+				put(multiple, flag);
+				bufferchanged = 1;
 				break;
 
 			case 'y':
-case_y:
 				c = gui_getch();
 				if(c == 'y'){
 					SET_MOTION(MOTION_NOMOVE);
@@ -776,7 +804,7 @@ case_i:
 				break;
 
 			case '~':
-				tilde(multiple ? multiple : 1);
+				tilde(multiple);
 				SET_DOT();
 				bufferchanged = 1;
 				break;
@@ -812,18 +840,18 @@ case_i:
 				switch(c){
 					MAP('Z', "x");
 					MAP('Q', "q!");
+#undef MAP
 
 					default:
 						gui_status(GUI_ERR, "unknown Z postfix", c);
 				}
 				break;
-#undef MAP
 			}
 
 			default:
-				if(isdigit(c) && (c == '0' ? multiple : 1))
+				if(isdigit(c) && (c == '0' ? multiple : 1)){
 					INC_MULTIPLE();
-				else{
+				}else{
 					gui_ungetch(c);
 					motion.ntimes = multiple;
 					if(!getmotion(&motion)){

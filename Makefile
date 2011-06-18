@@ -30,20 +30,22 @@ clean:
 ./rc.o: rc.c rc.h range.h buffer.h vars.h global.h util/io.h
 ./vars.o: vars.c util/alloc.h range.h buffer.h vars.h global.h gui/motion.h \
  gui/intellisense.h gui/gui.h
-./yank.o: yank.c util/alloc.h yank.h
+./yank.o: yank.c util/alloc.h range.h util/list.h yank.h
 util/alloc.o: util/alloc.c util/alloc.h util/../main.h
 util/io.o: util/io.c util/alloc.h util/../range.h util/../buffer.h util/io.h \
  util/../main.h util/../gui/motion.h util/../gui/intellisense.h \
  util/../gui/gui.h util/../util/list.h
-util/list.o: util/list.c util/list.h util/alloc.h
-util/pipe.o: util/pipe.c util/list.h util/io.h util/pipe.h util/alloc.h
-util/str.o: util/str.c util/list.h util/str.h util/alloc.h
+util/list.o: util/list.c util/../range.h util/list.h util/alloc.h
+util/pipe.o: util/pipe.c util/../range.h util/list.h util/io.h util/pipe.h \
+ util/alloc.h
+util/str.o: util/str.c util/../range.h util/list.h util/str.h util/alloc.h
 gui/base.o: gui/base.c gui/../range.h gui/../buffer.h gui/../command.h \
  gui/../util/list.h gui/../global.h gui/motion.h gui/../util/alloc.h \
- gui/intellisense.h gui/gui.h gui/marks.h gui/../main.h gui/../util/str.h
+ gui/intellisense.h gui/gui.h gui/marks.h gui/../main.h gui/../util/str.h \
+ gui/../yank.h
 gui/gui.o: gui/gui.c gui/../range.h gui/../util/list.h gui/../buffer.h \
  gui/motion.h gui/intellisense.h gui/gui.h gui/../global.h \
- gui/../util/alloc.h
+ gui/../util/alloc.h gui/../util/str.h
 gui/intellisense.o: gui/intellisense.c gui/intellisense.h gui/../range.h \
  gui/../buffer.h gui/../global.h gui/../util/str.h gui/../util/list.h \
  gui/../util/alloc.h gui/motion.h gui/gui.h

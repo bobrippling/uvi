@@ -74,7 +74,11 @@ int intellisense_insert(char **pstr, int *psize, int *pos, char ch)
 		strncat(*pstr + *pos, *words + wlen, len - wlen + 1);
 		*pos += len - wlen;
 	}else{
-		gui_status(GUI_ERR, "can't complete - type more");
+		int n;
+
+		for(n = 0, iter = words; *iter; iter++, n++);
+
+		gui_status(GUI_ERR, "can't complete - %d words", n);
 	}
 
 	free(w);

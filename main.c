@@ -30,6 +30,8 @@ void usage(const char *s)
 
 void die(const char *s)
 {
+	gui_term();
+	preserve(global_buffer);
 	fprintf(stderr, "dying: %s\n", s);
 	exit(1);
 }
@@ -44,7 +46,7 @@ void sigh(const int sig)
 
 int main(int argc, const char **argv)
 {
-	int i, argv_options = 1, readonly = 0;
+	int i, argv_options = 1, readonly = 0, debug = 0;;
 	const char *fname = NULL;
 
 	if(setlocale(LC_ALL, "") == NULL){
@@ -56,7 +58,6 @@ int main(int argc, const char **argv)
 	signal(SIGINT,  &sigh);
 	signal(SIGTERM, &sigh);
 	signal(SIGQUIT, &sigh);
-	signal(SIGSEGV, &sigh);
 
 	for(i = 1; i < argc; i++)
 		if(argv_options && *argv[i] == '-'){
@@ -72,6 +73,10 @@ int main(int argc, const char **argv)
 						global_settings.colour = 1;
 						break;
 					}
+
+					case 'd':
+						debug = 1;
+						break;
 
 					case 'R':
 						readonly = 1;
@@ -95,6 +100,11 @@ int main(int argc, const char **argv)
 			else
 				usage(*argv);
 		}
+
+	if(debug)
+		fputs("uvi: debug on\n", stderr);
+	else
+		signal(SIGSEGV, &sigh);
 
 	if(!isatty(0))
 		fputs("uvi: warning: input is not a terminal\n", stderr);

@@ -11,6 +11,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include "../range.h"
 #include "list.h"
 #include "io.h"
 #include "pipe.h"

@@ -1,6 +1,8 @@
 #include <stdlib.h>
 #include <setjmp.h>
+#include <limits.h>
 
+#include "../range.h"
 #include "list.h"
 #include "alloc.h"
 
@@ -274,4 +276,30 @@ void list_free(struct list *l)
 		free(del->data);
 		free(del);
 	}
+}
+
+struct list *list_copy_range(struct list *l, void *(*f_dup)(void *), struct range *r)
+{
+	struct list *iter;
+	struct list *new;
+	int i;
+
+	new = list_new(NULL);
+
+	iter = list_getindex(l, r->start);
+
+	for(i = r->start; iter && i <= r->end; i++, iter = iter->next)
+		list_append(new, f_dup(iter->data));
+
+	return new;
+}
+
+struct list *list_copy(struct list *l, void *(*f_dup)(void *))
+{
+	struct range r;
+
+	r.start = 0;
+	r.end = INT_MAX;
+
+	return list_copy_range(l, f_dup, &r);
 }

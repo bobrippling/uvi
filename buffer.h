@@ -67,6 +67,8 @@ int buffer_line_isspace(const char *);
 #define buffer_extract(b, l)              ( (b)->dirty = 1, list_extract           (l)              )
 #define buffer_remove(b, l)               ( (b)->dirty = 1, list_remove            (l)              )
 
+#define buffer_copy_range(b, r)           list_copy_range(b2l(b), (void *(*)(void *))ustrdup, r)
+
 /* read only functions */
 #define buffer_getindex(b, m)             list_getindex ( b2l(b), m)
 /* TODO: jump table in buffer? */

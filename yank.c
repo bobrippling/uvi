@@ -1,6 +1,7 @@
 #include <stdlib.h>
 
 #include "util/alloc.h"
+#include "range.h"
 #include "util/list.h"
 #include "yank.h"
 

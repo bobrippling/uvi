@@ -339,7 +339,7 @@ int applymotion2(struct motion *motion, struct bufferpos *pos,
 				} \
 			while(0)
 
-			while(buffer_line_isspace(l->data))
+			while(l && buffer_line_isspace(l->data))
 				/* on a space, move until we find a non-space */
 				NEXT();
 
