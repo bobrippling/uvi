@@ -260,8 +260,8 @@ int gui_getstr(char **ps, int bspc_cancel, intellisensef intellisense)
 			case CTRL_AND('H'):
 			case 263:
 			case 127:
-				if(i --> 0){
-					char c = start[i];
+				if(i > 0){
+					char c = start[i--];
 
 					if(isprint(c))
 						move(y, --x);
