@@ -17,7 +17,8 @@ command.c:
 	add range option to filters/pipes
 	use $SHELL in shellout()
 
-simple (vi(1) - see '/'): ^$.[]*
+regex:
+	simple (vi(1) - see '/'): ^$.[]*
 
 copy vim - change attributes on stdin (tcsetattr), so it works with poormanseperation.sh
 
@@ -36,14 +37,6 @@ ddp
 
 ~ is handled by buffer_read(), nowhere else
 
-fix:
-uvi <<!
-:r!echo hi
-!
-and
-:we test
-!
-
 cat <<! | uvi <<tim
 hi
 there
@@ -60,3 +53,6 @@ G
 !
 
 'scs' aka smartcase search
+
+space trimming when 'ai'
+i_R
