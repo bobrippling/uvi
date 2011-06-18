@@ -58,7 +58,7 @@ struct list *pipe_read(const char *cmd)
 	}
 }
 
-int pipe_write(const char *cmd, struct list *l)
+int pipe_write(const char *cmd, struct list *l, int close_out)
 {
 	int fds[2]; /* 0 = read, 1 = write */
 
@@ -71,9 +71,10 @@ int pipe_write(const char *cmd, struct list *l)
 
 		case 0:
 		{
-			int devnull = open("/dev/null", O_WRONLY);
-			dup2(devnull, STDOUT_FILENO);
-			dup2(devnull, STDERR_FILENO);
+			if(close_out){
+				freopen("/dev/null", "w", stdout);
+				freopen("/dev/null", "w", stderr);
+			}
 
 			close(fds[WRITE_FD]);
 			if(dup2(fds[READ_FD], STDIN_FILENO) == -1)

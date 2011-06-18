@@ -221,7 +221,7 @@ int gui_getstr(char **ps, int bspc_cancel, intellisensef intellisense)
 
 		c = gui_getch();
 
-		if(i == size){
+		if(i >= size){
 			size += 64;
 			start = urealloc(start, size);
 		}

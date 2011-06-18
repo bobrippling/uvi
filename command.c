@@ -40,26 +40,23 @@ char *argv_to_str(int argc, char **argv)
 		strcat(s, argv[i]);
 		strcat(s, " ");
 	}
+
 	return s;
 }
 
 
 void cmd_r(int argc, char **argv, int force, struct range *rng)
 {
-	char *cmd;
-
-	if(argc != 2){
-		gui_status(GUI_ERR, "usage: r[!] cmd/file");
-		return;
-	}
-
-	cmd = argv_to_str(argc, argv);
-
 	if(force){
-		struct list *l = pipe_read(cmd);
-		if(!l)
+		struct list *l;
+		char *cmd;
+
+		cmd = argv_to_str(argc - 1, argv + 1);
+		l = pipe_read(cmd);
+
+		if(!l){
 			gui_status(GUI_ERR, "pipe error: %s", strerror(errno));
-		else if(l->data){
+		}else if(l->data){
 			buffer_insertlistafter(
 					global_buffer,
 					buffer_getindex(global_buffer, gui_y()),
@@ -70,23 +67,29 @@ void cmd_r(int argc, char **argv, int force, struct range *rng)
 			list_free(l);
 			gui_status(GUI_ERR, "%s: no output", cmd);
 		}
-	}else{
-		buffer_t *tmpbuf = readfile(cmd, 0);
 
-		if(!tmpbuf)
-			gui_status(GUI_ERR, "read: %s", strerror(errno));
-		else{
-			buffer_insertlistafter(global_buffer,
+		free(cmd);
+
+	}else if(argc == 2){
+		int eol;
+		struct list *l = fnamegetlines(argv[1], &eol);
+
+		if(l){
+			buffer_insertlistafter(
+					global_buffer,
 					buffer_getindex(global_buffer, gui_y()),
-					buffer_gethead(tmpbuf));
-
-			buffer_free_nolist(tmpbuf);
+					l);
 
 			buffer_modified(global_buffer) = 1;
+		}else{
+			gui_status(GUI_ERR, "read: %s", strerror(errno));
 		}
+
+	}else{
+		gui_status(GUI_ERR, "usage: r[!] cmd/file");
+		return;
 	}
 
-	free(cmd);
 }
 
 void cmd_w(int argc, char **argv, int force, struct range *rng)
@@ -118,8 +121,8 @@ usage:
 
 	if(argc > 1 && argv[1][0] == '!'){
 		/* pipe */
-		char *cmd = argv_to_str(argc, argv);
-		char *bang = cmd + 1;
+		char *cmd = argv_to_str(argc - 1, argv + 1);
+		char *bang = strchr(cmd, '!') + 1;
 
 		shellout(bang, buffer_gethead(global_buffer));
 
@@ -139,7 +142,7 @@ usage:
 		}
 		buffer_setfilename(global_buffer, argv[1]);
 
-	}else if(argc != 1){
+	}else if(argc != 1 && (after == EDIT ? argc != 2 : 0)){
 		goto usage;
 
 	}
@@ -170,7 +173,8 @@ after:
 	switch(after){
 		case EDIT:
 			buffer_free(global_buffer);
-			global_buffer = readfile(argv[1], 0);
+			global_buffer = readfile(argv[1]);
+			gui_move(gui_y(), gui_x());
 			break;
 		case QUIT:
 			global_running = 0;
@@ -224,7 +228,7 @@ void cmd_bang(int argc, char **argv, int force, struct range *rng)
 	if(argc == 1){
 		shellout("sh", NULL);
 	}else{
-		char *cmd = argv_to_str(argc, argv);
+		char *cmd = argv_to_str(argc - 1, argv + 1);
 		shellout(cmd, NULL);
 		free(cmd);
 	}
@@ -241,7 +245,7 @@ void cmd_e(int argc, char **argv, int force, struct range *rng)
 		gui_status(GUI_ERR, "unsaved");
 	}else{
 		buffer_free(global_buffer);
-		global_buffer = readfile(argv[1], 0);
+		global_buffer = readfile(argv[1]);
 		gui_move(0, 0);
 	}
 }
@@ -339,7 +343,7 @@ void shellout(const char *cmd, struct list *l)
 	gui_term();
 
 	if(l){
-		if(pipe_write(cmd, l) == -1){
+		if(pipe_write(cmd, l, 0) == -1){
 			int e = errno;
 			gui_init();
 			gui_status(GUI_ERR, "pipe error: %s", strerror(e));

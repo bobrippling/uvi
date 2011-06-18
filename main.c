@@ -116,7 +116,9 @@ int main(int argc, const char **argv)
 	rc_read();
 
 	gui_init();
-	global_buffer = readfile(fname, readonly);
+	global_buffer = readfile(fname);
+	if(readonly)
+		buffer_readonly(global_buffer) = 1;
 	gui_run();
 
 	gui_term();

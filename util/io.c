@@ -154,6 +154,21 @@ fallback:
 	return l;
 }
 
+struct list *fnamegetlines(const char *s, int *haseol)
+{
+	struct list *l;
+	FILE *f;
+
+	f = fopen(s, "r");
+	if(!f)
+		return NULL;
+
+	l = fgetlines(f, haseol);
+	fclose(f);
+
+	return l;
+}
+
 void chomp_line()
 {
 	int c;
@@ -190,7 +205,7 @@ int canwrite(mode_t mode, uid_t uid, gid_t gid)
 	return 0;
 }
 
-void *readfile(const char *filename, int ro)
+void *readfile(const char *filename)
 {
 	buffer_t *b = NULL;
 
@@ -215,9 +230,7 @@ void *readfile(const char *filename, int ro)
 				/* end up here on successful read */
 				struct stat st;
 
-				if(ro)
-					buffer_readonly(b) = 1;
-				else if(!stat(filename, &st))
+				if(!stat(filename, &st))
 					buffer_readonly(b) = !canwrite(st.st_mode, st.st_uid, st.st_gid);
 				else
 					buffer_readonly(b) = 0;
