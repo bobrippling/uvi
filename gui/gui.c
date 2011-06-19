@@ -379,7 +379,9 @@ void gui_addch(int c)
 	switch(c){
 		case '\t':
 			if(global_settings.showtabs){
+				gui_attron( GUI_IS_NOT_PRINT);
 				addstr("^I");
+				gui_attroff(GUI_IS_NOT_PRINT);
 			}else{
 				int x, y;
 				int ntabs;

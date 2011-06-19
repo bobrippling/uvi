@@ -56,3 +56,12 @@ G
 
 space trimming when 'ai'
 i_R
+
+:reg[s] command
+
+show spaces cmd
+
+obscureword_yoyo
+obscureword_test
+
+obscureword_^n - fix

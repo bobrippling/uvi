@@ -46,7 +46,7 @@ void sigh(const int sig)
 
 int main(int argc, const char **argv)
 {
-	int i, argv_options = 1, readonly = 0, debug = 0;;
+	int i, argv_options = 1, readonly = 0, debug = 1;
 	const char *fname = NULL;
 
 	if(setlocale(LC_ALL, "") == NULL){
