@@ -9,6 +9,7 @@
 #include "vars.h"
 #include "global.h"
 #include "util/io.h"
+#include "gui/map.h"
 
 static const char *rc_file(void)
 {
@@ -25,7 +26,7 @@ static const char *rc_file(void)
 int rc_read()
 {
 	const char *fname = rc_file();
-	char buf[8];
+	char buf[512];
 	FILE *f;
 	int ret = 0;
 	int haderr = 0;
@@ -43,6 +44,10 @@ int rc_read()
 			if((p = strchr(buf, c))) \
 				*p = '\0';
 
+#define PRE "%s:%d: "
+#define ARGS fname, lineno
+
+
 		enum vartype type;
 		char *p;
 		char *start = buf;
@@ -54,34 +59,43 @@ int rc_read()
 		if(!*buf)
 			continue;
 
-		if(!strncmp("no", start, 2)){
-			start += 2;
-			bool = 0;
-		}
+		if(!strncmp("map ", start, 4)){
+			char c;
 
-		MAKE_NUL(' ');
-		if(p)
-			p++;
-
-#define PRE "%s:%d: "
-#define ARGS fname, lineno
-
-		type = vars_gettype(start);
-		if(type == VARS_UNKNOWN){
-			fprintf(stderr, PRE "unknown variable \"%s\"\n", ARGS, start);
-			haderr = 1;
-		}else if(vars_isbool(type)){
-			if(p){
-				fprintf(stderr, PRE "extraneous data (%s)\n", ARGS, p);
-				haderr = 1;
+			if(sscanf(start + 4, "%c %*c", &c) == 1){
+				map_add(c, start + 6);
 			}else{
-				vars_set(type, global_buffer, bool);
+				fprintf(stderr, PRE "invalid map \"%s\"\n", ARGS, start);
+				haderr = 1;
 			}
-		}else if(p){
-			vars_set(type, global_buffer, atoi(p));
+
 		}else{
-			fprintf(stderr, PRE "need value for %s\n", ARGS, start);
-			haderr = 1;
+			if(!strncmp("no", start, 2)){
+				start += 2;
+				bool = 0;
+			}
+
+			MAKE_NUL(' ');
+			if(p)
+				p++;
+
+			type = vars_gettype(start);
+			if(type == VARS_UNKNOWN){
+				fprintf(stderr, PRE "unknown variable \"%s\"\n", ARGS, start);
+				haderr = 1;
+			}else if(vars_isbool(type)){
+				if(p){
+					fprintf(stderr, PRE "extraneous data (%s)\n", ARGS, p);
+					haderr = 1;
+				}else{
+					vars_set(type, global_buffer, bool);
+				}
+			}else if(p){
+				vars_set(type, global_buffer, atoi(p));
+			}else{
+				fprintf(stderr, PRE "need value for %s\n", ARGS, start);
+				haderr = 1;
+			}
 		}
 
 		lineno++;

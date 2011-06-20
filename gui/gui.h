@@ -16,8 +16,10 @@ void gui_addch(int c);
 void gui_ungetch(int c);
 void gui_mvaddch(int y, int x, int c);
 
+#ifdef INTELLISENSE_H
 int gui_getstr(char **ps, int bspc_cancel, intellisensef);
 int gui_prompt(const char *p, char **, intellisensef);
+#endif
 int gui_getch(void);
 int gui_peekch(void);
 
@@ -51,14 +53,18 @@ enum scroll
 	CURSOR_BOTTOM
 };
 
+#ifdef BUFFER_H
 void gui_drawbuffer(buffer_t *b);
+#endif
 
 int  gui_scroll(enum scroll);
 void gui_inc(int n);
 void gui_dec(int n);
 void gui_move(int y, int x);
-void gui_move_motion(struct motion *);
 void gui_inc_cursor(void);
+#ifdef MOTION_H
+void gui_move_motion(struct motion *);
+#endif
 
 void gui_clip(void);
 void gui_draw(void);

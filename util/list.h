@@ -18,7 +18,7 @@ void list_appendlist(struct list *, struct list *);
 void				*list_extract(struct list *); /* removes the list * from its list and returns it */
 void				 list_remove(struct list *); /* as above, but frees the extract'd */
 struct list *list_extract_range(struct list **, int);
-void				 list_remove_range(struct list **, int);
+void         list_remove_range(struct list **, int, void (*)(void *));
 
 /*
  * list_extract returns the extracted list, and adjusts the pointer
@@ -35,6 +35,6 @@ struct list *list_getindex(struct list *, int);
 struct list *list_copy_range(struct list *l, void *(*f_dup)(void *), struct range *r);
 struct list *list_copy(      struct list *l, void *(*f_dup)(void *));
 
-void list_free(struct list *);
+void list_free(struct list *l, void (*f)(void *));
 
 #endif

@@ -139,7 +139,7 @@ fallback:
 			}
 
 			if(ferror(f)){
-				list_free(l);
+				list_free(l, free);
 				return NULL;
 			}
 			return l;

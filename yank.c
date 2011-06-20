@@ -25,7 +25,7 @@ static void yank_set(char reg, void *d, int is_l)
 
 	if(yanks[i].v){
 		if(yanks[i].is_list)
-			list_free((struct list *)yanks[i].v);
+			list_free((struct list *)yanks[i].v, free);
 		else
 			free(yanks[i].v);
 	}

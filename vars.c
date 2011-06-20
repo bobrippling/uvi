@@ -26,12 +26,13 @@ static struct
 	[VARS_EOL]        = { "eol",      1, NULL },
 	[VARS_TABSTOP]    = { "ts",       0, &global_settings.tabstop },
 	[VARS_SHOWTABS]   = { "st",       1, &global_settings.showtabs },
+	[VARS_LIST]       = { "list",     1, &global_settings.list },
 	[VARS_AUTOINDENT] = { "ai",       1, &global_settings.autoindent },
 };
 
 void vars_set(enum vartype t, buffer_t *b, int v)
 {
-	int *p = vars_get(t, b);
+	int *p = vars_addr(t, b);
 
 	*p = v;
 	if(t == VARS_EOL)
@@ -48,7 +49,12 @@ int vars_isbuffervar(enum vartype t)
 	return !vars[t].val;
 }
 
-int *vars_get(enum vartype t, buffer_t *b)
+int vars_get(enum vartype t, buffer_t *b)
+{
+	return *vars_addr(t, b);
+}
+
+int *vars_addr(enum vartype t, buffer_t *b)
 {
 	int *p = vars[t].val;
 	if(p)
@@ -90,7 +96,7 @@ enum vartype vars_gettype(const char *s)
 void vars_show(enum vartype t)
 {
 	if(vars_isbool(t))
-		gui_status_add(GUI_NONE, "%s%s", *vars_get(t, global_buffer) ? "" : "no", vars_tostring(t));
+		gui_status_add(GUI_NONE, "%s%s", vars_get(t, global_buffer) ? "" : "no", vars_tostring(t));
 	else
-		gui_status_add(GUI_NONE, "%s=%d", vars_tostring(t), *vars_get(t, global_buffer));
+		gui_status_add(GUI_NONE, "%s=%d", vars_tostring(t), vars_get(t, global_buffer));
 }

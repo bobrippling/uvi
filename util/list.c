@@ -207,9 +207,9 @@ struct list *list_extract_range(struct list **l, int count)
 	}
 }
 
-void list_remove_range(struct list **l, int count)
+void list_remove_range(struct list **l, int count, void (*f)(void *))
 {
-	list_free(list_extract_range(l, count));
+	list_free(list_extract_range(l, count), f);
 }
 
 int list_count(struct list *l)
@@ -264,7 +264,7 @@ struct list *list_getindex(struct list *l, int i)
 	return l;
 }
 
-void list_free(struct list *l)
+void list_free(struct list *l, void (*f)(void *))
 {
 	struct list *del;
 
@@ -273,7 +273,7 @@ void list_free(struct list *l)
 	while(l){
 		del = l;
 		l = l->next;
-		free(del->data);
+		f(del->data);
 		free(del);
 	}
 }

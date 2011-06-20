@@ -2,7 +2,7 @@ include config.mk
 
 OBJS = main.o buffer.o range.o command.o vars.o \
 	util/list.o util/alloc.o util/io.o util/pipe.o util/str.o \
-	gui/gui.o gui/motion.o gui/marks.o gui/base.o gui/intellisense.o \
+	gui/gui.o gui/motion.o gui/marks.o gui/base.o gui/intellisense.o gui/map.o \
 	global.o rc.o preserve.o yank.o
 
 
@@ -27,7 +27,7 @@ clean:
  gui/intellisense.h gui/gui.h rc.h command.h util/io.h preserve.h
 ./preserve.o: preserve.c range.h buffer.h preserve.h util/alloc.h
 ./range.o: range.c range.h
-./rc.o: rc.c rc.h range.h buffer.h vars.h global.h util/io.h
+./rc.o: rc.c rc.h range.h buffer.h vars.h global.h util/io.h gui/map.h
 ./vars.o: vars.c util/alloc.h range.h buffer.h vars.h global.h gui/motion.h \
  gui/intellisense.h gui/gui.h
 ./yank.o: yank.c util/alloc.h range.h util/list.h yank.h
@@ -42,13 +42,15 @@ util/str.o: util/str.c util/../range.h util/list.h util/str.h util/alloc.h
 gui/base.o: gui/base.c gui/../range.h gui/../buffer.h gui/../command.h \
  gui/../util/list.h gui/../global.h gui/motion.h gui/../util/alloc.h \
  gui/intellisense.h gui/gui.h gui/marks.h gui/../main.h gui/../util/str.h \
- gui/../yank.h
+ gui/../yank.h gui/map.h
 gui/gui.o: gui/gui.c gui/../range.h gui/../util/list.h gui/../buffer.h \
  gui/motion.h gui/intellisense.h gui/gui.h gui/../global.h \
  gui/../util/alloc.h gui/../util/str.h
 gui/intellisense.o: gui/intellisense.c gui/intellisense.h gui/../range.h \
  gui/../buffer.h gui/../global.h gui/../util/str.h gui/../util/list.h \
  gui/../util/alloc.h gui/motion.h gui/gui.h
+gui/map.o: gui/map.c gui/gui.h gui/map.h gui/../range.h gui/../util/list.h \
+ gui/../util/alloc.h
 gui/marks.o: gui/marks.c gui/marks.h
 gui/motion.o: gui/motion.c gui/../range.h gui/../util/list.h gui/../buffer.h \
  gui/motion.h gui/intellisense.h gui/gui.h gui/marks.h gui/../global.h

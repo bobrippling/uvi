@@ -64,7 +64,7 @@ void cmd_r(int argc, char **argv, int force, struct range *rng)
 
 			buffer_modified(global_buffer) = 1;
 		}else{
-			list_free(l);
+			list_free(l, free);
 			gui_status(GUI_ERR, "%s: no output", cmd);
 		}
 
@@ -216,7 +216,7 @@ void cmd_bang(int argc, char **argv, int force, struct range *rng)
 				buffer_replace(global_buffer, l);
 				buffer_modified(global_buffer) = 1;
 			}else{
-				list_free(l);
+				list_free(l, free);
 				gui_status(GUI_ERR, "%s: no output", argv[1]);
 			}
 		}else{
@@ -290,7 +290,7 @@ void cmd_set(int argc, char **argv, int force, struct range *rng)
 		for(i = 1; i < argc; i++){
 			char *wordstart;
 			int bool, gotbool = 0;
-			int q = 0;
+			enum { NONE, QUERY, FLIP } mode = NONE;
 			int j;
 
 			if(!strncmp(wordstart = argv[i], "no", 2)){
@@ -301,8 +301,8 @@ void cmd_set(int argc, char **argv, int force, struct range *rng)
 				bool = 1;
 
 			j = strlen(wordstart)-1;
-			if(wordstart[j] == '?'){
-				q = 1;
+			if(wordstart[j] == '?' || wordstart[j] == '!'){
+				mode = wordstart[j] == '?' ? QUERY : FLIP;
 				wordstart[j] = '\0';
 			}
 
@@ -311,9 +311,20 @@ void cmd_set(int argc, char **argv, int force, struct range *rng)
 				return;
 			}
 
-			if(q){
-				vars_show(type);
-				wait = 1;
+			if(mode != NONE){
+				switch(mode){
+					case QUERY:
+						vars_show(type);
+						wait = 1;
+						break;
+					case FLIP:
+						vars_set(type, global_buffer, !vars_get(type, global_buffer));
+						break;
+
+					default:
+						break;
+				}
+
 			}else if(vars_isbool(type)){
 				vars_set(type, global_buffer, bool);
 			}else if(gotbool){

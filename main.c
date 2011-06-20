@@ -18,6 +18,7 @@
 #include "command.h"
 #include "util/io.h"
 #include "preserve.h"
+#include "gui/map.h"
 
 static void usage(const char *);
 
@@ -111,6 +112,7 @@ int main(int argc, const char **argv)
 	if(!isatty(1))
 		fputs("uvi: warning: output is not a terminal\n", stderr);
 
+	map_init();
 	gui_init();
 	gui_term();
 	rc_read();
@@ -122,6 +124,7 @@ int main(int argc, const char **argv)
 	gui_run();
 
 	gui_term();
+	map_term();
 	buffer_free(global_buffer);
 
 	return 0;

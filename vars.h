@@ -8,8 +8,9 @@ enum vartype
 	VARS_EOL,
 	VARS_TABSTOP,
 	VARS_SHOWTABS,
+	VARS_LIST,
 	VARS_AUTOINDENT,
-#if VIEW_COLOUR
+#ifdef VIEW_COLOUR
 	VARS_COLOUR,
 #endif
 	VARS_UNKNOWN
@@ -22,7 +23,8 @@ int vars_isbool(enum vartype);
 
 int *vars_bufferget(enum vartype, buffer_t *);
 int *vars_settingget(enum vartype);
-int *vars_get(enum vartype, buffer_t *);
+int *vars_addr(enum vartype, buffer_t *);
+int  vars_get( enum vartype, buffer_t *);
 
 
 const char *vars_tostring(enum vartype);

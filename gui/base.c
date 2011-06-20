@@ -22,6 +22,7 @@
 #include "intellisense.h"
 #include "../util/str.h"
 #include "../yank.h"
+#include "map.h"
 
 #define REPEAT_FUNC(nam) static void nam(unsigned int)
 
@@ -199,7 +200,7 @@ void replace(unsigned int n)
 
 		buffer_insertafter(global_buffer, cur, cpy);
 
-		gui_move(0, gui_y() + 1);
+		gui_move(gui_y() + 1, 0);
 	}else{
 		int x = gui_x();
 
@@ -329,6 +330,11 @@ static void open(int before)
 	}
 
 	insert(0, 1);
+
+#if 0
+	if(!before)
+		gui_move(gui_y() - 1, gui_x());
+#endif
 }
 
 static void motion_cmd(struct motion *motion,
@@ -381,6 +387,7 @@ static void motion_cmd(struct motion *motion,
 					case MOTION_FIND_REV:
 					case MOTION_TIL_REV:
 					case MOTION_ABSOLUTE_RIGHT:
+					case MOTION_PAREN_MATCH:
 						x++;
 					default:
 						break;
@@ -500,7 +507,7 @@ static void join(unsigned int ntimes)
 		/* TODO: add a space between these? */
 		strcat(cur->data, l->data);
 
-	list_free(jointhese);
+	list_free(jointhese, free);
 
 	buffer_modified(global_buffer) = 1;
 }
@@ -661,7 +668,7 @@ switch_switch:
 				break;
 
 			case 'S':
-				gui_ungetch('c');
+				gui_ungetch('c'); /* FIXME */
 			case 'c':
 				flag = 1;
 			case 'd':
@@ -830,6 +837,10 @@ case_i:
 				break;
 
 			case CTRL_AND('['):
+				break;
+
+			case '\\':
+				map();
 				break;
 
 			case 'Z':

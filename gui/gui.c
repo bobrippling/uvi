@@ -32,8 +32,8 @@ static void gui_position_cursor(const char *line);
 static void gui_attron( enum gui_attr);
 static void gui_attroff(enum gui_attr);
 
-static int unget_i        = 0;
-static int unget_buf[256] = { 0 };
+static int unget_i         = 0;
+static int unget_buf[1024] = { 0 }; /* FIXME */
 
 static int pos_y = 0, pos_x = 0;
 static int pos_top = 0, pos_left = 0;
@@ -44,6 +44,13 @@ int gui_max_x(){return COLS;}
 int gui_max_y(){return LINES;}
 int gui_top(){return pos_top;}
 int gui_left(){return pos_left;}
+
+void gui_printunget(FILE *f)
+{
+	int i;
+	for(i = unget_i - 1; i >= 0; i--)
+		printf("%c", unget_buf[i]);
+}
 
 int gui_init()
 {
@@ -168,10 +175,13 @@ int gui_getch()
 
 	refresh();
 
-	if(unget_i == 0)
+	if(unget_i == 0){
 		c = getch();
-	else
+		if(c == '\r')
+			c = '\n';
+	}else{
 		c = unget_buf[--unget_i];
+	}
 
 	if(c == CTRL_AND('c'))
 		raise(SIGINT);
@@ -285,7 +295,6 @@ int gui_getstr(char **ps, int bspc_cancel, intellisensef intellisense)
 				return 1;
 
 			case '\n':
-			case '\r':
 				start[i] = '\0';
 				gui_addch('\n');
 				*ps = start;
@@ -402,6 +411,12 @@ void gui_addch(int c)
 				gui_attron( GUI_IS_NOT_PRINT);
 				printw("^%c", c + 'A' - 1);
 				gui_attroff(GUI_IS_NOT_PRINT);
+				break;
+			}else if(c == ' ' && global_settings.list){
+				gui_attron( GUI_IS_NOT_PRINT);
+				addch('.');
+				gui_attroff(GUI_IS_NOT_PRINT);
+				break;
 			}
 			/* else fall */
 

@@ -210,14 +210,14 @@ void buffer_free_nolist(buffer_t *b)
 void buffer_free(buffer_t *b)
 {
 	if(b){
-		list_free(b->lines);
+		list_free(b->lines, free);
 		buffer_free_nolist(b);
 	}
 }
 
 void buffer_replace(buffer_t *b, struct list *l)
 {
-	list_free(b->lines);
+	list_free(b->lines, free);
 	b->lines = l;
 	b->dirty = 1;
 }
@@ -251,7 +251,7 @@ int buffer_nlines(buffer_t *b)
 
 void buffer_remove_range(buffer_t *buffer, struct range *rng)
 {
-	list_free(buffer_extract_range(buffer, rng));
+	list_free(buffer_extract_range(buffer, rng), free);
 }
 
 

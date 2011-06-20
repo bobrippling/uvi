@@ -130,7 +130,7 @@ int getmotion(struct motion *m)
 			case MOTION_FIND_REV:
 			case MOTION_TIL_REV:
 				m->extra = gui_getch();
-				if(!isprint(m->extra)){
+				if(!isprint(m->extra) && m->extra != '\t'){
 					gui_status(GUI_ERR, "unknown find character");
 					return 1;
 				}

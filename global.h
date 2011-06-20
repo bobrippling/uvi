@@ -5,6 +5,7 @@ struct settings
 {
 	int tabstop;
 	int showtabs;
+	int list;
 	int autoindent;
 	int colour;
 };
