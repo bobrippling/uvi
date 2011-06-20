@@ -60,3 +60,17 @@ char **words_begin(struct list *l, const char *s)
 
 	return words;
 }
+
+int line_isspace(const char *s)
+{
+	for(;;)
+		switch(*s++){
+			default:
+				return 0;
+			case '\0':
+				return 1;
+			case '\t':
+			case ' ':
+				break;
+		}
+}

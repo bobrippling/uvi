@@ -24,7 +24,8 @@ clean:
  gui/gui.h util/io.h
 ./global.o: global.c range.h buffer.h global.h
 ./main.o: main.c main.h range.h buffer.h global.h gui/motion.h \
- gui/intellisense.h gui/gui.h rc.h command.h util/io.h preserve.h
+ gui/intellisense.h gui/gui.h rc.h command.h util/io.h preserve.h \
+ gui/map.h
 ./preserve.o: preserve.c range.h buffer.h preserve.h util/alloc.h
 ./range.o: range.c range.h
 ./rc.o: rc.c rc.h range.h buffer.h vars.h global.h util/io.h gui/map.h

@@ -301,17 +301,3 @@ int buffer_external_modified(buffer_t *b)
 
 	return st.st_ctime > buffer_opentime(b);
 }
-
-int buffer_line_isspace(const char *s)
-{
-	for(;;)
-		switch(*s++){
-			default:
-				return 0;
-			case '\0':
-				return 1;
-			case '\t':
-			case ' ':
-				break;
-		}
-}

@@ -263,6 +263,7 @@ static void insert(int append, int do_indent)
 
 	for(;;){
 		int esc;
+		int saveindent = indent;
 
 		while(indent --> 0)
 			gui_ungetch('\t');
@@ -272,12 +273,32 @@ static void insert(int append, int do_indent)
 		if(++i >= nlines)
 			lines = urealloc(lines, (nlines += 10) * sizeof *lines);
 
+		/* trim the line if it's just spaces */
+		if(saveindent){
+			int tabs = 0;
+			char *s;
+
+			for(s = lines[i-1]; *s; s++)
+				if(*s == '\t'){
+					tabs++;
+				}else{
+					tabs = 0;
+					break;
+				}
+
+			if(tabs && tabs == saveindent){
+				*lines[i-1] = '\0';
+				indent = saveindent;
+			}else{
+				indent = findindent(lines[i-1]);
+			}
+		}else if(global_settings.autoindent){
+			indent = findindent(lines[i-1]);
+		}
+
 		if(esc)
 			/* ^[ */
 			break;
-
-		if(global_settings.autoindent)
-			indent = findindent(lines[i-1]);
 	}
 
 	{

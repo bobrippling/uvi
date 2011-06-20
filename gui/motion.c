@@ -14,6 +14,7 @@
 #include "gui.h"
 #include "marks.h"
 #include "../global.h"
+#include "../util/str.h"
 
 #define iswordpart(c) (isalnum(c) || (c) == '_')
 
@@ -339,13 +340,13 @@ int applymotion2(struct motion *motion, struct bufferpos *pos,
 				} \
 			while(0)
 
-			while(l && buffer_line_isspace(l->data))
+			while(l && line_isspace(l->data))
 				/* on a space, move until we find a non-space */
 				NEXT();
 
 			/* find a space */
 			while(l){
-				if(buffer_line_isspace(l->data))
+				if(line_isspace(l->data))
 					break;
 				NEXT();
 			}

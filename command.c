@@ -262,6 +262,7 @@ void cmd_new(int argc, char **argv, int force, struct range *rng)
 	}else{
 		buffer_free(global_buffer);
 		global_buffer = buffer_new_empty();
+		gui_move(0, 0);
 	}
 }
 
