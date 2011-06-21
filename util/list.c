@@ -273,7 +273,8 @@ void list_free(struct list *l, void (*f)(void *))
 	while(l){
 		del = l;
 		l = l->next;
-		f(del->data);
+		if(del->data)
+			f(del->data);
 		free(del);
 	}
 }
