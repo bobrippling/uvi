@@ -1,11 +1,12 @@
 #include <stdio.h>
-#include <errno.h>
 #include <stdlib.h>
+#include <stdarg.h>
+#include <errno.h>
 #include <string.h>
 #include <setjmp.h>
 #include <unistd.h>
 #include <termios.h>
-#include <curses.h>
+#include <ncurses.h>
 #include <pwd.h>
 #include <time.h>
 #include <unistd.h>

@@ -457,6 +457,13 @@ static void yank_range(char *data, int startx, int x)
 	yank_set_str(yank_char, dup);
 }
 
+#ifndef alloca
+void *alloca(size_t l)
+{
+	return umalloc(l);
+}
+#endif
+
 static void put(unsigned int ntimes, int rev)
 {
 	struct yank *ynk = yank_get(yank_char);
