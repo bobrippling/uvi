@@ -17,6 +17,9 @@ void preserve(buffer_t *b)
 	struct stat st;
 	int i;
 
+	if(!b)
+		return;
+
 	if(buffer_hasfilename(b))
 		fname = ustrprintf("%s_dump_a", buffer_filename(b));
 	else

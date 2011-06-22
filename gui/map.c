@@ -17,8 +17,7 @@ struct map
 	char *cmd;
 };
 
-struct list *maps = NULL;
-
+static struct list *maps = NULL;
 
 void map_add(char c, const char *cmd)
 {
@@ -59,6 +58,7 @@ void map_init()
 void map_free(void *p)
 {
 	free(((struct map *)p)->cmd);
+	free(p);
 }
 
 void map_term()

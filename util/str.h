@@ -8,5 +8,6 @@ char **words_begin(struct list *, const char *);
 int line_isspace(const char *s);
 
 void str_escape(char *arg);
+int  str_numeric(const char *);
 
 #endif

@@ -21,6 +21,7 @@
 #include "gui/map.h"
 #include "util/alloc.h"
 #include "util/str.h"
+#include "util/list.h"
 
 static void usage(const char *);
 
@@ -49,6 +50,7 @@ void sigh(const int sig)
 
 int main(int argc, const char **argv)
 {
+	struct list *cmds = list_new(NULL);
 	int i, argv_options = 1, readonly = 0, debug = 1;
 	const char *fname = NULL;
 
@@ -97,10 +99,14 @@ int main(int argc, const char **argv)
 				usage(*argv);
 			}
 		}else if(argv_options && *argv[i] == '+'){
-			char *s = ustrdup(argv[i] + 1);
-			str_escape(s);
-			gui_queue(s);
-			free(s);
+			if(str_numeric(argv[i] + 1)){
+				/* uvi +55 tim.c */
+				list_append(cmds, ustrprintf("%sG", argv[i] + 1));
+			}else{
+				char *s = ustrdup(argv[i] + 1);
+				str_escape(s);
+				list_append(cmds, s);
+			}
 		}else{
 			argv_options = 0;
 			if(!fname)
@@ -108,6 +114,15 @@ int main(int argc, const char **argv)
 			else
 				usage(*argv);
 		}
+
+	if(list_count(cmds) > 0){
+		struct list *l = list_gettail(cmds);
+		while(l){
+			gui_queue(l->data);
+			l = l->prev;
+		}
+	}
+	list_free(cmds, free);
 
 	if(debug)
 		fputs("uvi: debug on\n", stderr);

@@ -86,3 +86,18 @@ void str_escape(char *arg)
 			memmove(s+1, s+2, strlen(s+1));
 		}
 }
+
+int str_numeric(const char *s)
+{
+	if(!*s)
+		return 0;
+
+	while(*s){
+		if('0' <= *s && *s <= '9'){
+			s++;
+			continue;
+		}
+		return 0;
+	}
+	return 1;
+}
