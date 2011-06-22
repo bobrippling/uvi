@@ -798,6 +798,7 @@ case_i:
 				break;
 
 			case CTRL_AND('l'):
+				gui_status(GUI_NONE, "");
 				gui_redraw();
 				break;
 

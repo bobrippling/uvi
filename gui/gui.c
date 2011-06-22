@@ -186,12 +186,10 @@ restart:
 		c = unget_buf[--unget_i];
 	}
 
-	if(c == CTRL_AND('c')){
+	if(c == CTRL_AND('c'))
 		raise(SIGINT);
-	}else if(c == -1){
-		raise(SIGWINCH);
-		goto restart;
-	}
+	else if(c == 410)
+		goto restart; /* sigwinch */
 
 	return c;
 }
