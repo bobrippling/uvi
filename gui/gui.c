@@ -188,8 +188,8 @@ restart:
 
 	if(c == CTRL_AND('c'))
 		raise(SIGINT);
-	else if(c == 410)
-		goto restart; /* sigwinch */
+	else if(c == 410 || c == -1)
+		goto restart; /* sigwinch/interrupt */
 
 	return c;
 }
@@ -607,11 +607,13 @@ int gui_scroll(enum scroll s)
 			break;
 
 		case CURSOR_TOP:
-			pos_top = pos_y;
+			pos_top = pos_y - SCROLL_OFF;
+			if(pos_top < 0)
+				pos_top = 0;
 			break;
 
 		case CURSOR_BOTTOM:
-			pos_top = pos_y - LINES + 2;
+			pos_top = pos_y - LINES + 2 + SCROLL_OFF;
 			break;
 
 		case CURSOR_MIDDLE:
