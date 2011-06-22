@@ -175,6 +175,7 @@ int gui_getch()
 {
 	int c;
 
+restart:
 	refresh();
 
 	if(unget_i == 0){
@@ -185,8 +186,12 @@ int gui_getch()
 		c = unget_buf[--unget_i];
 	}
 
-	if(c == CTRL_AND('c'))
+	if(c == CTRL_AND('c')){
 		raise(SIGINT);
+	}else if(c == -1){
+		raise(SIGWINCH);
+		goto restart;
+	}
 
 	return c;
 }

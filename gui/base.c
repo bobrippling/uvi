@@ -902,6 +902,8 @@ case_i:
 					if(!getmotion(&motion)){
 						gui_move_motion(&motion);
 						viewchanged = 1;
+					}else{
+						gui_status(GUI_ERR, "buh - %c - %d", c, c);
 					}
 				}
 		}

@@ -363,21 +363,29 @@ struct list *list_from_fd(int fd, int *haseol)
 			char buffer[1024];
 			struct list *l;
 			struct list *i;
-			FILE *f = fdopen(fd, "r");
+			FILE *f;
+			int eol = 1;
 
+fallback:
+			f = fdopen(fd, "r");
 			if(!f)
 				return NULL;
 
-fallback:
 			i = l = list_new(NULL);
 
 			while(fgets(buffer, sizeof buffer, f)){
 				char *nl = strchr(buffer, '\n');
-				if(nl)
+				if(nl){
 					*nl = '\0';
+					eol = 1;
+				}else{
+					eol = 0;
+				}
 				list_append(i, ustrdup(buffer));
 				i = list_gettail(i);
 			}
+
+			*haseol = eol;
 
 			if(ferror(f)){
 				list_free(l, free);

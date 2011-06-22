@@ -71,8 +71,7 @@ void cmd_r(int argc, char **argv, int force, struct range *rng)
 		free(cmd);
 
 	}else if(argc == 2){
-		int eol;
-		struct list *l = list_from_filename(argv[1], &eol);
+		struct list *l = list_from_filename(argv[1], NULL);
 
 		if(l){
 			buffer_insertlistafter(
@@ -174,7 +173,7 @@ after:
 		case EDIT:
 			buffer_free(global_buffer);
 			global_buffer = readfile(argv[1]);
-			gui_move(gui_y(), gui_x());
+			gui_move(0, 0);
 			break;
 		case QUIT:
 			global_running = 0;

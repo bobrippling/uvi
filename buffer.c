@@ -63,8 +63,9 @@ int buffer_read(buffer_t **buffer, FILE *f)
 
 	b = buffer_new_list(l);
 
-	b->eol = eol;
 	b->nlines = list_count(b->lines);
+
+	b->eol = eol;
 	b->modified = !b->eol;
 
 	b->dirty = 1;
