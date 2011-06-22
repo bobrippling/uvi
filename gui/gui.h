@@ -14,10 +14,18 @@ int gui_left(void);
 
 void gui_addch(int c);
 void gui_ungetch(int c);
+void gui_queue(const char *s);
 void gui_mvaddch(int y, int x, int c);
 
 #ifdef INTELLISENSE_H
-int gui_getstr(char **ps, int bspc_cancel, intellisensef);
+struct gui_read_opts
+{
+	int bspc_cancel;
+	int textw;
+	intellisensef intellisense;
+};
+
+int gui_getstr(char **ps, const struct gui_read_opts *);
 int gui_prompt(const char *p, char **, intellisensef);
 #endif
 int gui_getch(void);

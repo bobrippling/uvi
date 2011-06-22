@@ -126,6 +126,7 @@ void shift(unsigned int nlines, int indent)
 		l = l->next;
 	}
 
+	gui_move(gui_y(), gui_x());
 	buffer_modified(global_buffer) = 1;
 }
 
@@ -249,6 +250,11 @@ static void insert(int append, int do_indent)
 	int nlines = 10;
 	int indent = 0;
 	char **lines = umalloc(nlines * sizeof *lines);
+	struct gui_read_opts opts;
+
+	opts.intellisense = intellisense_insert;
+	opts.bspc_cancel  = 0;
+	opts.textw        = global_settings.textwidth;
 
 	if(append){
 		x++;
@@ -269,7 +275,7 @@ static void insert(int append, int do_indent)
 			gui_ungetch('\t');
 
 		lines[i] = NULL;
-		esc = gui_getstr(&lines[i], 0, intellisense_insert);
+		esc = gui_getstr(&lines[i], &opts);
 		if(++i >= nlines)
 			lines = urealloc(lines, (nlines += 10) * sizeof *lines);
 

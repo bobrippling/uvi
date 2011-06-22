@@ -8,6 +8,7 @@
 #include "../range.h"
 #include "../util/list.h"
 #include "../util/alloc.h"
+#include "../util/str.h"
 
 
 struct map
@@ -22,16 +23,10 @@ struct list *maps = NULL;
 void map_add(char c, const char *cmd)
 {
 	struct map *m = umalloc(sizeof *m);
-	char *s;
 
 	m->c = c;
 	m->cmd = ustrdup(cmd);
-
-	for(s = m->cmd; *s; s++)
-		if(*s == '\\' && s[1] == 'n'){
-			*s = '\n';
-			memmove(s+1, s+2, strlen(s+1));
-		}
+	str_escape(m->cmd);
 
 	list_append(maps, m);
 }
@@ -46,11 +41,7 @@ void map()
 		struct map *m = l->data;
 
 		if(m->c == c){
-			char *s;
-
-			for(s = m->cmd + strlen(m->cmd) - 1; s >= m->cmd; s--)
-				gui_ungetch(*s);
-
+			gui_queue(m->cmd);
 			found = 1;
 			/* keep looking for more */
 		}

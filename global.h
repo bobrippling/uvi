@@ -8,6 +8,7 @@ struct settings
 	int list;
 	int autoindent;
 	int colour;
+	int textwidth;
 };
 
 extern struct settings global_settings;

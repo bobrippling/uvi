@@ -10,9 +10,7 @@ enum vartype
 	VARS_SHOWTABS,
 	VARS_LIST,
 	VARS_AUTOINDENT,
-#ifdef VIEW_COLOUR
-	VARS_COLOUR,
-#endif
+	VARS_TEXTWIDTH,
 	VARS_UNKNOWN
 } vars_gettype(const char *);
 

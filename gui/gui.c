@@ -32,8 +32,8 @@ static void gui_position_cursor(const char *line);
 static void gui_attron( enum gui_attr);
 static void gui_attroff(enum gui_attr);
 
-static int unget_i         = 0;
-static int unget_buf[1024] = { 0 }; /* FIXME */
+static int   unget_i = 0, unget_size = 0;
+static char *unget_buf;
 
 static int pos_y = 0, pos_x = 0;
 static int pos_top = 0, pos_left = 0;
@@ -44,13 +44,6 @@ int gui_max_x(){return COLS;}
 int gui_max_y(){return LINES;}
 int gui_top(){return pos_top;}
 int gui_left(){return pos_left;}
-
-void gui_printunget(FILE *f)
-{
-	int i;
-	for(i = unget_i - 1; i >= 0; i--)
-		printf("%c", unget_buf[i]);
-}
 
 int gui_init()
 {
@@ -191,8 +184,17 @@ int gui_getch()
 
 void gui_ungetch(int c)
 {
-	if(unget_i < (signed)(sizeof(unget_buf)/sizeof(unget_buf[0])))
-		unget_buf[unget_i++] = c;
+	if(unget_i == unget_size)
+		unget_buf = urealloc(unget_buf, unget_size += 256);
+
+	unget_buf[unget_i++] = c;
+}
+
+void gui_queue(const char *const s)
+{
+	const char *p;
+	for(p = s + strlen(s) - 1; p >= s; p--)
+		gui_ungetch(*p);
 }
 
 int gui_peekch()
@@ -207,7 +209,7 @@ void gui_clrtoeol()
 	clrtoeol();
 }
 
-int gui_getstr(char **ps, int bspc_cancel, intellisensef intellisense)
+int gui_getstr(char **ps, const struct gui_read_opts *opts)
 {
 	int size;
 	char *start;
@@ -271,7 +273,7 @@ int gui_getstr(char **ps, int bspc_cancel, intellisensef intellisense)
 			case 263:
 			case 127:
 				if(i > 0){
-					char c = start[i--];
+					char c = start[--i];
 
 					if(isprint(c))
 						move(y, --x);
@@ -285,7 +287,7 @@ int gui_getstr(char **ps, int bspc_cancel, intellisensef intellisense)
 
 					break;
 
-				}else if(!bspc_cancel)
+				}else if(!opts->bspc_cancel)
 					break;
 				/* else fall through */
 
@@ -295,13 +297,14 @@ int gui_getstr(char **ps, int bspc_cancel, intellisensef intellisense)
 				return 1;
 
 			case '\n':
+fin:
 				start[i] = '\0';
 				gui_addch('\n');
 				*ps = start;
 				return 0;
 
 			case CTRL_AND('N'):
-				if(intellisense && !intellisense(&start, &size, &i, c)){
+				if(opts->intellisense && !opts->intellisense(&start, &size, &i, c)){
 					/* redraw the line */
 					x = xstart + strlen(start);
 					mvprintw(y, xstart, "%s", start);
@@ -310,19 +313,26 @@ int gui_getstr(char **ps, int bspc_cancel, intellisensef intellisense)
 
 			default:
 				start[i] = c;
-				x++;
-				i++;
 				gui_addch(c);
+				x++;
+				if(++i > opts->textw && opts->textw)
+					goto fin;
 		}
 	}
 }
 
-int gui_prompt(const char *p, char **pbuf, intellisensef is)
+int gui_prompt(const char *p, char **pbuf, intellisensef f)
 {
+	struct gui_read_opts opts;
 	move(LINES - 1, 0);
 	gui_clrtoeol();
 	addstr(p);
-	return gui_getstr(pbuf, 1, is);
+
+	opts.bspc_cancel  = 1;
+	opts.textw        = 0;
+	opts.intellisense = f;
+
+	return gui_getstr(pbuf, &opts);
 }
 
 

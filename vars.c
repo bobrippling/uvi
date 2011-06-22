@@ -28,6 +28,7 @@ static struct
 	[VARS_SHOWTABS]   = { "st",       1, &global_settings.showtabs },
 	[VARS_LIST]       = { "list",     1, &global_settings.list },
 	[VARS_AUTOINDENT] = { "ai",       1, &global_settings.autoindent },
+	[VARS_TEXTWIDTH]  = { "tw",       0, &global_settings.textwidth },
 };
 
 void vars_set(enum vartype t, buffer_t *b, int v)
