@@ -120,9 +120,9 @@ int main(int argc, const char **argv)
 	}
 	list_free(cmds, free);
 
-	if(!isatty(0))
+	if(!isatty(STDIN_FILENO))
 		fputs("uvi: warning: input is not a terminal\n", stderr);
-	if(!isatty(1))
+	if(!isatty(STDOUT_FILENO))
 		fputs("uvi: warning: output is not a terminal\n", stderr);
 
 	map_init();
@@ -134,6 +134,7 @@ int main(int argc, const char **argv)
 	global_buffer = readfile(fname);
 	if(readonly)
 		buffer_readonly(global_buffer) = 1;
+	gui_reload();
 	gui_run();
 
 	gui_term();

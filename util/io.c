@@ -24,52 +24,11 @@
 
 int canwrite(mode_t mode, uid_t uid, gid_t gid);
 
-/*
-FIXME
-int fdgetline(char **s, char **buffer, int fd)
+
+void input_reopen()
 {
-	char *nl = NULL;
-	int ret;
-
-	if(!*buffer)
-		*buffer = umalloc(BUFFER_SIZE);
-	else
-		nl = strchr(*buffer, '\n');
-
-	if(nl){
-		int len;
-newline:
-		len = nl - *buffer;
-
-		*s = umalloc(len + 1);
-		strncpy(*s, *buffer, len);
-		(*s)[len] = '\0';
-
-		memmove(*buffer, nl + 1, strlen(nl));
-
-		return len;
-	}else{
-		switch((ret = read(fd, *buffer, BUFFER_SIZE))){
-			case 0:
-			case -1:
-				free(*buffer);
-				*buffer = NULL;
-				return ret;
-		}
-		memset(*buffer + ret, '\0', BUFFER_SIZE - ret);
-		nl = strchr(*buffer, '\n');
-
-		if(nl){
-			fputs("goto newline; !!!!!!!!!!!!!!!!!!\n", stderr);
-			goto newline;
-		}
-
-		*s = *buffer;
-		*buffer = NULL;
-		return strlen(*s);
-	}
+	freopen("/dev/tty", "r", stdin);
 }
-*/
 
 void chomp_line()
 {
@@ -146,11 +105,11 @@ void *readfile(const char *filename)
 							buffer_eol(b) ? "" : " [noeol]");
 			}
 
-			if(f == stdin){
-				freopen("/dev/tty", "r", stdin);
-			}else{
+			if(f == stdin)
+				input_reopen();
+			else
 				fclose(f);
-			}
+
 		}else{
 			if(errno == ENOENT)
 				goto newfile;

@@ -328,7 +328,7 @@ static void insert(int append, int do_indent)
 			for(j = i - 1; j > 0; j--)
 				buffer_insertafter(global_buffer, iter, lines[j]);
 
-			gui_move(gui_y() + i, strlen(after) + strlen(lines[i-1]));
+			gui_move(gui_y() + i - 1, strlen(after) + strlen(lines[i-1]));
 		}else{
 			/* tag v_after on the end */
 			ustrcat((char **)&iter->data, NULL, *lines, after, NULL);
@@ -904,7 +904,16 @@ case_i:
 						gui_move_motion(&motion);
 						viewchanged = 1;
 					}else{
-						gui_status(GUI_ERR, "buh - %c - %d", c, c);
+						char buf[2] = { c, 0 };
+						int extra = isprint(c);
+
+						gui_status(GUI_ERR, "buh - char %d%s%s%s",
+								c,
+								extra ? " (" : "",
+								extra ?  buf : "",
+								extra ?  ")" : ""
+								);
+
 					}
 				}
 		}

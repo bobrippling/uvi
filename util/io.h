@@ -3,5 +3,6 @@
 
 void chomp_line(void);
 void *readfile(const char *filename);
+void input_reopen(void);
 
 #endif

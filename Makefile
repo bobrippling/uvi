@@ -40,7 +40,7 @@ util/list.o: util/list.c util/../range.h util/list.h util/alloc.h
 util/pipe.o: util/pipe.c util/../range.h util/list.h util/io.h util/pipe.h \
  util/alloc.h
 util/str.o: util/str.c util/../range.h util/list.h util/str.h util/alloc.h
-util/term.o: util/term.c
+util/term.o: util/term.c util/io.h
 gui/base.o: gui/base.c gui/../range.h gui/../buffer.h gui/../command.h \
  gui/../util/list.h gui/../global.h gui/motion.h gui/../util/alloc.h \
  gui/intellisense.h gui/gui.h gui/marks.h gui/../main.h gui/../util/str.h \
