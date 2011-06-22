@@ -51,7 +51,7 @@ void sigh(const int sig)
 int main(int argc, const char **argv)
 {
 	struct list *cmds = list_new(NULL);
-	int i, argv_options = 1, readonly = 0, debug = 1;
+	int i, argv_options = 1, readonly = 0;
 	const char *fname = NULL;
 
 	if(setlocale(LC_ALL, "") == NULL){
@@ -78,10 +78,6 @@ int main(int argc, const char **argv)
 						global_settings.colour = 1;
 						break;
 					}
-
-					case 'd':
-						debug = 1;
-						break;
 
 					case 'R':
 						readonly = 1;
@@ -123,11 +119,6 @@ int main(int argc, const char **argv)
 		}
 	}
 	list_free(cmds, free);
-
-	if(debug)
-		fputs("uvi: debug on\n", stderr);
-	else
-		signal(SIGSEGV, &sigh);
 
 	if(!isatty(0))
 		fputs("uvi: warning: input is not a terminal\n", stderr);
