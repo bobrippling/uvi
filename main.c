@@ -19,6 +19,8 @@
 #include "util/io.h"
 #include "preserve.h"
 #include "gui/map.h"
+#include "util/alloc.h"
+#include "util/str.h"
 
 static void usage(const char *);
 
@@ -94,6 +96,11 @@ int main(int argc, const char **argv)
 				fprintf(stderr, "invalid option: \"%s\"\n", argv[i]);
 				usage(*argv);
 			}
+		}else if(argv_options && *argv[i] == '+'){
+			char *s = ustrdup(argv[i] + 1);
+			str_escape(s);
+			gui_queue(s);
+			free(s);
 		}else{
 			argv_options = 0;
 			if(!fname)

@@ -75,3 +75,14 @@ int line_isspace(const char *s)
 				break;
 		}
 }
+
+void str_escape(char *arg)
+{
+	char *s;
+
+	for(s = arg; *s; s++)
+		if(*s == '\\' && s[1] == 'n'){
+			*s = '\n';
+			memmove(s+1, s+2, strlen(s+1));
+		}
+}
