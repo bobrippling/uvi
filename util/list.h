@@ -37,4 +37,8 @@ struct list *list_copy(      struct list *l, void *(*f_dup)(void *));
 
 void list_free(struct list *l, void (*f)(void *));
 
+struct list *list_from_fd(      int  fd,       int *haseol);
+struct list *list_from_file(    FILE *f,       int *haseol);
+struct list *list_from_filename(const char *s, int *haseol);
+
 #endif

@@ -72,7 +72,7 @@ void cmd_r(int argc, char **argv, int force, struct range *rng)
 
 	}else if(argc == 2){
 		int eol;
-		struct list *l = fnamegetlines(argv[1], &eol);
+		struct list *l = list_from_filename(argv[1], &eol);
 
 		if(l){
 			buffer_insertlistafter(
@@ -348,7 +348,11 @@ void cmd_set(int argc, char **argv, int force, struct range *rng)
 	}
 }
 
-void shellout(const char *cmd, struct list *l)
+#ifdef BLOAT
+# include "bloat/command.c"
+#endif
+
+int shellout(const char *cmd, struct list *l)
 {
 	int ret;
 
@@ -359,7 +363,7 @@ void shellout(const char *cmd, struct list *l)
 			int e = errno;
 			gui_init();
 			gui_status(GUI_ERR, "pipe error: %s", strerror(e));
-			return;
+			return -1;
 		}
 		ret = 0;
 	}else
@@ -376,6 +380,8 @@ void shellout(const char *cmd, struct list *l)
 	chomp_line();
 
 	gui_init();
+
+	return ret == -1 ? -1 : WEXITSTATUS(ret);
 }
 
 void parsecmd(char *s, int *pargc, char ***pargv, int *pforce)
@@ -466,6 +472,10 @@ void command_run(char *in)
 		CMD(e),
 		CMD(set),
 		CMD(new),
+#ifdef BLOAT
+# include "bloat/command.h"
+#endif
+
 #undef CMD
 	};
 

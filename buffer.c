@@ -57,7 +57,7 @@ int buffer_read(buffer_t **buffer, FILE *f)
 	buffer_t *b;
 	int eol;
 
-	l = fgetlines(f, &eol);
+	l = list_from_file(f, &eol);
 	if(!l)
 		return -1;
 

@@ -18,7 +18,6 @@
 #include "alloc.h"
 
 static int parent_write(int, struct list *);
-static struct list *parent_read(int);
 
 #define WRITE_FD 1
 #define READ_FD 0
@@ -49,7 +48,7 @@ struct list *pipe_read(const char *cmd)
 			int saveerrno;
 
 			close(fds[WRITE_FD]);
-			l = parent_read(fds[READ_FD]);
+			l = list_from_fd(fds[READ_FD], NULL);
 			saveerrno = errno;
 			wait(NULL);
 			errno = saveerrno;
@@ -133,7 +132,7 @@ struct list *pipe_readwrite(const char *cmd, struct list *l)
 			if(parent_write(parent_to_child[WRITE_FD], l))
 				ret = NULL;
 			else
-				ret = parent_read(child_to_parent[READ_FD]);
+				ret = list_from_fd(child_to_parent[READ_FD], NULL);
 
 			saveerrno = errno;
 			wait(NULL);
@@ -159,22 +158,4 @@ static int parent_write(int fd, struct list *l)
 	close(fd);
 
 	return ret;
-}
-
-static struct list *parent_read(int fd)
-{
-	struct list *l;
-	int unused;
-	FILE *f = fdopen(fd, "r");
-
-	if(!f)
-		return NULL;
-
-	l = fgetlines(f, &unused);
-	fclose(f);
-
-	if(!l)
-		return NULL;
-
-	return list_gethead(l);
 }

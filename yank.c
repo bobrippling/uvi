@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "util/alloc.h"
@@ -47,21 +48,4 @@ void yank_set_list(char reg, struct list *l)
 int yank_char_valid(int reg)
 {
 	return !reg || ('a' <= reg && reg <= 'z');
-}
-
-#include <stdio.h>
-
-void yank_dump()
-{
-	int i;
-
-	for(i = 0; i < 27; i++){
-		fprintf(stderr, "yanks[%02d] = { .v = %p, .is_list = %s }",
-				i, yanks[i].v, yanks[i].is_list?"true":"false");
-
-		if(yanks[i].is_list)
-			fprintf(stderr, " list->head = \"%s\"\n", (char *)((struct list *)yanks[i].v)->data);
-		else
-			fprintf(stderr, " data = \"%s\"\n", (char *)yanks[i].v);
-	}
 }

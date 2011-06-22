@@ -2,6 +2,6 @@
 #define COMMAND_H
 
 void command_run(char *in);
-void shellout(const char *, struct list *);
+int  shellout(const char *, struct list *);
 
 #endif

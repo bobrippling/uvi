@@ -54,4 +54,5 @@ gui/map.o: gui/map.c gui/gui.h gui/map.h gui/../range.h gui/../util/list.h \
  gui/../util/alloc.h
 gui/marks.o: gui/marks.c gui/marks.h
 gui/motion.o: gui/motion.c gui/../range.h gui/../util/list.h gui/../buffer.h \
- gui/motion.h gui/intellisense.h gui/gui.h gui/marks.h gui/../global.h
+ gui/motion.h gui/intellisense.h gui/gui.h gui/marks.h gui/../global.h \
+ gui/../util/str.h

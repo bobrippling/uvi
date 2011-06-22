@@ -23,4 +23,6 @@ static const char *keywords[] = {
 	"FIXME"
 };
 
+#undef BLOAT
+
 #endif

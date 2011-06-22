@@ -10,8 +10,6 @@
 #include <time.h>
 #include <unistd.h>
 #include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/mman.h>
 
 #include "alloc.h"
 #include "../range.h"
@@ -71,103 +69,6 @@ newline:
 	}
 }
 */
-
-static struct list *mmap_to_lines(char *mem, int *haseol, size_t len)
-{
-	struct list *head = list_new(NULL), *cur = head;
-	char *last = mem + len;
-	char *a, *b;
-
-	for(a = b = mem; a < last; a++)
-		if(*a == '\n'){ /* TODO: memchr() */
-			char *data = umalloc(a - b + 1);
-
-			memcpy(data, b, a - b);
-
-			data[a - b] = '\0';
-
-			list_append(cur, data);
-			cur = list_gettail(cur);
-			b = a + 1;
-		}
-
-	if(!(*haseol = a == b)){
-		char *rest = umalloc(a - b + 1);
-		memcpy(rest, b, a - b);
-		rest[a - b] = '\0';
-		list_append(cur, rest);
-	}
-
-	return head;
-}
-
-struct list *fgetlines(FILE *f, int *haseol)
-{
-	struct stat st;
-	struct list *l;
-	int fd;
-	void *mem;
-
-	fd = fileno(f);
-	if(fd == -1)
-		return NULL;
-
-	if(fstat(fd, &st) == -1)
-		return NULL;
-
-	if(st.st_size == 0)
-		goto fallback; /* could be stdin */
-
-	mem = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
-
-	if(mem == MAP_FAILED){
-		if(errno == EINVAL){
-			/* fallback to fread - probably stdin */
-			char buffer[256];
-			struct list *l;
-			struct list *i;
-
-fallback:
-			i = l = list_new(NULL);
-
-			while(fgets(buffer, sizeof buffer, f)){
-				char *nl = strchr(buffer, '\n');
-				if(nl)
-					*nl = '\0';
-				list_append(i, ustrdup(buffer));
-				i = list_gettail(i);
-			}
-
-			if(ferror(f)){
-				list_free(l, free);
-				return NULL;
-			}
-			return l;
-		}
-
-		return NULL;
-	}
-
-	l = mmap_to_lines(mem, haseol, st.st_size);
-	munmap(mem, st.st_size);
-
-	return l;
-}
-
-struct list *fnamegetlines(const char *s, int *haseol)
-{
-	struct list *l;
-	FILE *f;
-
-	f = fopen(s, "r");
-	if(!f)
-		return NULL;
-
-	l = fgetlines(f, haseol);
-	fclose(f);
-
-	return l;
-}
 
 void chomp_line()
 {
