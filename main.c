@@ -130,7 +130,7 @@ int main(int argc, const char **argv)
 	gui_term();
 	rc_read();
 
-	gui_init();
+	gui_reload();
 	global_buffer = readfile(fname);
 	if(readonly)
 		buffer_readonly(global_buffer) = 1;

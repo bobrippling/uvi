@@ -16,6 +16,7 @@
 #include "../global.h"
 #include "../util/alloc.h"
 #include "../util/str.h"
+#include "../util/term.h"
 
 #define GUI_TAB_INDENT(x) \
 	(global_settings.tabstop - (x) % global_settings.tabstop)
@@ -80,9 +81,17 @@ int gui_init()
 	return 0;
 }
 
+void gui_reload()
+{
+	/* put stdin into non canonical mode */
+	term_canon(STDIN_FILENO, 0);
+	refresh();
+}
+
 void gui_term()
 {
 	endwin();
+	term_canon(STDIN_FILENO, 1);
 }
 
 #define ATTR_FN(x) \

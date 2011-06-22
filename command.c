@@ -361,7 +361,7 @@ int shellout(const char *cmd, struct list *l)
 	if(l){
 		if(pipe_write(cmd, l, 0) == -1){
 			int e = errno;
-			gui_init();
+			gui_reload();
 			gui_status(GUI_ERR, "pipe error: %s", strerror(e));
 			return -1;
 		}
@@ -379,7 +379,7 @@ int shellout(const char *cmd, struct list *l)
 
 	chomp_line();
 
-	gui_init();
+	gui_reload();
 
 	return ret == -1 ? -1 : WEXITSTATUS(ret);
 }

@@ -2,6 +2,7 @@
 #define GUI_H
 
 int  gui_init(void);
+void gui_reload(void);
 void gui_term(void);
 void gui_run(void);
 
