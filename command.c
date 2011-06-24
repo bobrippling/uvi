@@ -23,6 +23,7 @@
 #include "gui/intellisense.h"
 #include "gui/gui.h"
 #include "util/io.h"
+#include "yank.h"
 
 #define LEN(x) ((signed)(sizeof(x) / sizeof(x[0])))
 
@@ -340,11 +341,38 @@ void cmd_set(int argc, char **argv, int force, struct range *rng)
 			}
 		}
 
-	if(wait){
-		gui_status_add(GUI_NONE, "any key to continue...\r");
-		gui_peekch();
+	if(wait)
+		gui_status_wait();
+}
+
+void cmd_regs(int argc, char **argv, int force, struct range *rng)
+{
+	int one = 0;
+	int i;
+
+	if(argc != 1 || force || rng->start != -1 || rng->end != -1){
+		gui_status(GUI_ERR, "usage: %s", *argv);
 		return;
 	}
+
+	for(i = 'a' - 1; i <= 'z'; i++){
+		struct yank *y = yank_get(i);
+		char c = i == 'a'-1 ? '"': i;
+
+		if(y->v){
+			if(y->is_list)
+				gui_status_add(GUI_NONE, "%c: list, head: \"%s\"", c, (const char *)(((struct list *)y->v)->data));
+			else
+				gui_status_add(GUI_NONE, "%c: string:     \"%s\"", c, (const char *)y->v);
+
+			one = 1;
+		}
+	}
+
+	if(one)
+		gui_status_wait();
+	else
+		gui_status(GUI_ERR, "no yanks");
 }
 
 #ifdef BLOAT
@@ -471,6 +499,7 @@ void command_run(char *in)
 		CMD(e),
 		CMD(set),
 		CMD(new),
+		CMD(regs),
 #ifdef BLOAT
 # include "bloat/command.h"
 #endif
