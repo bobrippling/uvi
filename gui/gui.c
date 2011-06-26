@@ -29,7 +29,8 @@ typedef struct
 } syntax;
 
 /*#include "../config.h"*/
-static void gui_position_cursor(const char *line);
+static void gui_position_cursor(const char *);
+static void gui_coord_to_scr(int *py, int *px, const char *line);
 static void gui_attron( enum gui_attr);
 static void gui_attroff(enum gui_attr);
 
@@ -169,6 +170,12 @@ void gui_status_add(enum gui_attr a, const char *s, ...)
 	va_start(l, s);
 	gui_status_addl(a, s, l); /* aka FBI cop */
 	va_end(l);
+}
+
+void gui_status_wait()
+{
+	gui_status_add(GUI_NONE, "any key to continue...\r");
+	gui_peekch();
 }
 
 int gui_getch()
@@ -311,7 +318,8 @@ int gui_getstr(char **ps, const struct gui_read_opts *opts)
 			case '\n':
 fin:
 				start[i] = '\0';
-				gui_addch('\n');
+				if(opts->newline)
+					gui_addch('\n');
 				*ps = start;
 				return 0;
 
@@ -340,13 +348,12 @@ int gui_prompt(const char *p, char **pbuf, intellisensef f)
 	gui_clrtoeol();
 	addstr(p);
 
+	memset(&opts, 0, sizeof opts);
 	opts.bspc_cancel  = 1;
-	opts.textw        = 0;
 	opts.intellisense = f;
 
 	return gui_getstr(pbuf, &opts);
 }
-
 
 void gui_redraw()
 {
@@ -399,10 +406,37 @@ void gui_draw()
 	refresh();
 }
 
+static void gui_coord_to_scr(int *py, int *px, const char *line)
+{
+	int y, x, max, i;
+
+	x = 0;
+	y   = *py;
+	max = *px;
+
+	if(!line)
+		line = buffer_getindex(global_buffer, y)->data;
+
+	for(i = 0; line[i] && i < max; i++)
+		if(line[i] == '\t'){
+			if(global_settings.showtabs)
+				x += 2;
+			else
+				x += GUI_TAB_INDENT(x);
+		}else if(!isprint(line[i])){
+			x += 2;
+		}else{
+			x++;
+		}
+
+	*py = y - pos_top;
+	*px = x - pos_left;
+}
+
 void gui_mvaddch(int y, int x, int c)
 {
-	gui_move(y, x);
-	gui_addch(c);
+	gui_coord_to_scr(&y, &x, NULL);
+	mvaddch(y, x, c);
 }
 
 void gui_addch(int c)
@@ -450,26 +484,14 @@ void gui_addch(int c)
 
 static void gui_position_cursor(const char *line)
 {
-	int x;
-	int i;
+	int x, y;
 
-	if(!line)
-		line = buffer_getindex(global_buffer, pos_y)->data;
+	y = pos_y;
+	x = pos_x;
 
-	x = 0;
+	gui_coord_to_scr(&y, &x, line);
 
-	for(i = 0; i < pos_x; i++)
-		if(line[i] == '\t'){
-			if(global_settings.showtabs)
-				x += 2;
-			else
-				x += GUI_TAB_INDENT(x);
-		}else if(!isprint(line[i]))
-			x += 2;
-		else
-			x++;
-
-	move(pos_y - pos_top, x - pos_left);
+	move(y, x);
 }
 
 void gui_inc_cursor()
@@ -565,8 +587,8 @@ int gui_scroll(enum scroll s)
 
 	switch(s){
 		case SINGLE_DOWN:
-			if(pos_top < buffer_nlines(global_buffer) - 1){
-				pos_top++;
+			if(pos_top < buffer_nlines(global_buffer) - 1 - SCROLL_OFF){
+				pos_top += SCROLL_OFF;
 				if(pos_y < pos_top + SCROLL_OFF)
 					pos_y = pos_top + SCROLL_OFF;
 				check = 1;
@@ -576,7 +598,7 @@ int gui_scroll(enum scroll s)
 
 		case SINGLE_UP:
 			if(pos_top){
-				pos_top--;
+				pos_top -= SCROLL_OFF;
 				check = 1;
 				ret = 1;
 			}

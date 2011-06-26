@@ -23,6 +23,7 @@ struct gui_read_opts
 {
 	int bspc_cancel;
 	int textw;
+	int newline;
 	intellisensef intellisense;
 };
 
@@ -43,6 +44,7 @@ void gui_status(     enum gui_attr, const char *, ...);
 void gui_statusl(    enum gui_attr, const char *, va_list);
 void gui_status_add( enum gui_attr, const char *s, ...);
 void gui_status_addl(enum gui_attr, const char *s,va_list);
+void gui_status_wait(void);
 
 void gui_clrtoeol(void);
 
