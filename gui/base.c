@@ -31,6 +31,7 @@ static void open(int); /* as in, 'o' & 'O' */
 static void shift(unsigned int, int);
 static void insert(int append, int indent);
 static void put(unsigned int ntimes, int rev);
+static void change(struct motion *motion, int flag);
 REPEAT_FUNC(join);
 REPEAT_FUNC(tilde);
 REPEAT_FUNC(replace);
@@ -84,8 +85,10 @@ static int search(int next, int rev)
 			break;
 		}
 
-	if(!found)
+	if(!found){
 		gui_status(GUI_ERR, "not found");
+		gui_move(gui_y(), gui_x());
+	}
 
 	return !found;
 }
@@ -254,6 +257,7 @@ static void insert(int append, int do_indent)
 
 	opts.intellisense = intellisense_insert;
 	opts.bspc_cancel  = 0;
+	opts.newline      = 1;
 	opts.textw        = global_settings.textwidth;
 
 	if(append){
@@ -461,6 +465,47 @@ static void yank_range(char *data, int startx, int x)
 	dup[len] = '\0';
 
 	yank_set_str(yank_char, dup);
+}
+
+static void change(struct motion *motion, int flag)
+{
+	int c = gui_getch();
+	int x, y, dollar = 0;
+
+	if(c == 'd' || c == 'c'){
+		/* allow dd or cc (or dc or cd... but yeah) */
+		motion->motion = MOTION_NOMOVE;
+		motion->ntimes = 1;
+	}else{
+		gui_ungetch(c);
+		if(getmotion(motion))
+			return;
+	}
+
+	if(flag){
+		struct bufferpos pos;
+		struct screeninfo si;
+
+		x = gui_x();
+		y = gui_y();
+
+		si.top = gui_top();
+		si.height = gui_max_y();
+		pos.x = &x;
+		pos.y = &y;
+
+		if(!applymotion(motion, &pos, &si))
+			dollar = 1;
+	}
+
+	motion_cmd(motion, delete_line, delete_range);
+
+	if(flag){
+		if(dollar)
+			gui_mvaddch(y, x - 1, '$');
+		gui_move(gui_y(), gui_x());
+		insert(0, 0);
+	}
 }
 
 #ifndef alloca
@@ -702,23 +747,12 @@ switch_switch:
 				break;
 
 			case 'S':
-				gui_ungetch('c'); /* FIXME */
+				gui_ungetch('c'); /* FIXME? */
 			case 'c':
 				flag = 1;
 			case 'd':
-				c = gui_getch();
-				if(c == 'd' || c == 'c'){
-					/* allow dd or cc (or dc or cd... but yeah) */
-					SET_MOTION(MOTION_NOMOVE);
-				}else{
-					gui_ungetch(c);
-					if(getmotion(&motion))
-						break;
-				}
-				motion_cmd(&motion, delete_line, delete_range);
+				change(&motion, flag);
 				viewchanged = 1;
-				if(flag)
-					insert(0, 0);
 				bufferchanged = 1;
 				SET_DOT();
 				break;
@@ -903,7 +937,7 @@ case_i:
 					if(!getmotion(&motion)){
 						gui_move_motion(&motion);
 						viewchanged = 1;
-					}else{
+					}else if(c != '\n'){
 						char buf[2] = { c, 0 };
 						int extra = isprint(c);
 
