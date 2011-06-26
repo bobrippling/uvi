@@ -627,6 +627,8 @@ static int iseditchar(int c)
 		case '>':
 		case '<':
 		case '~':
+		case 'p':
+		case 'P':
 			return 1;
 	}
 	return 0;
