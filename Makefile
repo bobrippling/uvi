@@ -15,6 +15,12 @@ uvi: ${OBJS} config.mk
 clean:
 	rm -f uvi `find -iname \*.o`
 
+install: uvi
+	cp uvi /usr/bin
+
+uninstall:
+	rm -f /usr/bin/uvi
+
 .PHONY: clean
 
 # :r!for d in . util gui; do cc -MM $d/*.c | sed "s;^[^ \t];$d/&;"; done
