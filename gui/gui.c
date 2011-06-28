@@ -17,6 +17,7 @@
 #include "../util/alloc.h"
 #include "../util/str.h"
 #include "../util/term.h"
+#include "macro.h"
 
 #define GUI_TAB_INDENT(x) \
 	(global_settings.tabstop - (x) % global_settings.tabstop)
@@ -33,12 +34,17 @@ static void gui_position_cursor(const char *);
 static void gui_coord_to_scr(int *py, int *px, const char *line);
 static void gui_attron( enum gui_attr);
 static void gui_attroff(enum gui_attr);
+static void macro_append(char c);
 
 static int   unget_i = 0, unget_size = 0;
 static char *unget_buf;
 
 static int pos_y = 0, pos_x = 0;
 static int pos_top = 0, pos_left = 0;
+
+static int macro_record_char = 0;
+static char *macro_str = NULL;
+static int   macro_strlen = 0;
 
 int gui_x(){return pos_x;}
 int gui_y(){return pos_y;}
@@ -197,6 +203,9 @@ restart:
 		raise(SIGINT);
 	else if(c == 410 || c == -1)
 		goto restart; /* sigwinch/interrupt */
+
+	if(macro_record_char)
+		macro_append(c);
 
 	return c;
 }
@@ -414,8 +423,13 @@ static void gui_coord_to_scr(int *py, int *px, const char *line)
 	y   = *py;
 	max = *px;
 
-	if(!line)
-		line = buffer_getindex(global_buffer, y)->data;
+	if(!line){
+		struct list *l = buffer_getindex(global_buffer, y);
+		if(l)
+			line = l->data;
+		else
+			line = "";
+	}
 
 	for(i = 0; line[i] && i < max; i++)
 		if(line[i] == '\t'){
@@ -767,6 +781,33 @@ void gui_drawbuffer(buffer_t *b)
 		wcoloroff(COLOR_BLUE, A_BOLD);
 }
 #endif
+
+int gui_macro_recording()
+{
+	return !!macro_record_char;
+}
+
+void gui_macro_record(char c)
+{
+	macro_record_char = c;
+}
+
+int gui_macro_complete()
+{
+	const int c = macro_record_char;
+	macro_set(macro_record_char, macro_str);
+	macro_record_char = 0;
+	return c;
+}
+
+static void macro_append(char c)
+{
+	char s[2];
+
+	s[0] = c;
+	s[1] = '\0';
+	ustrcat(&macro_str, &macro_strlen, s);
+}
 
 #if 0
 static void checkcolour(const char *c, char *waitlen, char *colour_on,

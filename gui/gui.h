@@ -83,6 +83,10 @@ void gui_redraw(void);
 
 char *gui_current_word(void);
 
+int gui_macro_recording(void);
+void gui_macro_record(char);
+int gui_macro_complete(void);
+
 #define CTRL_AND(c)  ((c) & 037)
 #define SCROLL_OFF 3
 

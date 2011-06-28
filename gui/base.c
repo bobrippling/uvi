@@ -17,6 +17,7 @@
 #include "../util/alloc.h"
 #include "intellisense.h"
 #include "gui.h"
+#include "macro.h"
 #include "marks.h"
 #include "../main.h"
 #include "intellisense.h"
@@ -467,7 +468,7 @@ static void yank_range(char *data, int startx, int x)
 	yank_set_str(yank_char, dup);
 }
 
-static void change(struct motion *motion, int flag)
+static void change(struct motion *motion, int ins)
 {
 	int c = gui_getch();
 	int x, y, dollar = 0;
@@ -475,14 +476,13 @@ static void change(struct motion *motion, int flag)
 	if(c == 'd' || c == 'c'){
 		/* allow dd or cc (or dc or cd... but yeah) */
 		motion->motion = MOTION_NOMOVE;
-		motion->ntimes = 1;
 	}else{
 		gui_ungetch(c);
 		if(getmotion(motion))
 			return;
 	}
 
-	if(flag){
+	if(ins){
 		struct bufferpos pos;
 		struct screeninfo si;
 
@@ -500,9 +500,9 @@ static void change(struct motion *motion, int flag)
 
 	motion_cmd(motion, delete_line, delete_range);
 
-	if(flag){
+	if(ins){
 		if(dollar)
-			gui_mvaddch(y, x - 1, '$');
+			gui_mvaddch(y, x > 0 ? x - 1 : x, '$');
 		gui_move(gui_y(), gui_x());
 		insert(0, 0);
 	}
@@ -519,8 +519,13 @@ static void put(unsigned int ntimes, int rev)
 {
 	struct yank *ynk = yank_get(yank_char);
 
-	if(ynk->is_list){
+	if(!ynk->v){
+		gui_status(GUI_ERR, "register %c empty", yank_char ? yank_char : '"');
+		return;
+	}
 
+
+	if(ynk->is_list){
 #define INS(f) \
 		f( \
 			global_buffer, \
@@ -679,6 +684,7 @@ void gui_run()
 				}while(0)
 
 switch_start:
+		yank_char = 0;
 		c = gui_getch();
 		if(iseditchar(c) && buffer_readonly(global_buffer)){
 			gui_status(GUI_ERR, "buffer is read-only");
@@ -753,6 +759,7 @@ switch_switch:
 			case 'c':
 				flag = 1;
 			case 'd':
+				motion.ntimes = multiple;
 				change(&motion, flag);
 				viewchanged = 1;
 				bufferchanged = 1;
@@ -761,8 +768,10 @@ switch_switch:
 
 			case '"':
 				yank_char = gui_getch();
-				if(!yank_char_valid(yank_char))
+				if(!yank_char_valid(yank_char)){
+					yank_char = 0;
 					break;
+				}
 				c = gui_getch();
 				goto switch_switch;
 
@@ -926,6 +935,30 @@ case_i:
 
 					default:
 						gui_status(GUI_ERR, "unknown Z postfix", c);
+				}
+				break;
+			}
+
+			case 'q':
+				if(gui_macro_recording()){
+					gui_status(GUI_NONE, "recorded to %c", gui_macro_complete());
+				}else{
+					int m = gui_getch();
+					if(macro_char_valid(m)){
+						gui_status(GUI_NONE, "recording (%c)", m);
+						gui_macro_record(m);
+					}
+				}
+				break;
+			case '@':
+			{
+				int m = gui_getch();
+				if(macro_char_valid(m)){
+					gui_status(GUI_NONE, "macro_play('%c')", m);
+					if(!multiple)
+						multiple = 1;
+					while(multiple --> 0)
+						macro_play(m);
 				}
 				break;
 			}
