@@ -25,6 +25,7 @@ static struct
 	[VARS_READONLY]   = { "ro",       1, NULL },
 	[VARS_MODIFIED]   = { "modified", 1, NULL },
 	[VARS_EOL]        = { "eol",      1, NULL },
+	[VARS_CRLF]       = { "crlf",     1, NULL },
 	[VARS_TABSTOP]    = { "ts",       0, &global_settings.tabstop },
 	[VARS_SHOWTABS]   = { "st",       1, &global_settings.showtabs },
 	[VARS_LIST]       = { "list",     1, &global_settings.list },
@@ -37,7 +38,7 @@ void vars_set(enum vartype t, buffer_t *b, int v)
 	int *p = vars_addr(t, b);
 
 	*p = v;
-	if(t == VARS_EOL)
+	if(t == VARS_EOL || t == VARS_CRLF)
 		buffer_modified(b) = 1;
 }
 
@@ -69,6 +70,8 @@ int *vars_addr(enum vartype t, buffer_t *b)
 			return &buffer_modified(b);
 		case VARS_EOL:
 			return &buffer_eol(b);
+		case VARS_CRLF:
+			return &buffer_crlf(b);
 
 		default:
 			break;

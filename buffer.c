@@ -51,6 +51,24 @@ void buffer_setfilename(buffer_t *b, const char *s)
 		b->fname = NULL;
 }
 
+int is_crlf(buffer_t *b)
+{
+	struct list *l;
+
+	for(l = b->lines; l; l = l->next){
+		char *s = l->data;
+		if(s[strlen(s)-1] != '\r'){
+			if(l->next)
+				return 0;
+			else
+				return 1; /* all crlf except last line */
+		}
+	}
+
+	/* all are crlf */
+	return 1;
+}
+
 int buffer_read(buffer_t **buffer, FILE *f)
 {
 	struct list *l;
@@ -67,6 +85,17 @@ int buffer_read(buffer_t **buffer, FILE *f)
 
 	b->eol = eol;
 	b->modified = !b->eol;
+
+	if((b->crlf = is_crlf(b))){
+		struct list *l;
+		for(l = b->lines; l; l = l->next){
+			char *s = l->data;
+			const int i = strlen(s) - 1;
+
+			if(s[i] == '\r')
+				s[i] = '\0';
+		}
+	}
 
 	b->dirty = 1;
 	/* this is an internal line-change memory (not to do with saving) */
@@ -90,75 +119,7 @@ int buffer_read(buffer_t **buffer, FILE *f)
 /* returns bytes written */
 int buffer_write(buffer_t *b)
 {
-#define BUFFER_USE_WRITEV 0 /* XXX */
-#if BUFFER_USE_WRITEV
-# define MAX_BYTES 128 /* 2 ^ (sizeof(ssize_t)-1) */
-	FILE *f = fopen(b->fname, "w");
-	struct iovec *iov, *iovtmp;
-	struct list *l = list_gethead(b->lines);
-	int count, nwrite = 0, eno, totalsize = 0, fno;
-	/*can't be const*/char nl = '\n';
-
-	if(!f)
-		return -1;
-
-	count = list_count(l) * 2;
-	iovtmp = iov = umalloc(count * sizeof(*iov));
-	/*
-	 * allocate too many if it's eol. doesn't matter, since count is dealt with
-	 * later
-	 */
-
-	while(l){
-		iovtmp->iov_len = strlen((iovtmp->iov_base = l->data));
-		iovtmp++;
-
-		iovtmp->iov_base = &nl;
-		iovtmp++;
-
-		totalsize += iov[-2].iov_len + (iovtmp[-1].iov_len  = sizeof(char));
-
-		l = l->next;
-	}
-
-	if(!b->eol)
-		count--; /* don't write the last '\n' */
-
-
-	/*
-	 * writev is limited by MAX_BYTES
-	 * so do it in blocks of that size
-	 */
-	nwrite = totalsize / MAX_BYTES;
-	fno = fileno(f);
-	errno = 0;
-	fprintf(stderr, "need to do at least %d writes for %d bytes (MAX_BYTES = %d)\n",
-			nwrite, totalsize, MAX_BYTES);
-
-	while(nwrite){
-		nwrite += writev(fno, iov, count);
-		if(errno)
-			goto bail;
-		iov += nwrite;
-	}
-	if(totalsize % MAX_BYTES){
-		fprintf(stderr, "doing an extra write of size %d\n", totalsize % MAX_BYTES);
-		nwrite += writev(fno, iov, count - totalsize % MAX_BYTES);
-		if(errno)
-			goto bail;
-	}
-
-bail:
-	eno = errno;
-	free(iov);
-	if(!fclose(f))
-		nwrite = -1;
-	else
-		errno = eno;
-
-	return nwrite;
-#undef MAX_BYTES
-#else
+	const char *crlf;
 	FILE *f = fopen(b->fname, "w");
 	struct list *l = list_gethead(b->lines);
 	int eno;
@@ -167,8 +128,13 @@ bail:
 	if(!f)
 		return -1;
 
+	if(b->crlf)
+		crlf = "\r";
+	else
+		crlf = "";
+
 	while(l->next){
-		if((w = fprintf(f, "%s\n", (char *)l->data)) < 0){
+		if((w = fprintf(f, "%s%s\n", (char *)l->data, crlf)) < 0){
 			nwrite = -1;
 			goto bail;
 		}
@@ -181,7 +147,7 @@ bail:
 	 * (possibly the first)
 	 */
 
-	w = fprintf(f, "%s%s", (char *)l->data, b->eol ? "\n" : "");
+	w = fprintf(f, "%s%s%s", (char *)l->data, b->eol ? crlf : "", b->eol ? "\n" : "");
 	if(w < 0)
 		nwrite = -1;
 	else
@@ -197,7 +163,6 @@ bail:
 		errno = eno;
 
 	return nwrite;
-#endif
 }
 
 void buffer_free_nolist(buffer_t *b)

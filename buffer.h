@@ -10,6 +10,7 @@ typedef struct
 	int readonly;
 	int modified;
 	int eol;
+	int crlf;
 
 	/* internal variables */
 	int dirty;
@@ -48,6 +49,7 @@ void buffer_dump(buffer_t *, FILE *);
 #define buffer_modified(b)                ((b)->modified)
 #define buffer_readonly(b)                ((b)->readonly)
 #define buffer_eol(b)                     ((b)->eol)
+#define buffer_crlf(b)                    ((b)->crlf)
 #define buffer_opentime(b)                ((b)->opentime)
 
 #define buffer_filename(b)                ((b)->fname ? (b)->fname : "(no name)")
