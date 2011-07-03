@@ -57,6 +57,10 @@ int is_crlf(buffer_t *b)
 
 	for(l = b->lines; l && l->data; l = l->next){
 		char *s = l->data;
+
+		if(!*s)
+			return 0;
+
 		if(s[strlen(s)-1] != '\r'){
 			if(l->next)
 				return 0;
@@ -83,6 +87,18 @@ int buffer_read(buffer_t **buffer, FILE *f)
 
 	b->eol = eol;
 
+	b->dirty = 1;
+	if(buffer_nlines(b) == 0){
+		/* create a line + set modified */
+		char *s = umalloc(sizeof(char));
+
+		*s = '\0';
+		list_append(b->lines, s);
+
+		b->modified = 1;
+		b->nlines = 1;
+	}
+
 	if((b->crlf = is_crlf(b))){
 		struct list *l;
 		for(l = b->lines; l && l->data; l = l->next){
@@ -92,19 +108,6 @@ int buffer_read(buffer_t **buffer, FILE *f)
 			if(s[i] == '\r')
 				s[i] = '\0';
 		}
-	}
-
-	b->dirty = 1;
-	buffer_nlines(b);
-
-	if(b->nlines == 0){
-		/* create a line + set modified */
-		char *s = umalloc(sizeof(char));
-
-		*s = '\0';
-		list_append(b->lines, s);
-
-		b->modified = 1;
 	}
 
 	*buffer = b;
