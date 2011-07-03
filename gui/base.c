@@ -946,7 +946,7 @@ case_i:
 				}else{
 					int m = gui_getch();
 					if(macro_char_valid(m)){
-						gui_status(GUI_NONE, "recording (%c)", m);
+						gui_status(GUI_COL_MAGENTA, "recording (%c)", m);
 						gui_macro_record(m);
 					}
 				}
@@ -955,7 +955,6 @@ case_i:
 			{
 				int m = gui_getch();
 				if(macro_char_valid(m)){
-					gui_status(GUI_NONE, "macro_play('%c')", m);
 					if(!multiple)
 						multiple = 1;
 					while(multiple --> 0)
