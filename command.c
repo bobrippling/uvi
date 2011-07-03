@@ -457,10 +457,9 @@ void char_replace(int c, const char *rep, int argc, char **argv)
 				char *sav = argv[i];
 				*p++ = '\0';
 
-				fprintf(stderr, "printf(\"%%s%%s%%s\", \"%s\", \"%s\", \"%s\");\n", argv[i], rep, p);
 				argv[i] = ustrprintf("%s%s%s", argv[i], rep, p);
 
-				p = argv[i] + (p - sav) + strlen(rep);
+				p = strchr(argv[i] + (p - sav) + strlen(rep) - 1, c);
 
 				free(sav);
 			}else{
@@ -468,9 +467,7 @@ void char_replace(int c, const char *rep, int argc, char **argv)
 				p = strchr(p+1, c);
 			}
 		}
-
 	}
-
 }
 
 void filter_cmd(int argc, char **argv)
