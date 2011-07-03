@@ -659,7 +659,8 @@ void gui_run()
 			viewchanged = 1;
 		}
 		if(viewchanged){
-			gui_draw();
+			if(gui_peekunget() != ':')
+				gui_draw();
 			viewchanged = 0;
 		}
 

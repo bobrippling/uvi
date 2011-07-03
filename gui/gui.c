@@ -101,18 +101,27 @@ void gui_term()
 	term_canon(STDIN_FILENO, 1);
 }
 
-#define ATTR_FN(x) \
-	static void gui_ ## x(enum gui_attr a) \
+#define ATTR_FN(fn) \
+	static void gui_ ## fn(enum gui_attr a) \
 	{ \
 		switch(a){ \
 			case GUI_ERR: \
-				x(COLOR_PAIR(COLOR_RED) | A_BOLD); \
+				fn(COLOR_PAIR(COLOR_RED) | A_BOLD); \
 				break; \
 			case GUI_IS_NOT_PRINT: \
-				x(COLOR_PAIR(COLOR_BLUE)); \
+				fn(COLOR_PAIR(COLOR_BLUE)); \
 				break; \
 			case GUI_NONE: \
 				break; \
+				\
+			case GUI_COL_BLUE:    fn(COLOR_PAIR(COLOR_BLUE)); break; \
+			case GUI_COL_BLACK:   fn(COLOR_PAIR(COLOR_BLACK)); break; \
+			case GUI_COL_GREEN:   fn(COLOR_PAIR(COLOR_GREEN)); break; \
+			case GUI_COL_WHITE:   fn(COLOR_PAIR(COLOR_WHITE)); break; \
+			case GUI_COL_RED:     fn(COLOR_PAIR(COLOR_RED)); break; \
+			case GUI_COL_CYAN:    fn(COLOR_PAIR(COLOR_CYAN)); break; \
+			case GUI_COL_MAGENTA: fn(COLOR_PAIR(COLOR_MAGENTA)); break; \
+			case GUI_COL_YELLOW:  fn(COLOR_PAIR(COLOR_YELLOW)); break; \
 		} \
 	}
 
@@ -161,12 +170,38 @@ void gui_status(enum gui_attr a, const char *s, ...)
 	va_end(l);
 }
 
+void gui_status_nonl(enum gui_attr a, const char *s)
+{
+	gui_attron(a);
+	addstr(s);
+	gui_attroff(a);
+}
+
 void gui_status_addl(enum gui_attr a, const char *s, va_list l)
 {
 	move(LINES - 1, 0);
 	gui_attron(a);
 	gui_status_trim(s, l);
-	gui_attron(a);
+	gui_attroff(a);
+	scrl(1);
+}
+
+void gui_status_add_col(const char *first, enum gui_attr attr, ...)
+{
+	va_list l;
+	const char *s;
+
+	move(LINES - 1, 0);
+
+	gui_status_nonl(attr, first);
+
+	va_start(l, attr);
+	while((s = va_arg(l, const char *))){
+		enum gui_attr a = va_arg(l, enum gui_attr);
+		gui_status_nonl(a, s);
+	}
+	va_end(l);
+
 	scrl(1);
 }
 
@@ -223,6 +258,11 @@ void gui_queue(const char *const s)
 	const char *p;
 	for(p = s + strlen(s) - 1; p >= s; p--)
 		gui_ungetch(*p);
+}
+
+int gui_peekunget()
+{
+	return unget_i ? unget_buf[unget_i] : 0;
 }
 
 int gui_peekch()

@@ -100,8 +100,11 @@ enum vartype vars_gettype(const char *s)
 
 void vars_show(enum vartype t)
 {
-	if(vars_isbool(t))
-		gui_status_add(GUI_NONE, "%s%s", vars_get(t, global_buffer) ? "" : "no", vars_tostring(t));
-	else
-		gui_status_add(GUI_NONE, "%s=%d", vars_tostring(t), vars_get(t, global_buffer));
+	if(vars_isbool(t)){
+		gui_status_add_col(vars_get(t, global_buffer) ? "" : "no", GUI_COL_RED, vars_tostring(t), GUI_NONE, NULL);
+	}else{
+		char buf[8];
+		snprintf(buf, sizeof buf, "%d", vars_get(t, global_buffer));
+		gui_status_add_col(vars_tostring(t), GUI_COL_BLUE, "=", GUI_NONE, buf, GUI_COL_GREEN, NULL);
+	}
 }

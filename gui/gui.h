@@ -15,6 +15,7 @@ int gui_left(void);
 
 void gui_addch(int c);
 void gui_ungetch(int c);
+int  gui_peekunget(void);
 void gui_queue(const char *s);
 void gui_mvaddch(int y, int x, int c);
 
@@ -38,12 +39,23 @@ enum gui_attr
 	GUI_NONE,
 	GUI_ERR,
 	GUI_IS_NOT_PRINT,
+
+	GUI_COL_BLUE,
+	GUI_COL_BLACK,
+	GUI_COL_GREEN,
+	GUI_COL_WHITE,
+	GUI_COL_RED,
+	GUI_COL_CYAN,
+	GUI_COL_MAGENTA,
+	GUI_COL_YELLOW,
 };
 
-void gui_status(     enum gui_attr, const char *, ...);
-void gui_statusl(    enum gui_attr, const char *, va_list);
-void gui_status_add( enum gui_attr, const char *s, ...);
-void gui_status_addl(enum gui_attr, const char *s,va_list);
+void gui_status(         enum gui_attr, const char *, ...);
+void gui_statusl(        enum gui_attr, const char *, va_list);
+void gui_status_add(     enum gui_attr, const char *s, ...);
+void gui_status_addl(    enum gui_attr, const char *s,va_list);
+void gui_status_col(     const char *, enum gui_attr, ...);
+void gui_status_add_col( const char *, enum gui_attr, ...);
 void gui_status_wait(void);
 
 void gui_clrtoeol(void);
