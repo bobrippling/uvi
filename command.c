@@ -23,6 +23,7 @@
 #include "gui/intellisense.h"
 #include "gui/gui.h"
 #include "util/io.h"
+#include "yank.h"
 
 #define LEN(x) ((signed)(sizeof(x) / sizeof(x[0])))
 
@@ -340,11 +341,38 @@ void cmd_set(int argc, char **argv, int force, struct range *rng)
 			}
 		}
 
-	if(wait){
-		gui_status_add(GUI_NONE, "any key to continue...\r");
-		gui_peekch();
+	if(wait)
+		gui_status_wait();
+}
+
+void cmd_regs(int argc, char **argv, int force, struct range *rng)
+{
+	int one = 0;
+	int i;
+
+	if(argc != 1 || force || rng->start != -1 || rng->end != -1){
+		gui_status(GUI_ERR, "usage: %s", *argv);
 		return;
 	}
+
+	for(i = 'a' - 1; i <= 'z'; i++){
+		struct yank *y = yank_get(i);
+		char c = i == 'a'-1 ? '"': i;
+
+		if(y->v){
+			if(y->is_list)
+				gui_status_add(GUI_NONE, "%c: list, head: \"%s\"", c, (const char *)(((struct list *)y->v)->data));
+			else
+				gui_status_add(GUI_NONE, "%c: string:     \"%s\"", c, (const char *)y->v);
+
+			one = 1;
+		}
+	}
+
+	if(one)
+		gui_status_wait();
+	else
+		gui_status(GUI_ERR, "no yanks");
 }
 
 #ifdef BLOAT
@@ -424,12 +452,20 @@ void char_replace(int c, const char *rep, int argc, char **argv)
 	for(i = 0; i < argc; i++){
 		char *p = strchr(argv[i], c);
 
-		if(p && (p > argv[i] ? p[-1] != '\\' : 1)){
-			char *sav = argv[i];
-			*p++ = '\0';
+		while(p){
+			if((p > argv[i] ? p[-1] != '\\' : 1)){
+				char *sav = argv[i];
+				*p++ = '\0';
 
-			argv[i] = ustrprintf("%s%s%s", argv[i], rep, p);
-			free(sav);
+				argv[i] = ustrprintf("%s%s%s", argv[i], rep, p);
+
+				p = strchr(argv[i] + (p - sav) + strlen(rep) - 1, c);
+
+				free(sav);
+			}else{
+				/* else, unescaped, continue looking */
+				p = strchr(p+1, c);
+			}
 		}
 	}
 }
@@ -445,10 +481,11 @@ void filter_cmd(int argc, char **argv)
 	for(i = 0; i < argc; i++)
 		argv[i] = ustrdup(argv[i]);
 
+	/* replacements */
 	char_replace('~', home, argc, argv);
 
 	if(buffer_hasfilename(global_buffer))
-		char_replace('#', buffer_filename(global_buffer), argc, argv);
+		char_replace('%', buffer_filename(global_buffer), argc, argv);
 }
 
 void command_run(char *in)
@@ -471,6 +508,7 @@ void command_run(char *in)
 		CMD(e),
 		CMD(set),
 		CMD(new),
+		CMD(regs),
 #ifdef BLOAT
 # include "bloat/command.h"
 #endif
@@ -524,51 +562,4 @@ void command_run(char *in)
 
 	if(!found)
 		gui_status(GUI_ERR, "not an editor command: \"%s\"", s);
-}
-
-void dumpbuffer(buffer_t *b)
-{
-	char dump_postfix[] = "_dump_a";
-	FILE *f;
-	struct stat st;
-	char *path, freepath = 0, *prefixletter;
-
-	if(!b)
-		return;
-
-	path = dump_postfix;
-
-	if(buffer_hasfilename(b)){
-		char *const s = malloc(strlen(buffer_filename(b)) + strlen(dump_postfix) + 1);
-		if(s){
-			freepath = 1;
-			strcpy(s, buffer_filename(b));
-			strcat(s, dump_postfix);
-			path = s;
-		}
-	}
-
-	prefixletter = path + strlen(path) - 1;
-	/*
-	 * if file exists, increase dump prefix,
-	 * else (and on stat error), save
-	 */
-	do
-		if(stat(path, &st) == 0)
-			/* exists */
-			++*prefixletter;
-		else
-			break;
-	while(*prefixletter < 'z');
-	/* if it's 'z', the user should clean their freakin' directory */
-
-	f = fopen(path, "w");
-
-	if(freepath)
-		free(path);
-
-	if(f){
-		buffer_dump(b, f);
-		fclose(f);
-	}
 }

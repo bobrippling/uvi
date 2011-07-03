@@ -5,6 +5,7 @@ void mark_set(int, int, int);
 int  mark_get(int, int *, int *);
 int  mark_isset(int);
 void mark_set_last(int, int);
+void mark_jump(void);
 
 #define mark_valid(c) (('a' <= (c) && (c) <= 'z') || (c) == '\'')
 

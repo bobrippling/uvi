@@ -17,6 +17,7 @@
 #include "../util/alloc.h"
 #include "intellisense.h"
 #include "gui.h"
+#include "macro.h"
 #include "marks.h"
 #include "../main.h"
 #include "intellisense.h"
@@ -31,7 +32,7 @@ static void open(int); /* as in, 'o' & 'O' */
 static void shift(unsigned int, int);
 static void insert(int append, int indent);
 static void put(unsigned int ntimes, int rev);
-static void mark_jump(void);
+static void change(struct motion *motion, int flag);
 REPEAT_FUNC(join);
 REPEAT_FUNC(tilde);
 REPEAT_FUNC(replace);
@@ -49,11 +50,6 @@ static void showpos(void);
 static char *search_str = NULL;
 static int  search_rev  = 0;
 static int  yank_char = 0;
-
-static void mark_jump(void)
-{
-	mark_set_last(gui_y(), gui_x());
-}
 
 static int search(int next, int rev)
 {
@@ -91,8 +87,10 @@ static int search(int next, int rev)
 			break;
 		}
 
-	if(!found)
+	if(!found){
 		gui_status(GUI_ERR, "not found");
+		gui_move(gui_y(), gui_x());
+	}
 
 	return !found;
 }
@@ -261,6 +259,7 @@ static void insert(int append, int do_indent)
 
 	opts.intellisense = intellisense_insert;
 	opts.bspc_cancel  = 0;
+	opts.newline      = 1;
 	opts.textw        = global_settings.textwidth;
 
 	if(append){
@@ -470,6 +469,46 @@ static void yank_range(char *data, int startx, int x)
 	yank_set_str(yank_char, dup);
 }
 
+static void change(struct motion *motion, int ins)
+{
+	int c = gui_getch();
+	int x, y, dollar = 0;
+
+	if(c == 'd' || c == 'c'){
+		/* allow dd or cc (or dc or cd... but yeah) */
+		motion->motion = MOTION_NOMOVE;
+	}else{
+		gui_ungetch(c);
+		if(getmotion(motion))
+			return;
+	}
+
+	if(ins){
+		struct bufferpos pos;
+		struct screeninfo si;
+
+		x = gui_x();
+		y = gui_y();
+
+		si.top = gui_top();
+		si.height = gui_max_y();
+		pos.x = &x;
+		pos.y = &y;
+
+		if(!applymotion(motion, &pos, &si))
+			dollar = 1;
+	}
+
+	motion_cmd(motion, delete_line, delete_range);
+
+	if(ins){
+		if(dollar)
+			gui_mvaddch(y, x > 0 ? x - 1 : x, '$');
+		gui_move(gui_y(), gui_x());
+		insert(0, 0);
+	}
+}
+
 #ifndef alloca
 void *alloca(size_t l)
 {
@@ -481,8 +520,13 @@ static void put(unsigned int ntimes, int rev)
 {
 	struct yank *ynk = yank_get(yank_char);
 
-	if(ynk->is_list){
+	if(!ynk->v){
+		gui_status(GUI_ERR, "register %c empty", yank_char ? yank_char : '"');
+		return;
+	}
 
+
+	if(ynk->is_list){
 #define INS(f) \
 		f( \
 			global_buffer, \
@@ -589,6 +633,8 @@ static int iseditchar(int c)
 		case '>':
 		case '<':
 		case '~':
+		case 'p':
+		case 'P':
 			return 1;
 	}
 	return 0;
@@ -614,7 +660,8 @@ void gui_run()
 			viewchanged = 1;
 		}
 		if(viewchanged){
-			gui_draw();
+			if(gui_peekunget() != ':')
+				gui_draw();
 			viewchanged = 0;
 		}
 
@@ -639,6 +686,7 @@ void gui_run()
 				}while(0)
 
 switch_start:
+		yank_char = 0;
 		c = gui_getch();
 		if(iseditchar(c) && buffer_readonly(global_buffer)){
 			gui_status(GUI_ERR, "buffer is read-only");
@@ -709,31 +757,23 @@ switch_switch:
 				break;
 
 			case 'S':
-				gui_ungetch('c'); /* FIXME */
+				gui_ungetch('c'); /* FIXME? */
 			case 'c':
 				flag = 1;
 			case 'd':
-				c = gui_getch();
-				if(c == 'd' || c == 'c'){
-					/* allow dd or cc (or dc or cd... but yeah) */
-					SET_MOTION(MOTION_NOMOVE);
-				}else{
-					gui_ungetch(c);
-					if(getmotion(&motion))
-						break;
-				}
-				motion_cmd(&motion, delete_line, delete_range);
+				motion.ntimes = multiple;
+				change(&motion, flag);
 				viewchanged = 1;
-				if(flag)
-					insert(0, 0);
 				bufferchanged = 1;
 				SET_DOT();
 				break;
 
 			case '"':
 				yank_char = gui_getch();
-				if(!yank_char_valid(yank_char))
+				if(!yank_char_valid(yank_char)){
+					yank_char = 0;
 					break;
+				}
 				c = gui_getch();
 				goto switch_switch;
 
@@ -901,6 +941,29 @@ case_i:
 				break;
 			}
 
+			case 'q':
+				if(gui_macro_recording()){
+					gui_status(GUI_NONE, "recorded to %c", gui_macro_complete());
+				}else{
+					int m = gui_getch();
+					if(macro_char_valid(m)){
+						gui_status(GUI_COL_MAGENTA, "recording (%c)", m);
+						gui_macro_record(m);
+					}
+				}
+				break;
+			case '@':
+			{
+				int m = gui_getch();
+				if(macro_char_valid(m)){
+					if(!multiple)
+						multiple = 1;
+					while(multiple --> 0)
+						macro_play(m);
+				}
+				break;
+			}
+
 			default:
 				if(isdigit(c) && (c == '0' ? multiple : 1)){
 					INC_MULTIPLE();
@@ -908,23 +971,10 @@ case_i:
 					gui_ungetch(c);
 					motion.ntimes = multiple;
 					if(!getmotion(&motion)){
-						if(isbigmotion(&motion)){
-							gui_status(GUI_NONE, "' => x=%d,y=%d", gui_x(),gui_y());
+						if(isbigmotion(&motion) && motion.motion != MOTION_MARK)
 							mark_jump();
-						}
 						gui_move_motion(&motion);
 						viewchanged = 1;
-					}else{
-						char buf[2] = { c, 0 };
-						int extra = isprint(c);
-
-						gui_status(GUI_ERR, "buh - char %d%s%s%s",
-								c,
-								extra ? " (" : "",
-								extra ?  buf : "",
-								extra ?  ")" : ""
-								);
-
 					}
 				}
 		}

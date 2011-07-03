@@ -17,6 +17,8 @@
 #include "../util/alloc.h"
 #include "../util/str.h"
 #include "../util/term.h"
+#include "macro.h"
+#include "marks.h"
 
 #define GUI_TAB_INDENT(x) \
 	(global_settings.tabstop - (x) % global_settings.tabstop)
@@ -29,15 +31,21 @@ typedef struct
 } syntax;
 
 /*#include "../config.h"*/
-static void gui_position_cursor(const char *line);
+static void gui_position_cursor(const char *);
+static void gui_coord_to_scr(int *py, int *px, const char *line);
 static void gui_attron( enum gui_attr);
 static void gui_attroff(enum gui_attr);
+static void macro_append(char c);
 
 static int   unget_i = 0, unget_size = 0;
 static char *unget_buf;
 
 static int pos_y = 0, pos_x = 0;
 static int pos_top = 0, pos_left = 0;
+
+static int macro_record_char = 0;
+static char *macro_str = NULL;
+static int   macro_strlen = 0;
 
 int gui_x(){return pos_x;}
 int gui_y(){return pos_y;}
@@ -94,18 +102,27 @@ void gui_term()
 	term_canon(STDIN_FILENO, 1);
 }
 
-#define ATTR_FN(x) \
-	static void gui_ ## x(enum gui_attr a) \
+#define ATTR_FN(fn) \
+	static void gui_ ## fn(enum gui_attr a) \
 	{ \
 		switch(a){ \
 			case GUI_ERR: \
-				x(COLOR_PAIR(COLOR_RED) | A_BOLD); \
+				fn(COLOR_PAIR(COLOR_RED) | A_BOLD); \
 				break; \
 			case GUI_IS_NOT_PRINT: \
-				x(COLOR_PAIR(COLOR_BLUE)); \
+				fn(COLOR_PAIR(COLOR_BLUE)); \
 				break; \
 			case GUI_NONE: \
 				break; \
+				\
+			case GUI_COL_BLUE:    fn(COLOR_PAIR(COLOR_BLUE)); break; \
+			case GUI_COL_BLACK:   fn(COLOR_PAIR(COLOR_BLACK)); break; \
+			case GUI_COL_GREEN:   fn(COLOR_PAIR(COLOR_GREEN)); break; \
+			case GUI_COL_WHITE:   fn(COLOR_PAIR(COLOR_WHITE)); break; \
+			case GUI_COL_RED:     fn(COLOR_PAIR(COLOR_RED)); break; \
+			case GUI_COL_CYAN:    fn(COLOR_PAIR(COLOR_CYAN)); break; \
+			case GUI_COL_MAGENTA: fn(COLOR_PAIR(COLOR_MAGENTA)); break; \
+			case GUI_COL_YELLOW:  fn(COLOR_PAIR(COLOR_YELLOW)); break; \
 		} \
 	}
 
@@ -154,12 +171,38 @@ void gui_status(enum gui_attr a, const char *s, ...)
 	va_end(l);
 }
 
+void gui_status_nonl(enum gui_attr a, const char *s)
+{
+	gui_attron(a);
+	addstr(s);
+	gui_attroff(a);
+}
+
 void gui_status_addl(enum gui_attr a, const char *s, va_list l)
 {
 	move(LINES - 1, 0);
 	gui_attron(a);
 	gui_status_trim(s, l);
-	gui_attron(a);
+	gui_attroff(a);
+	scrl(1);
+}
+
+void gui_status_add_col(const char *first, enum gui_attr attr, ...)
+{
+	va_list l;
+	const char *s;
+
+	move(LINES - 1, 0);
+
+	gui_status_nonl(attr, first);
+
+	va_start(l, attr);
+	while((s = va_arg(l, const char *))){
+		enum gui_attr a = va_arg(l, enum gui_attr);
+		gui_status_nonl(a, s);
+	}
+	va_end(l);
+
 	scrl(1);
 }
 
@@ -169,6 +212,12 @@ void gui_status_add(enum gui_attr a, const char *s, ...)
 	va_start(l, s);
 	gui_status_addl(a, s, l); /* aka FBI cop */
 	va_end(l);
+}
+
+void gui_status_wait()
+{
+	gui_status_add(GUI_NONE, "any key to continue...\r");
+	gui_peekch();
 }
 
 int gui_getch()
@@ -191,6 +240,9 @@ restart:
 	else if(c == 410 || c == -1)
 		goto restart; /* sigwinch/interrupt */
 
+	if(macro_record_char)
+		macro_append(c);
+
 	return c;
 }
 
@@ -207,6 +259,11 @@ void gui_queue(const char *const s)
 	const char *p;
 	for(p = s + strlen(s) - 1; p >= s; p--)
 		gui_ungetch(*p);
+}
+
+int gui_peekunget()
+{
+	return unget_i ? unget_buf[unget_i - 1] : 0;
 }
 
 int gui_peekch()
@@ -311,7 +368,8 @@ int gui_getstr(char **ps, const struct gui_read_opts *opts)
 			case '\n':
 fin:
 				start[i] = '\0';
-				gui_addch('\n');
+				if(opts->newline)
+					gui_addch('\n');
 				*ps = start;
 				return 0;
 
@@ -340,13 +398,12 @@ int gui_prompt(const char *p, char **pbuf, intellisensef f)
 	gui_clrtoeol();
 	addstr(p);
 
+	memset(&opts, 0, sizeof opts);
 	opts.bspc_cancel  = 1;
-	opts.textw        = 0;
 	opts.intellisense = f;
 
 	return gui_getstr(pbuf, &opts);
 }
-
 
 void gui_redraw()
 {
@@ -399,10 +456,42 @@ void gui_draw()
 	refresh();
 }
 
+static void gui_coord_to_scr(int *py, int *px, const char *line)
+{
+	int y, x, max, i;
+
+	x = 0;
+	y   = *py;
+	max = *px;
+
+	if(!line){
+		struct list *l = buffer_getindex(global_buffer, y);
+		if(l)
+			line = l->data;
+		else
+			line = "";
+	}
+
+	for(i = 0; line[i] && i < max; i++)
+		if(line[i] == '\t'){
+			if(global_settings.showtabs)
+				x += 2;
+			else
+				x += GUI_TAB_INDENT(x);
+		}else if(!isprint(line[i])){
+			x += 2;
+		}else{
+			x++;
+		}
+
+	*py = y - pos_top;
+	*px = x - pos_left;
+}
+
 void gui_mvaddch(int y, int x, int c)
 {
-	gui_move(y, x);
-	gui_addch(c);
+	gui_coord_to_scr(&y, &x, NULL);
+	mvaddch(y, x, c);
 }
 
 void gui_addch(int c)
@@ -450,26 +539,14 @@ void gui_addch(int c)
 
 static void gui_position_cursor(const char *line)
 {
-	int x;
-	int i;
+	int x, y;
 
-	if(!line)
-		line = buffer_getindex(global_buffer, pos_y)->data;
+	y = pos_y;
+	x = pos_x;
 
-	x = 0;
+	gui_coord_to_scr(&y, &x, line);
 
-	for(i = 0; i < pos_x; i++)
-		if(line[i] == '\t'){
-			if(global_settings.showtabs)
-				x += 2;
-			else
-				x += GUI_TAB_INDENT(x);
-		}else if(!isprint(line[i]))
-			x += 2;
-		else
-			x++;
-
-	move(pos_y - pos_top, x - pos_left);
+	move(y, x);
 }
 
 void gui_inc_cursor()
@@ -563,10 +640,12 @@ int gui_scroll(enum scroll s)
 	int check = 0;
 	int ret = 0;
 
+	mark_jump();
+
 	switch(s){
 		case SINGLE_DOWN:
-			if(pos_top < buffer_nlines(global_buffer) - 1){
-				pos_top++;
+			if(pos_top < buffer_nlines(global_buffer) - 1 - SCROLL_OFF){
+				pos_top += SCROLL_OFF;
 				if(pos_y < pos_top + SCROLL_OFF)
 					pos_y = pos_top + SCROLL_OFF;
 				check = 1;
@@ -576,7 +655,7 @@ int gui_scroll(enum scroll s)
 
 		case SINGLE_UP:
 			if(pos_top){
-				pos_top--;
+				pos_top -= SCROLL_OFF;
 				check = 1;
 				ret = 1;
 			}
@@ -745,6 +824,36 @@ void gui_drawbuffer(buffer_t *b)
 		wcoloroff(COLOR_BLUE, A_BOLD);
 }
 #endif
+
+int gui_macro_recording()
+{
+	return !!macro_record_char;
+}
+
+void gui_macro_record(char c)
+{
+	macro_record_char = c;
+}
+
+int gui_macro_complete()
+{
+	const int c = macro_record_char;
+	macro_set(macro_record_char, macro_str);
+	macro_str = NULL;
+	macro_strlen = 0;
+	macro_record_char = 0;
+	return c;
+}
+
+static void macro_append(char c)
+{
+	char s[2];
+
+	s[0] = c;
+	s[1] = '\0';
+
+	ustrcat(&macro_str, &macro_strlen, s, NULL);
+}
 
 #if 0
 static void checkcolour(const char *c, char *waitlen, char *colour_on,

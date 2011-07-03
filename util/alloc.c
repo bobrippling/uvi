@@ -60,9 +60,14 @@ void ustrcat(char **p, int *siz_arg, ...)
 
 	if(*siz <= len){
 		/* not enough room */
+		int nul = !*p;
+
 		*p = realloc(*p, *siz = len + 1);
 		if(!*p)
 			die("ustrcat()");
+
+		if(nul)
+			**p = '\0';
 	}
 
 	va_start(l, siz_arg);

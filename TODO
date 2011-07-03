@@ -63,6 +63,7 @@ obscureword_test
 obscureword_^n - fix
 
 fix 'ai' for ^[O
+fix 'ai' for xyz\n\n\n<insert here>
 
 auto indent for ^[r\n
 

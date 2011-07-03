@@ -25,6 +25,7 @@ static struct builtin_motion
 	 * is this motion a 'til' motion, i.e.
 	 * should we go up to but not including
 	 * the final char of the motion (when deleting)
+	 *
 	 * is_big - do we set '-mark?
 	 */
 
@@ -45,8 +46,8 @@ static struct builtin_motion
 	[MOTION_SCREEN_MIDDLE]   = { 0, 1, 1, 0 },
 	[MOTION_SCREEN_BOTTOM]   = { 0, 1, 1, 0 },
 
-	[MOTION_PARA_PREV]       = { 0, 1, 0, 1 },
-	[MOTION_PARA_NEXT]       = { 0, 1, 0, 1 },
+	[MOTION_PARA_PREV]       = { 0, 1, 1, 1 },
+	[MOTION_PARA_NEXT]       = { 0, 1, 1, 1 },
 
 	[MOTION_PAREN_MATCH]     = { 0, 0, 0, 1 },
 
@@ -57,11 +58,11 @@ static struct builtin_motion
 
 	[MOTION_MARK]            = { 0, 0, 1, 0 },
 
-	[MOTION_FIND]            = { 0, 0, 0, 1 },
-	[MOTION_TIL]             = { 1, 0, 0, 1 },
-	[MOTION_FIND_REV]        = { 0, 0, 0, 1 },
-	[MOTION_TIL_REV]         = { 1, 0, 0, 1 },
-	[MOTION_FIND_NEXT]       = { 0, 0, 0, 1 },
+	[MOTION_FIND]            = { 0, 0, 1, 1 },
+	[MOTION_TIL]             = { 1, 0, 1, 1 },
+	[MOTION_FIND_REV]        = { 0, 0, 1, 1 },
+	[MOTION_TIL_REV]         = { 1, 0, 1, 1 },
+	[MOTION_FIND_NEXT]       = { 0, 0, 1, 1 },
 
 	[MOTION_NOMOVE]          = { 0, 1, 0, 0 },
 };
@@ -149,6 +150,7 @@ int getmotion(struct motion *m)
 					if(mark_isset(c)){
 						m->motion = MOTION_MARK;
 						m->extra = c;
+						return 0;
 					}else{
 						gui_status(GUI_ERR, "mark '%c' not set", c);
 						return 1;
@@ -158,7 +160,7 @@ int getmotion(struct motion *m)
 						gui_status(GUI_ERR, "invalid mark");
 					return 1;
 				}
-				return 0;
+				/* unreachable */
 			}
 
 			default:
@@ -391,13 +393,16 @@ int applymotion2(struct motion *motion, struct bufferpos *pos,
 
 	return 1;
 MOTION_GOTO:
-	if(motion->ntimes > 0 &&
-		 motion->ntimes <= buffer_nlines(global_buffer)){
-		*pos->y = motion->ntimes - 1;
-		return 0;
+	{
+		int y = motion->ntimes - 1;
+		if(y < 0)
+			y = 0;
+		else if(y >= buffer_nlines(global_buffer))
+			y = buffer_nlines(global_buffer) - 1;
+
+		*pos->y = y;
 	}
-	gui_status(GUI_ERR, "line %d out of range", motion->ntimes);
-	return 1;
+	return 0;
 }
 
 static void percent(struct bufferpos *lp)

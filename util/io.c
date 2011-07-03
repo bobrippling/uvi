@@ -51,21 +51,6 @@ void chomp_line()
 	ungetch(c);
 }
 
-int canwrite(mode_t mode, uid_t uid, gid_t gid)
-{
-	if(mode & 02)
-		return 1;
-
-	/* can't be bothered checking all groups */
-	if((mode & 020) && gid == getgid())
-		return 1;
-
-	if((mode & 0200) && uid == getuid())
-		return 1;
-
-	return 0;
-}
-
 void *readfile(const char *filename)
 {
 	buffer_t *b = NULL;
@@ -83,26 +68,24 @@ void *readfile(const char *filename)
 			int nread = buffer_read(&b, f);
 
 			if(nread == -1){
-				gui_status(GUI_ERR, "\"%s\" [%s]",
+				gui_status(GUI_ERR, "read \"%s\": %s",
 						filename,
 						errno ? strerror(errno) : "unknown error - binary file?");
 
 			}else{
-				/* end up here on successful read */
-				struct stat st;
-
-				if(!stat(filename, &st))
-					buffer_readonly(b) = !canwrite(st.st_mode, st.st_uid, st.st_gid);
-				else
-					buffer_readonly(b) = 0;
+				buffer_readonly(b) = access(filename, W_OK);
 
 				if(nread == 0)
 					gui_status(GUI_NONE, "(empty file)%s", buffer_readonly(b) ? " [read only]" : "");
 				else
-					gui_status(GUI_NONE, "%s%s: %dC, %dL%s", filename,
+					gui_status(GUI_NONE, "%s%s: %dC, %dL%s%s",
+							filename,
 							buffer_readonly(b) ? " [read only]" : "",
-							buffer_nchars(b), buffer_nlines(b),
-							buffer_eol(b) ? "" : " [noeol]");
+							buffer_nchars(b),
+							buffer_nlines(b),
+							buffer_eol(b)  ? "" : " [noeol]",
+							buffer_crlf(b) ? " [crlf]" : ""
+							);
 			}
 
 			if(f == stdin)
@@ -113,7 +96,7 @@ void *readfile(const char *filename)
 		}else{
 			if(errno == ENOENT)
 				goto newfile;
-			gui_status(GUI_ERR, "%s: %s", filename, strerror(errno));
+			gui_status(GUI_ERR, "open \"%s\": %s", filename, strerror(errno));
 		}
 
 	}else{
@@ -130,4 +113,51 @@ newfile:
 		buffer_setfilename(b, filename);
 
 	return b;
+}
+
+void dumpbuffer(buffer_t *b)
+{
+	char dump_postfix[] = "_dump_a";
+	FILE *f;
+	struct stat st;
+	char *path, freepath = 0, *prefixletter;
+
+	if(!b)
+		return;
+
+	path = dump_postfix;
+
+	if(buffer_hasfilename(b)){
+		char *const s = malloc(strlen(buffer_filename(b)) + strlen(dump_postfix) + 1);
+		if(s){
+			freepath = 1;
+			strcpy(s, buffer_filename(b));
+			strcat(s, dump_postfix);
+			path = s;
+		}
+	}
+
+	prefixletter = path + strlen(path) - 1;
+	/*
+	 * if file exists, increase dump prefix,
+	 * else (and on stat error), save
+	 */
+	do
+		if(stat(path, &st) == 0)
+			/* exists */
+			++*prefixletter;
+		else
+			break;
+	while(*prefixletter < 'z');
+	/* if it's 'z', the user should clean their freakin' directory */
+
+	f = fopen(path, "w");
+
+	if(freepath)
+		free(path);
+
+	if(f){
+		buffer_dump(b, f);
+		fclose(f);
+	}
 }
