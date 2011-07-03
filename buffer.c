@@ -55,7 +55,7 @@ int is_crlf(buffer_t *b)
 {
 	struct list *l;
 
-	for(l = b->lines; l; l = l->next){
+	for(l = b->lines; l && l->data; l = l->next){
 		char *s = l->data;
 		if(s[strlen(s)-1] != '\r'){
 			if(l->next)
@@ -81,14 +81,11 @@ int buffer_read(buffer_t **buffer, FILE *f)
 
 	b = buffer_new_list(l);
 
-	b->nlines = list_count(b->lines);
-
 	b->eol = eol;
-	b->modified = !b->eol;
 
 	if((b->crlf = is_crlf(b))){
 		struct list *l;
-		for(l = b->lines; l; l = l->next){
+		for(l = b->lines; l && l->data; l = l->next){
 			char *s = l->data;
 			const int i = strlen(s) - 1;
 
@@ -98,7 +95,7 @@ int buffer_read(buffer_t **buffer, FILE *f)
 	}
 
 	b->dirty = 1;
-	/* this is an internal line-change memory (not to do with saving) */
+	buffer_nlines(b);
 
 	if(b->nlines == 0){
 		/* create a line + set modified */
