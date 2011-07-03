@@ -54,10 +54,8 @@ int main(int argc, const char **argv)
 	int i, argv_options = 1, readonly = 0;
 	const char *fname = NULL;
 
-	if(setlocale(LC_ALL, "") == NULL){
-		fprintf(stderr, "%s: Locale not specified :(\n", *argv);
-		return 1;
-	}
+	if(setlocale(LC_ALL, "") == NULL)
+		fprintf(stderr, "%s: Warning: Locale not specified :(\n", *argv);
 
 	signal(SIGHUP,  &sigh);
 	signal(SIGINT,  &sigh);
