@@ -262,7 +262,7 @@ void gui_queue(const char *const s)
 
 int gui_peekunget()
 {
-	return unget_i ? unget_buf[unget_i] : 0;
+	return unget_i ? unget_buf[unget_i - 1] : 0;
 }
 
 int gui_peekch()
@@ -836,6 +836,8 @@ int gui_macro_complete()
 {
 	const int c = macro_record_char;
 	macro_set(macro_record_char, macro_str);
+	macro_str = NULL;
+	macro_strlen = 0;
 	macro_record_char = 0;
 	return c;
 }
@@ -846,7 +848,8 @@ static void macro_append(char c)
 
 	s[0] = c;
 	s[1] = '\0';
-	ustrcat(&macro_str, &macro_strlen, s);
+
+	ustrcat(&macro_str, &macro_strlen, s, NULL);
 }
 
 #if 0
