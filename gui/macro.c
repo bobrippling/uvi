@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <string.h>
 #include <stdarg.h>
 
 #include "gui.h"
@@ -20,8 +21,9 @@ void macro_play(char c)
 {
 	const char *iter = macros[c - 'a'];
 	if(iter){
-		extern void *stderr;
-		fprintf(stderr, "macro_play: gui_queue(\"%s\")\n", iter);
+		int last = strlen(iter) - 1;
+		if(iter[last] != '\x1b')
+			gui_ungetch('\x1b'); /* return to normal */
 		gui_queue(iter);
 	}
 }
