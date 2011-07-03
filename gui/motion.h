@@ -69,6 +69,7 @@ int applymotion(struct motion *, struct bufferpos *, struct screeninfo *);
 
 int islinemotion(struct motion *m);
 int istilmotion( struct motion *m);
+int isbigmotion( struct motion *m);
 
 const char *motion_str(struct motion *);
 

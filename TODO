@@ -65,3 +65,5 @@ obscureword_^n - fix
 fix 'ai' for ^[O
 
 auto indent for ^[r\n
+
+:A

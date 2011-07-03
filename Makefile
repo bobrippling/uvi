@@ -7,10 +7,12 @@ OBJS = main.o buffer.o range.o command.o vars.o \
 
 
 uvi: ${OBJS} config.mk
-	${LD} -o $@ ${OBJS} ${LDFLAGS}
+	@echo LD $@
+	@${LD} -o $@ ${OBJS} ${LDFLAGS}
 
 %.o:%.c
-	${CC} ${CFLAGS} -c -o $@ $<
+	@echo CC $<
+	@${CC} ${CFLAGS} -c -o $@ $<
 
 clean:
 	rm -f uvi `find -iname \*.o`

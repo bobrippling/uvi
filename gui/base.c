@@ -31,6 +31,7 @@ static void open(int); /* as in, 'o' & 'O' */
 static void shift(unsigned int, int);
 static void insert(int append, int indent);
 static void put(unsigned int ntimes, int rev);
+static void mark_jump(void);
 REPEAT_FUNC(join);
 REPEAT_FUNC(tilde);
 REPEAT_FUNC(replace);
@@ -49,6 +50,10 @@ static char *search_str = NULL;
 static int  search_rev  = 0;
 static int  yank_char = 0;
 
+static void mark_jump(void)
+{
+	mark_set_last(gui_y(), gui_x());
+}
 
 static int search(int next, int rev)
 {
@@ -68,6 +73,8 @@ static int search(int next, int rev)
 		if(gui_prompt(rev ? "?" : "/", &search_str, NULL))
 			return 1;
 	}
+
+	mark_jump();
 
 	/* TODO: allow SIGINT to stop search */
 	/* FIXME: start at curpos */
@@ -901,6 +908,10 @@ case_i:
 					gui_ungetch(c);
 					motion.ntimes = multiple;
 					if(!getmotion(&motion)){
+						if(isbigmotion(&motion)){
+							gui_status(GUI_NONE, "' => x=%d,y=%d", gui_x(),gui_y());
+							mark_jump();
+						}
 						gui_move_motion(&motion);
 						viewchanged = 1;
 					}else{

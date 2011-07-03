@@ -3,19 +3,27 @@
 struct mark
 {
 	int c, y, x;
-} marks[26] = {
+} marks[27] = {
 	{ 0, 0, 0 }
 };
 
+static int mark_idx(int c)
+{
+	if(c == '\'')
+		return 26;
+	return c - 'a';
+}
+
 void mark_set(int c, int y, int x)
 {
-	marks[c - 'a'].y = y;
-	marks[c - 'a'].x = x;
+	int i = mark_idx(c);
+	marks[i].y = y;
+	marks[i].x = x;
 }
 
 int mark_get(int c, int *y, int *x)
 {
-	int i = c - 'a';
+	int i = mark_idx(c);
 
 	if(marks[i].y){
 		*y = marks[i].y;
@@ -27,5 +35,10 @@ int mark_get(int c, int *y, int *x)
 
 int mark_isset(int c)
 {
-	return !!marks[c - 'a'].y;
+	return !!marks[mark_idx(c)].y;
+}
+
+void mark_set_last(int y, int x)
+{
+	mark_set('\'', y, x);
 }
