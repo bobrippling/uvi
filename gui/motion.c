@@ -389,13 +389,16 @@ int applymotion2(struct motion *motion, struct bufferpos *pos,
 
 	return 1;
 MOTION_GOTO:
-	if(motion->ntimes > 0 &&
-		 motion->ntimes <= buffer_nlines(global_buffer)){
-		*pos->y = motion->ntimes - 1;
-		return 0;
+	{
+		int y = motion->ntimes - 1;
+		if(y < 0)
+			y = 0;
+		else if(y >= buffer_nlines(global_buffer))
+			y = buffer_nlines(global_buffer) - 1;
+
+		*pos->y = y;
 	}
-	gui_status(GUI_ERR, "line %d out of range", motion->ntimes);
-	return 1;
+	return 0;
 }
 
 static void percent(struct bufferpos *lp)
