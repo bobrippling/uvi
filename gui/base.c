@@ -859,24 +859,24 @@ case_i:
 				int rev;
 				int next;
 
-				rev  = c == '?' || c == 'N' || c == '#';
-
 				if(c == '*' || c == '#'){
 					char *w = gui_current_word();
-
-					search_rev = c == '#';
 
 					if(!w){
 						gui_status(GUI_ERR, "no word selected");
 						break;
 					}
 
+					search_rev = c == '#';
+					rev = 0; /* force the right direction */
+					next = 1;
+
 					if(search_str)
 						free(search_str);
 
 					search_str = w;
-					next = 1;
 				}else{
+					rev  = c == '?' || c == 'N';
 					next = tolower(c) == 'n';
 				}
 
