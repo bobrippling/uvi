@@ -230,44 +230,70 @@ void cmd_q(int argc, char **argv, int force, struct range *rng)
 
 void cmd_bang(int argc, char **argv, int force, struct range *rng)
 {
-	if(rng->start != -1 || rng->end != -1){
+	if(rng->start != -1){
 		/* rw!cmd command */
-		struct list *l;
+		struct list *l, *to_pipe;
+		char *free_me = argv_to_str(argc, argv);
+		char *cmd = strchr(free_me, '!') + 1;
 
-		if(argc < 2){
-			gui_status(GUI_ERR, "usage: [range]!cmd");
+		if(argc <= 1){
+			gui_status(GUI_ERR, "usage: range!cmd");
 			return;
 		}
 
-		/* FIXME: more than one arg.. herpaderp */
-		l = pipe_readwrite(argv[1], buffer_gethead(global_buffer));
+		if(--rng->start < 0)
+			rng->start = 0;
+		if(rng->end == -1)
+			rng->end = rng->start;
+
+		to_pipe = buffer_extract_range(global_buffer, rng);
+
+		l = pipe_readwrite(cmd, to_pipe ? to_pipe : buffer_gethead(global_buffer));
 
 		if(l){
 			if(l->data){
-				buffer_replace(global_buffer, l);
+				if(to_pipe){
+					struct list *inshere;
+
+					inshere = buffer_getindex(global_buffer, rng->start);
+
+					if(!inshere)
+						inshere = buffer_gettail(global_buffer);
+
+					buffer_insertlistafter(global_buffer, inshere, l);
+
+					list_free_nodata(to_pipe);
+					to_pipe = NULL;
+				}else{
+					buffer_replace(global_buffer, l);
+				}
+
 				buffer_modified(global_buffer) = 1;
 			}else{
 				list_free(l, free);
-				gui_status(GUI_ERR, "%s: no output", argv[1]);
+				gui_status(GUI_ERR, "%s: no output", cmd);
 			}
 		}else{
 			gui_status(GUI_ERR, "pipe_readwrite() error: %s", strerror(errno));
 		}
-		return;
-	}
 
-	if(argc == 1){
-		shellout("sh", NULL);
+		free(free_me);
+		if(to_pipe)
+			list_free(to_pipe, free);
 	}else{
-		char *cmd = argv_to_str(argc - 1, argv + 1);
-		shellout(cmd, NULL);
-		free(cmd);
+		if(argc == 1){
+			shellout("sh", NULL);
+		}else{
+			char *cmd = argv_to_str(argc - 1, argv + 1);
+			shellout(cmd, NULL);
+			free(cmd);
+		}
 	}
 }
 
 void cmd_e(int argc, char **argv, int force, struct range *rng)
 {
-	if(argc != 2){
+	if(argc != 2 || rng->start != -1 || rng->end != -1){
 		gui_status(GUI_ERR, "usage: e[!] fname");
 		return;
 	}
@@ -283,7 +309,7 @@ void cmd_e(int argc, char **argv, int force, struct range *rng)
 
 void cmd_new(int argc, char **argv, int force, struct range *rng)
 {
-	if(argc != 1){
+	if(argc != 1 || rng->start != -1 || rng->end != -1){
 		gui_status(GUI_ERR, "usage: new[!]");
 		return;
 	}
@@ -565,7 +591,20 @@ void command_run(char *in)
 	s = parserange(in, &rng, &lim);
 
 	if(!s){
-		gui_status(GUI_ERR, "couldn't parse range");
+		if(errno == ERANGE){
+			if(gui_confirm("range backwards, flip? ")){
+				int i = rng.start;
+				rng.start = rng.end;
+				rng.end = i;
+
+				i = strspn(in, "^$.%,-+0123456789");
+				s = in + i;
+				goto cont;
+			}
+		}else{
+			gui_status(GUI_ERR, "range out of limits");
+		}
+
 		return;
 	}else if(HAVE_RANGE && *s == '\0'){
 		/* just a number, move to that line */
@@ -573,6 +612,7 @@ void command_run(char *in)
 		return;
 	}
 
+cont:
 	if(!HAVE_RANGE)
 		rng.start = rng.end = -1;
 

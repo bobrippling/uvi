@@ -269,6 +269,17 @@ struct list *list_getindex(struct list *l, int i)
 	return l;
 }
 
+void list_free_nodata(struct list *l)
+{
+	struct list *del;
+	l = list_gethead(l);
+	while(l){
+		del = l;
+		l = l->next;
+		free(del);
+	}
+}
+
 void list_free(struct list *l, void (*f)(void *))
 {
 	struct list *del;
@@ -385,7 +396,8 @@ fallback:
 				i = list_gettail(i);
 			}
 
-			*haseol = eol;
+			if(haseol)
+				*haseol = eol;
 
 			if(ferror(f)){
 				list_free(l, free);

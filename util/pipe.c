@@ -113,13 +113,17 @@ struct list *pipe_readwrite(const char *cmd, struct list *l)
 			close(parent_to_child[WRITE_FD]);
 			close(child_to_parent[READ_FD]);
 
-			if(dup2(parent_to_child[READ_FD],  STDIN_FILENO ) == -1 ||
-				 dup2(child_to_parent[WRITE_FD], STDOUT_FILENO) == -1 ||
-				 dup2(STDOUT_FILENO, STDERR_FILENO) == -1)
-
+			if(
+				dup2(parent_to_child[READ_FD],  STDIN_FILENO ) == -1 ||
+				dup2(child_to_parent[WRITE_FD], STDOUT_FILENO) == -1 ||
+				dup2(STDOUT_FILENO, STDERR_FILENO) == -1
+			){
 				exit(-1);
+			}
 
-			exit(system(cmd));
+			execlp("sh", "sh", "-c", cmd, NULL);
+			perror("exec()");
+			exit(-1);
 
 		default:
 		{
