@@ -119,9 +119,13 @@ int buffer_read(buffer_t **buffer, FILE *f)
 /* returns bytes written */
 int buffer_write(buffer_t *b)
 {
+	return buffer_write_list(b, list_gethead(b->lines));
+}
+
+int buffer_write_list(buffer_t *b, struct list *l)
+{
 	const char *crlf;
 	FILE *f = fopen(b->fname, "w");
-	struct list *l = list_gethead(b->lines);
 	int eno;
 	long nwrite = 0, w;
 

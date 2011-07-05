@@ -391,18 +391,35 @@ fin:
 	}
 }
 
-int gui_prompt(const char *p, char **pbuf, intellisensef f)
+void gui_printprompt(const char *p)
 {
-	struct gui_read_opts opts;
 	move(LINES - 1, 0);
 	gui_clrtoeol();
 	addstr(p);
+}
+
+int gui_prompt(const char *p, char **pbuf, intellisensef f)
+{
+	struct gui_read_opts opts;
+	gui_printprompt(p);
 
 	memset(&opts, 0, sizeof opts);
 	opts.bspc_cancel  = 1;
 	opts.intellisense = f;
 
 	return gui_getstr(pbuf, &opts);
+}
+
+int gui_confirm(const char *p)
+{
+	int c;
+
+	gui_printprompt(p);
+	c = gui_getch();
+
+	if(c == 'y' || c == 'Y')
+		return 1;
+	return 0;
 }
 
 void gui_redraw()

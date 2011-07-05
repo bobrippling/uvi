@@ -35,7 +35,8 @@ struct list *list_getindex(struct list *, int);
 struct list *list_copy_range(struct list *l, void *(*f_dup)(void *), struct range *r);
 struct list *list_copy(      struct list *l, void *(*f_dup)(void *));
 
-void list_free(struct list *l, void (*f)(void *));
+void list_free(       struct list *l, void (*f)(void *));
+void list_free_nodata(struct list *l);
 
 struct list *list_from_fd(      int  fd,       int *haseol);
 struct list *list_from_file(    FILE *f,       int *haseol);

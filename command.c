@@ -94,14 +94,34 @@ void cmd_r(int argc, char **argv, int force, struct range *rng)
 
 void cmd_w(int argc, char **argv, int force, struct range *rng)
 {
+	struct list *list_to_write = NULL;
 	enum { QUIT, EDIT, NONE } after = NONE;
-	int nw;
+	int nw, nl;
 	int x = 0;
 
 	if(rng->start != -1 || rng->end != -1){
-usage:
-		gui_status(GUI_ERR, "usage: w[qe][![!]] file|command");
+		if(rng->end == -1)
+			rng->start = rng->end;
+
+		if(--rng->start < 0)
+			rng->start = 0;
+
+		list_to_write = buffer_copy_range(global_buffer, rng);
+
+		if(argv[0][0] == '!'){
+			char *cmd = argv_to_str(argc, argv);
+			char *bang = strchr(cmd, '!') + 1;
+
+			shellout(bang, list_to_write);
+
+			free(cmd);
+		}else{
+			goto write_list;
+		}
+
+		list_free(list_to_write, free);
 		return;
+
 	}else if(buffer_readonly(global_buffer)){
 		gui_status(GUI_ERR, "buffer is read-only");
 		return;
@@ -116,7 +136,9 @@ usage:
 	}else if(!strcmp(argv[0], "we")){
 		after = EDIT;
 	}else if(strcmp(argv[0], "w")){
-		goto usage;
+usage:
+		gui_status(GUI_ERR, "usage: w[qe][![!]] file|command");
+		return;
 	}
 
 	if(argc > 1 && argv[1][0] == '!'){
@@ -129,13 +151,15 @@ usage:
 		free(cmd);
 		return;
 
-	}else if(argc == 2 && after != EDIT){
+	}else
+write_list:
+		if(argc == 2 && after != EDIT){
 		/* have a filename to save to */
 
 		if(!force){
 			struct stat st;
 
-			if(!stat(argv[1], &st)){
+			if(stat(argv[1], &st) == 0){
 				gui_status(GUI_ERR, "not over-writing %s", argv[1]);
 				return;
 			}
@@ -160,14 +184,21 @@ usage:
 		return;
 	}
 
-	nw = buffer_write(global_buffer);
+	if(list_to_write){
+		nw = buffer_write_list(global_buffer, list_to_write);
+		nl = list_count(list_to_write);
+		list_free(list_to_write, free);
+	}else{
+		nw = buffer_write(global_buffer);
+		nl = buffer_nlines(global_buffer) - !buffer_eol(global_buffer);
+	}
+
 	if(nw == -1){
 		gui_status(GUI_ERR, "couldn't write \"%s\": %s", buffer_filename(global_buffer), strerror(errno));
 		return;
 	}
 	buffer_modified(global_buffer) = 0;
-	gui_status(GUI_NONE, "\"%s\" %dL, %dC written", buffer_filename(global_buffer),
-			buffer_nlines(global_buffer) - !buffer_eol(global_buffer), nw);
+	gui_status(GUI_NONE, "\"%s\" %dL, %dC written", buffer_filename(global_buffer), nl, nw);
 
 after:
 	switch(after){
@@ -199,44 +230,70 @@ void cmd_q(int argc, char **argv, int force, struct range *rng)
 
 void cmd_bang(int argc, char **argv, int force, struct range *rng)
 {
-	if(rng->start != -1 || rng->end != -1){
+	if(rng->start != -1){
 		/* rw!cmd command */
-		struct list *l;
+		struct list *l, *to_pipe;
+		char *free_me = argv_to_str(argc, argv);
+		char *cmd = strchr(free_me, '!') + 1;
 
-		if(argc < 2){
-			gui_status(GUI_ERR, "usage: [range]!cmd");
+		if(argc <= 1){
+			gui_status(GUI_ERR, "usage: range!cmd");
 			return;
 		}
 
-		/* FIXME: more than one arg.. herpaderp */
-		l = pipe_readwrite(argv[1], buffer_gethead(global_buffer));
+		if(--rng->start < 0)
+			rng->start = 0;
+		if(rng->end == -1)
+			rng->end = rng->start;
+
+		to_pipe = buffer_extract_range(global_buffer, rng);
+
+		l = pipe_readwrite(cmd, to_pipe ? to_pipe : buffer_gethead(global_buffer));
 
 		if(l){
 			if(l->data){
-				buffer_replace(global_buffer, l);
+				if(to_pipe){
+					struct list *inshere;
+
+					inshere = buffer_getindex(global_buffer, rng->start);
+
+					if(!inshere)
+						inshere = buffer_gettail(global_buffer);
+
+					buffer_insertlistafter(global_buffer, inshere, l);
+
+					list_free_nodata(to_pipe);
+					to_pipe = NULL;
+				}else{
+					buffer_replace(global_buffer, l);
+				}
+
 				buffer_modified(global_buffer) = 1;
 			}else{
 				list_free(l, free);
-				gui_status(GUI_ERR, "%s: no output", argv[1]);
+				gui_status(GUI_ERR, "%s: no output", cmd);
 			}
 		}else{
 			gui_status(GUI_ERR, "pipe_readwrite() error: %s", strerror(errno));
 		}
-		return;
-	}
 
-	if(argc == 1){
-		shellout("sh", NULL);
+		free(free_me);
+		if(to_pipe)
+			list_free(to_pipe, free);
 	}else{
-		char *cmd = argv_to_str(argc - 1, argv + 1);
-		shellout(cmd, NULL);
-		free(cmd);
+		if(argc == 1){
+			shellout("sh", NULL);
+		}else{
+			char *cmd = argv_to_str(argc - 1, argv + 1);
+			shellout(cmd, NULL);
+			free(cmd);
+		}
 	}
 }
 
 void cmd_e(int argc, char **argv, int force, struct range *rng)
 {
-	if(argc != 2){
+	if(argc != 2 || rng->start != -1 || rng->end != -1){
 		gui_status(GUI_ERR, "usage: e[!] fname");
 		return;
 	}
@@ -252,7 +309,7 @@ void cmd_e(int argc, char **argv, int force, struct range *rng)
 
 void cmd_new(int argc, char **argv, int force, struct range *rng)
 {
-	if(argc != 1){
+	if(argc != 1 || rng->start != -1 || rng->end != -1){
 		gui_status(GUI_ERR, "usage: new[!]");
 		return;
 	}
@@ -534,7 +591,20 @@ void command_run(char *in)
 	s = parserange(in, &rng, &lim);
 
 	if(!s){
-		gui_status(GUI_ERR, "couldn't parse range");
+		if(errno == ERANGE){
+			if(gui_confirm("range backwards, flip? ")){
+				int i = rng.start;
+				rng.start = rng.end;
+				rng.end = i;
+
+				i = strspn(in, "^$.%,-+0123456789");
+				s = in + i;
+				goto cont;
+			}
+		}else{
+			gui_status(GUI_ERR, "range out of limits");
+		}
+
 		return;
 	}else if(HAVE_RANGE && *s == '\0'){
 		/* just a number, move to that line */
@@ -542,6 +612,7 @@ void command_run(char *in)
 		return;
 	}
 
+cont:
 	if(!HAVE_RANGE)
 		rng.start = rng.end = -1;
 
