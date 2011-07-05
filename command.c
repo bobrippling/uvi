@@ -94,14 +94,34 @@ void cmd_r(int argc, char **argv, int force, struct range *rng)
 
 void cmd_w(int argc, char **argv, int force, struct range *rng)
 {
+	struct list *list_to_write = NULL;
 	enum { QUIT, EDIT, NONE } after = NONE;
-	int nw;
+	int nw, nl;
 	int x = 0;
 
 	if(rng->start != -1 || rng->end != -1){
-usage:
-		gui_status(GUI_ERR, "usage: w[qe][![!]] file|command");
+		if(rng->end == -1)
+			rng->start = rng->end;
+
+		if(--rng->start < 0)
+			rng->start = 0;
+
+		list_to_write = buffer_copy_range(global_buffer, rng);
+
+		if(argv[0][0] == '!'){
+			char *cmd = argv_to_str(argc, argv);
+			char *bang = strchr(cmd, '!') + 1;
+
+			shellout(bang, list_to_write);
+
+			free(cmd);
+		}else{
+			goto write_list;
+		}
+
+		list_free(list_to_write, free);
 		return;
+
 	}else if(buffer_readonly(global_buffer)){
 		gui_status(GUI_ERR, "buffer is read-only");
 		return;
@@ -116,7 +136,9 @@ usage:
 	}else if(!strcmp(argv[0], "we")){
 		after = EDIT;
 	}else if(strcmp(argv[0], "w")){
-		goto usage;
+usage:
+		gui_status(GUI_ERR, "usage: w[qe][![!]] file|command");
+		return;
 	}
 
 	if(argc > 1 && argv[1][0] == '!'){
@@ -129,13 +151,15 @@ usage:
 		free(cmd);
 		return;
 
-	}else if(argc == 2 && after != EDIT){
+	}else
+write_list:
+		if(argc == 2 && after != EDIT){
 		/* have a filename to save to */
 
 		if(!force){
 			struct stat st;
 
-			if(!stat(argv[1], &st)){
+			if(stat(argv[1], &st) == 0){
 				gui_status(GUI_ERR, "not over-writing %s", argv[1]);
 				return;
 			}
@@ -160,14 +184,21 @@ usage:
 		return;
 	}
 
-	nw = buffer_write(global_buffer);
+	if(list_to_write){
+		nw = buffer_write_list(global_buffer, list_to_write);
+		nl = list_count(list_to_write);
+		list_free(list_to_write, free);
+	}else{
+		nw = buffer_write(global_buffer);
+		nl = buffer_nlines(global_buffer) - !buffer_eol(global_buffer);
+	}
+
 	if(nw == -1){
 		gui_status(GUI_ERR, "couldn't write \"%s\": %s", buffer_filename(global_buffer), strerror(errno));
 		return;
 	}
 	buffer_modified(global_buffer) = 0;
-	gui_status(GUI_NONE, "\"%s\" %dL, %dC written", buffer_filename(global_buffer),
-			buffer_nlines(global_buffer) - !buffer_eol(global_buffer), nw);
+	gui_status(GUI_NONE, "\"%s\" %dL, %dC written", buffer_filename(global_buffer), nl, nw);
 
 after:
 	switch(after){
