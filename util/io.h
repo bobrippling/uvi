@@ -7,5 +7,6 @@ void input_reopen(void);
 #ifdef BUFFER_H
 void dumpbuffer(buffer_t *b);
 #endif
+int exists(const char *fname);
 
 #endif

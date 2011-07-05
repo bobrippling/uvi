@@ -89,13 +89,12 @@ int buffer_read(buffer_t **buffer, FILE *f)
 
 	b->dirty = 1;
 	if(buffer_nlines(b) == 0){
-		/* create a line + set modified */
+		/* create a line */
 		char *s = umalloc(sizeof(char));
 
 		*s = '\0';
 		list_append(b->lines, s);
 
-		b->modified = 1;
 		b->nlines = 1;
 	}
 
@@ -201,7 +200,7 @@ int buffer_nchars(buffer_t *b)
 		return 1;
 
 	while(l){
-		chars += 1 + strlen(l->data);
+		chars += strlen(l->data);
 		l = l->next;
 	}
 

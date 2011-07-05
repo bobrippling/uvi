@@ -7,15 +7,12 @@ ncurses:
 
 	Fix segfault on d'a, where a is marked as above current position
 
-	SIGWINCH - handle
+	SIGWINCH - handle?
 
 	^Vx[0-9]+ = hex char insert - ^Vx1 inserts '\x01'
 
 	gui_getstr(): display non printable chars correctly on deletion
-
-command.c:
-	add range option to filters/pipes
-	use $SHELL in shellout()
+	/fix backspace on tabbed lines
 
 regex:
 	simple (vi(1) - see '/'): ^$.[]*
@@ -25,8 +22,11 @@ binary file handling? - '\0' for e.g
 side scrolling with tabs - fix
 
 'nu'
-fix backspace on tabbed lines
-ddp
+'cindent'
+
+completion - show words
+
+fix i_S - currently joins with line below
 
 [[
 ]]

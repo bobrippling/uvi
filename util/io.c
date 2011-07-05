@@ -76,7 +76,7 @@ void *readfile(const char *filename)
 				buffer_readonly(b) = access(filename, W_OK);
 
 				if(nread == 0)
-					gui_status(GUI_NONE, "(empty file)%s", buffer_readonly(b) ? " [read only]" : "");
+					gui_status(GUI_NONE, "%s: empty file%s", filename, buffer_readonly(b) ? " [read only]" : "");
 				else
 					gui_status(GUI_NONE, "%s%s: %dC, %dL%s%s",
 							filename,
@@ -160,4 +160,11 @@ void dumpbuffer(buffer_t *b)
 		buffer_dump(b, f);
 		fclose(f);
 	}
+}
+
+int exists(const char *fname)
+{
+	struct stat st;
+
+	return !stat(fname, &st);
 }

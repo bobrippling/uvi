@@ -45,6 +45,12 @@ char *argv_to_str(int argc, char **argv)
 	return s;
 }
 
+void replace_buffer(const char *fname)
+{
+	buffer_free(global_buffer);
+	global_buffer = readfile(fname);
+	gui_move(0, 0);
+}
 
 void cmd_r(int argc, char **argv, int force, struct range *rng)
 {
@@ -203,9 +209,7 @@ write_list:
 after:
 	switch(after){
 		case EDIT:
-			buffer_free(global_buffer);
-			global_buffer = readfile(argv[1]);
-			gui_move(0, 0);
+			replace_buffer(argv[1]);
 			break;
 		case QUIT:
 			global_running = 0;
@@ -282,7 +286,10 @@ void cmd_bang(int argc, char **argv, int force, struct range *rng)
 			list_free(to_pipe, free);
 	}else{
 		if(argc == 1){
-			shellout("sh", NULL);
+			const char *shell = getenv("SHELL");
+			if(!shell)
+				shell = "sh";
+			shellout(shell, NULL);
 		}else{
 			char *cmd = argv_to_str(argc - 1, argv + 1);
 			shellout(cmd, NULL);
@@ -301,9 +308,7 @@ void cmd_e(int argc, char **argv, int force, struct range *rng)
 	if(!force && buffer_modified(global_buffer)){
 		gui_status(GUI_ERR, "unsaved");
 	}else{
-		buffer_free(global_buffer);
-		global_buffer = readfile(argv[1]);
-		gui_move(0, 0);
+		replace_buffer(argv[1]);
 	}
 }
 
@@ -431,6 +436,63 @@ void cmd_regs(int argc, char **argv, int force, struct range *rng)
 	else
 		gui_status(GUI_ERR, "no yanks");
 }
+
+void cmd_A(int argc, char **argv, int force, struct range *rng)
+{
+	char *bfname, *fname;
+	char *ext;
+	int len;
+
+
+	if(argc != 1 || rng->start != -1 || rng->end != -1){
+		gui_status(GUI_ERR, "usage: %s[!]", *argv);
+		return;
+	}
+
+	if(buffer_modified(global_buffer) && !force){
+		gui_status(GUI_ERR, "no write since last change");
+		return;
+	}else if(!buffer_hasfilename(global_buffer)){
+		gui_status(GUI_ERR, "buffer has no filename");
+		return;
+	}
+
+	len = strlen(buffer_filename(global_buffer));
+	bfname = alloca(len + 1);
+	strcpy(bfname, buffer_filename(global_buffer));
+
+	ext = strrchr(bfname, '.');
+	if(!ext){
+		gui_status(GUI_ERR, "no file extension");
+		return;
+	}
+
+	*ext++ = '\0';
+
+	if(!strcmp(ext, "c") || !strcmp(ext, "cpp")){
+		fname = ustrprintf("%s.h",  bfname);
+	}else if(!strcmp(ext, "h")){
+		char *try;
+
+		fname = ustrprintf("%s.c",  bfname);
+
+		if(!exists(fname)){
+			try = ustrprintf("%s.cpp",  bfname);
+			if(exists(try)){
+				free(fname);
+				fname = try;
+			}else{
+				free(try);
+			}
+		}
+	}
+
+	replace_buffer(fname);
+	free(fname);
+
+	return;
+}
+
 
 #ifdef BLOAT
 # include "bloat/command.c"
@@ -563,6 +625,7 @@ void command_run(char *in)
 		CMD(w),
 		CMD(q),
 		CMD(e),
+		CMD(A),
 		CMD(set),
 		CMD(new),
 		CMD(regs),
