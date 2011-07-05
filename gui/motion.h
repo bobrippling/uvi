@@ -21,6 +21,9 @@ enum motiontype
 	MOTION_PARA_PREV        = '{',
 	MOTION_PARA_NEXT        = '}',
 
+	MOTION_FUNC_PREV        = '[',
+	MOTION_FUNC_NEXT        = ']',
+
 	MOTION_PAREN_MATCH      = '%',
 
 	MOTION_ABSOLUTE_LEFT    = '0',

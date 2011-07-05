@@ -49,6 +49,9 @@ static struct builtin_motion
 	[MOTION_PARA_PREV]       = { 0, 1, 1, 1 },
 	[MOTION_PARA_NEXT]       = { 0, 1, 1, 1 },
 
+	[MOTION_FUNC_PREV]       = { 0, 1, 1, 1 },
+	[MOTION_FUNC_NEXT]       = { 0, 1, 1, 1 },
+
 	[MOTION_PAREN_MATCH]     = { 0, 0, 0, 1 },
 
 	[MOTION_ABSOLUTE_LEFT]   = { 0, 0, 0, 0 },
@@ -107,6 +110,8 @@ int getmotion(struct motion *m)
 			case MOTION_SCREEN_BOTTOM:
 			case MOTION_PARA_PREV:
 			case MOTION_PARA_NEXT:
+			case MOTION_FUNC_PREV:
+			case MOTION_FUNC_NEXT:
 			case MOTION_PAREN_MATCH:
 			case MOTION_ABSOLUTE_LEFT:
 			case MOTION_ABSOLUTE_RIGHT:
@@ -362,7 +367,28 @@ int applymotion2(struct motion *motion, struct bufferpos *pos,
 
 			*pos->x = 0;
 			return 0;
-#undef NEXT
+		}
+
+		case MOTION_FUNC_PREV:
+		case MOTION_FUNC_NEXT:
+		{
+			const int rev = motion->motion == MOTION_FUNC_PREV;
+			int y = *pos->y + (rev ? -1 : 1);
+			struct list *l = buffer_getindex(global_buffer, y);
+
+			while(l){
+				if(*(char *)l->data == '{')
+					break;
+				NEXT();
+			}
+
+			if(l)
+				*pos->y = y;
+			else
+				*pos->y = rev ? 0 : buffer_nlines(global_buffer);
+
+			*pos->x = 0;
+			return 0;
 		}
 
 		case MOTION_PAREN_MATCH:
@@ -520,6 +546,8 @@ const char *motion_str(struct motion *m)
 		S(MOTION_SCREEN_BOTTOM);
 		S(MOTION_PARA_PREV);
 		S(MOTION_PARA_NEXT);
+		S(MOTION_FUNC_PREV);
+		S(MOTION_FUNC_NEXT);
 		S(MOTION_PAREN_MATCH);
 		S(MOTION_ABSOLUTE_LEFT);
 		S(MOTION_ABSOLUTE_RIGHT);
