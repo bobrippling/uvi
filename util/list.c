@@ -184,6 +184,24 @@ struct list *list_extract_range(struct list **l, int count)
 		/* we can adjust where l points -> trivial */
 		struct list *top = *l, *bot = (*l)->next;
 
+		if(!bot){
+			/*
+			 * e.g.
+			 *
+			 * list_extract_range(&l, 1);
+			 *
+			 * l->data = "hi there";
+			 * l->next = NULL;
+			 *
+			 * make the list empty (i.e. { .data = NULL, .next = NULL }
+			 * and return the current list
+			 *
+			 * caller should check and add *(.data=malloc(1)) = '\0', for .e.g
+			 */
+			*l = list_new(NULL);
+			return top;
+		}
+
 		while(bot->next && --count > 0)
 			bot = bot->next;
 

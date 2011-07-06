@@ -65,7 +65,8 @@ int is_crlf(buffer_t *b)
 			if(l->next)
 				return 0;
 			else
-				return 1; /* all crlf except last line */
+				/* all crlf except last line, unless only one line */
+				return !!l->prev;
 		}
 	}
 
@@ -234,16 +235,17 @@ struct list *buffer_extract_range(buffer_t *buffer, struct range *rng)
 	newpos = l;
 
 	/* l must be used below, since buffer->lines is now invalid */
+
 	if(!(l = list_getindex(newpos, rng->start)))
 		/* removed lines, and curline was in the range rng */
 		l = list_gettail(newpos);
 
-	buffer->lines = list_gethead(l);
+	buffer->lines = l = list_gethead(l);
 
 	if(!l->data){
 		/* just deleted everything, make empty line */
 		l->data = umalloc(sizeof(char));
-		*(char * /* smallest possible */)l->data = '\0';
+		*(char *)l->data = '\0';
 	}
 
 	buffer->dirty = 1;
