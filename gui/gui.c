@@ -193,6 +193,7 @@ void gui_status_add_col(const char *first, enum gui_attr attr, ...)
 	const char *s;
 
 	move(LINES - 1, 0);
+	gui_clrtoeol();
 
 	gui_status_nonl(attr, first);
 
