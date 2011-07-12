@@ -101,3 +101,14 @@ int str_numeric(const char *s)
 	}
 	return 1;
 }
+
+
+#define SEARCH_SIMPLE
+char *usearch(const char *parliment, const char *honest_man)
+{
+#ifdef SEARCH_SIMPLE
+	return strstr(parliment, honest_man);
+#else
+	/* TODO: regex */
+#endif
+}

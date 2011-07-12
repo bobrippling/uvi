@@ -80,7 +80,7 @@ static int search(int next, int rev)
 			l = (rev ? l->prev : l->next),
 			rev ? y-- : y++)
 
-		if((p = strstr(l->data, search_str))){ /* TODO: regex */
+		if((p = usearch(l->data, search_str))){
 			int x = p - (char *)l->data;
 			found = 1;
 			gui_move(y, x);
@@ -194,7 +194,7 @@ void replace(unsigned int n)
 	else if(n > strlen(s + gui_x()))
 		return;
 
-	c = gui_getch();
+	c = gui_getch(0);
 
 	if(c == '\n'){
 		/* delete n chars, and insert 1 line */
@@ -471,12 +471,12 @@ static void yank_range(char *data, int startx, int x)
 
 static void change(struct motion *motion, int ins)
 {
-	int c = gui_getch();
+	int c = gui_getch(0);
 	int x, y, dollar = 0;
 
 	if(c == 'd' || c == 'c'){
 		/* allow dd or cc (or dc or cd... but yeah) */
-		motion->motion = MOTION_NOMOVE;
+		motion->motion = MOTION_WHOLE_LINE;
 	}else{
 		gui_ungetch(c);
 		if(getmotion(motion))
@@ -687,7 +687,7 @@ void gui_run()
 
 switch_start:
 		yank_char = 0;
-		c = gui_getch();
+		c = gui_getch(1);
 		if(iseditchar(c) && buffer_readonly(global_buffer)){
 			gui_status(GUI_ERR, "buffer is read-only");
 			continue;
@@ -711,7 +711,7 @@ switch_switch:
 				break;
 
 			case 'm':
-				c = gui_getch();
+				c = gui_getch(0);
 				if(mark_valid(c)){
 					mark_set(c, gui_y(), gui_x());
 					gui_status(GUI_NONE, "'%c' => (%d, %d)", c, gui_x(), gui_y());
@@ -769,12 +769,12 @@ switch_switch:
 				break;
 
 			case '"':
-				yank_char = gui_getch();
+				yank_char = gui_getch(0);
 				if(!yank_char_valid(yank_char)){
 					yank_char = 0;
 					break;
 				}
-				c = gui_getch();
+				c = gui_getch(0);
 				goto switch_switch;
 
 			case 'P':
@@ -785,9 +785,9 @@ switch_switch:
 				break;
 
 			case 'y':
-				c = gui_getch();
+				c = gui_getch(0);
 				if(c == 'y'){
-					SET_MOTION(MOTION_NOMOVE);
+					SET_MOTION(MOTION_WHOLE_LINE);
 				}else{
 					gui_ungetch(c);
 					if(getmotion(&motion))
@@ -846,7 +846,7 @@ case_i:
 
 			case CTRL_AND('l'):
 				gui_status(GUI_NONE, "");
-				gui_redraw();
+				gui_draw();
 				break;
 
 			case '*':
@@ -904,7 +904,7 @@ case_i:
 
 			case 'z':
 				/* screen move - vim's zz, zt & zb */
-				switch(gui_getch()){
+				switch(gui_getch(0)){
 					case 'z':
 						gui_scroll(CURSOR_MIDDLE);
 						break;
@@ -928,7 +928,7 @@ case_i:
 			case 'Z':
 			{
 				char buf[4];
-				c = gui_getch();
+				c = gui_getch(0);
 #define MAP(c, cmd) case c: strcpy(buf, cmd); command_run(buf); break
 				switch(c){
 					MAP('Z', "x");
@@ -945,7 +945,7 @@ case_i:
 				if(gui_macro_recording()){
 					gui_status(GUI_NONE, "recorded to %c", gui_macro_complete());
 				}else{
-					int m = gui_getch();
+					int m = gui_getch(0);
 					if(macro_char_valid(m)){
 						gui_status(GUI_COL_MAGENTA, "recording (%c)", m);
 						gui_macro_record(m);
@@ -954,7 +954,7 @@ case_i:
 				break;
 			case '@':
 			{
-				int m = gui_getch();
+				int m = gui_getch(0);
 				if(macro_char_valid(m)){
 					if(!multiple)
 						multiple = 1;

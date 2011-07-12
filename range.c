@@ -63,8 +63,6 @@ static int number(char **sp, int cur, int lim)
 					i -= 1;
 				curv = i;
 
-fprintf(stderr, "parsed, curv=%d (i=%d, chr=%c), *sp=\"%s\"\n",curv,i,chr,*sp);
-
 				return 1;
 			}
 		}
@@ -104,10 +102,6 @@ char *parserange(char *in, struct range *rng, struct range *lim)
 
 	if(s > in){
 		/* validate range */
-fprintf(stderr, "rng = { %d, %d }, cur=%d, max=%d\n",
-	rng->start, rng->end,
-	lim->start, lim->end);
-
 		if(rng->start < 1 || rng->start > lim->end ||
 			 rng->end < 1 || rng->end > lim->end){
 			errno = EINVAL;

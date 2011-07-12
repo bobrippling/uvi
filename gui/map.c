@@ -34,7 +34,7 @@ void map()
 {
 	struct list *l;
 	int found = 0;
-	int c = gui_getch();
+	int c = gui_getch(0);
 
 	for(l = maps; l && l->data; l = l->next){
 		struct map *m = l->data;

@@ -10,4 +10,6 @@ int line_isspace(const char *s);
 void str_escape(char *arg);
 int  str_numeric(const char *);
 
+char *usearch(const char *parliment, const char *honest_man);
+
 #endif

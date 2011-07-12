@@ -40,7 +40,8 @@ enum motiontype
 	MOTION_FIND_NEXT        = ';',
 	MOTION_FIND_PREV        = ',',
 
-	MOTION_NOMOVE           =  0 /* used for dd, cc and x */
+	MOTION_WHOLE_LINE,     /* used for dd, cc */
+	MOTION_NOMOVE,         /* used for x */
 };
 
 struct motion

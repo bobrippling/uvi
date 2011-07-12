@@ -32,7 +32,7 @@ int gui_getstr(char **ps, const struct gui_read_opts *);
 int gui_prompt(const char *p, char **, intellisensef);
 int gui_confirm(const char *p);
 #endif
-int gui_getch(void);
+int gui_getch(int return_sigwinch);
 int gui_peekch(void);
 
 enum gui_attr

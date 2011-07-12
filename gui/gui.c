@@ -221,7 +221,7 @@ void gui_status_wait()
 	gui_peekch();
 }
 
-int gui_getch()
+int gui_getch(int return_sigwinch)
 {
 	int c;
 
@@ -236,10 +236,14 @@ restart:
 		c = unget_buf[--unget_i];
 	}
 
-	if(c == CTRL_AND('c'))
+	if(c == CTRL_AND('c')){
 		raise(SIGINT);
-	else if(c == 410 || c == -1)
-		goto restart; /* sigwinch/interrupt */
+	}else if(c == 410 || c == -1){
+		if(return_sigwinch)
+			return CTRL_AND('l');
+		else
+			goto restart;
+	}
 
 	if(macro_record_char)
 		macro_append(c);
@@ -269,7 +273,7 @@ int gui_peekunget()
 
 int gui_peekch()
 {
-	int c = gui_getch();
+	int c = gui_getch(0);
 	gui_ungetch(c);
 	return c;
 }
@@ -277,6 +281,12 @@ int gui_peekch()
 void gui_clrtoeol()
 {
 	clrtoeol();
+}
+
+static void gui_backspace(int n)
+{
+	while(n --> 0)
+		addch('\b');
 }
 
 int gui_getstr(char **ps, const struct gui_read_opts *opts)
@@ -301,7 +311,7 @@ int gui_getstr(char **ps, const struct gui_read_opts *opts)
 	for(;;){
 		int c;
 
-		c = gui_getch();
+		c = gui_getch(0);
 
 		if(i >= size){
 			size += 64;
@@ -345,15 +355,21 @@ int gui_getstr(char **ps, const struct gui_read_opts *opts)
 				if(i > 0){
 					char c = start[--i];
 
-					if(isprint(c))
-						move(y, --x);
-					else if(c == '\t')
-						if(global_settings.showtabs)
-							move(y, x -= 2);
-						else
-							move(y, x -= global_settings.tabstop);
-					else
-						move(y, x -= 2);
+					if(isprint(c)){
+						x--;
+						gui_backspace(1);
+					}else if(c == '\t'){
+						if(global_settings.showtabs){
+							x -= 2;
+							gui_backspace(2);
+						}else{
+							x -= global_settings.tabstop;
+							gui_backspace(global_settings.tabstop);
+						}
+					}else{
+						x -= 2;
+						gui_backspace(2);
+					}
 
 					break;
 
@@ -416,7 +432,7 @@ int gui_confirm(const char *p)
 	int c;
 
 	gui_printprompt(p);
-	c = gui_getch();
+	c = gui_getch(0);
 
 	if(c == 'y' || c == 'Y')
 		return 1;
@@ -657,8 +673,6 @@ int gui_scroll(enum scroll s)
 {
 	int check = 0;
 	int ret = 0;
-
-	mark_jump();
 
 	switch(s){
 		case SINGLE_DOWN:

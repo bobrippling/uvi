@@ -67,7 +67,8 @@ static struct builtin_motion
 	[MOTION_TIL_REV]         = { 1, 0, 1, 1 },
 	[MOTION_FIND_NEXT]       = { 0, 0, 1, 1 },
 
-	[MOTION_NOMOVE]          = { 0, 1, 0, 0 },
+	[MOTION_NOMOVE]          = { 0, 0, 0, 1 },
+	[MOTION_WHOLE_LINE]      = { 0, 1, 0, 1 },
 };
 
 static int last_find_c = 0, last_find_til = 0, last_find_rev = 0;
@@ -97,7 +98,7 @@ int getmotion(struct motion *m)
 	/* m->ntimes is already initialised */
 
 	do{
-		switch((m->motion = gui_getch())){
+		switch((m->motion = gui_getch(0))){
 			case MOTION_FORWARD_LETTER:
 			case MOTION_BACKWARD_LETTER:
 			case MOTION_FORWARD_WORD:
@@ -138,7 +139,7 @@ int getmotion(struct motion *m)
 			case MOTION_TIL:
 			case MOTION_FIND_REV:
 			case MOTION_TIL_REV:
-				m->extra = gui_getch();
+				m->extra = gui_getch(0);
 				if(!isprint(m->extra) && m->extra != '\t'){
 					gui_status(GUI_ERR, "unknown find character");
 					return 1;
@@ -150,7 +151,7 @@ int getmotion(struct motion *m)
 
 			case MOTION_MARK:
 			{
-				int c = gui_getch();
+				int c = gui_getch(0);
 				if(mark_valid(c)){
 					if(mark_isset(c)){
 						m->motion = MOTION_MARK;
@@ -227,6 +228,7 @@ int applymotion2(struct motion *motion, struct bufferpos *pos,
 		}
 
 		case MOTION_NOMOVE:
+		case MOTION_WHOLE_LINE:
 			return 0;
 
 		case MOTION_MARK:
@@ -561,6 +563,7 @@ const char *motion_str(struct motion *m)
 		S(MOTION_FIND_NEXT);
 		S(MOTION_FIND_PREV);
 		S(MOTION_NOMOVE);
+		S(MOTION_WHOLE_LINE);
 	}
 	return NULL;
 }
