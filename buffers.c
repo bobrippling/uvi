@@ -21,7 +21,8 @@ void buffers_init(const char **argv, int ro)
 
 	fnames = argv;
 	arg_ro = ro;
-	buffers_next(0);
+	if(buffers_next(0))
+		current_buffer = buffer_new_empty();
 }
 
 int buffers_next(int n)
