@@ -28,6 +28,7 @@
 #include "buffers.h"
 
 #define LEN(x) ((signed)(sizeof(x) / sizeof(x[0])))
+#define ERR_MODIFIED "buffer modified since last write"
 
 char *argv_to_str(int argc, char **argv)
 {
@@ -229,7 +230,7 @@ void cmd_q(int argc, char **argv, int force, struct range *rng)
 	}
 
 	if(!force && buffer_modified(current_buffer))
-		gui_status(GUI_ERR, "unsaved");
+		gui_status(GUI_ERR, ERR_MODIFIED);
 	else
 		global_running = 0;
 }
@@ -308,7 +309,7 @@ void cmd_e(int argc, char **argv, int force, struct range *rng)
 	}
 
 	if(!force && buffer_modified(current_buffer)){
-		gui_status(GUI_ERR, "unsaved");
+		gui_status(GUI_ERR, ERR_MODIFIED);
 	}else{
 		replace_buffer(argv[1]);
 	}
@@ -452,7 +453,7 @@ void cmd_A(int argc, char **argv, int force, struct range *rng)
 	}
 
 	if(buffer_modified(current_buffer) && !force){
-		gui_status(GUI_ERR, "no write since last change");
+		gui_status(GUI_ERR, ERR_MODIFIED);
 		return;
 	}else if(!buffer_hasfilename(current_buffer)){
 		gui_status(GUI_ERR, "buffer has no filename");
@@ -503,7 +504,7 @@ void cmd_n(int argc, char **argv, int force, struct range *rng)
 	}
 
 	if(!force && buffer_modified(current_buffer)){
-		gui_status(GUI_ERR, "buffer modified");
+		gui_status(GUI_ERR, ERR_MODIFIED);
 		return;
 	}
 
