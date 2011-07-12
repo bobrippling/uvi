@@ -17,8 +17,10 @@
 #include "../util/alloc.h"
 #include "../util/str.h"
 #include "../util/term.h"
+#include "../util/io.h"
 #include "macro.h"
 #include "marks.h"
+#include "../buffers.h"
 
 #define GUI_TAB_INDENT(x) \
 	(global_settings.tabstop - (x) % global_settings.tabstop)
@@ -449,7 +451,7 @@ void gui_draw()
 	struct list *l;
 	int y;
 
-	for(l = buffer_getindex(global_buffer, pos_top), y = 0;
+	for(l = buffer_getindex(current_buffer, pos_top), y = 0;
 			l && y < LINES - 1;
 			l = l->next, y++){
 
@@ -499,7 +501,7 @@ static void gui_coord_to_scr(int *py, int *px, const char *line)
 	max = *px;
 
 	if(!line){
-		struct list *l = buffer_getindex(global_buffer, y);
+		struct list *l = buffer_getindex(current_buffer, y);
 		if(l)
 			line = l->data;
 		else
@@ -552,10 +554,14 @@ void gui_addch(int c)
 
 		default:
 			if(!isprint(c)){
-				/*fprintf(stderr, "print unprintable: %d (%c)\n", c, c);*/
-				gui_attron( GUI_IS_NOT_PRINT);
-				printw("^%c", c + 'A' - 1);
-				gui_attroff(GUI_IS_NOT_PRINT);
+				fprintf(stderr, "print unprintable: %d (%c)\n", c, c);
+				if(0 <= c && c <= 'A' - 1){
+					gui_attron( GUI_IS_NOT_PRINT);
+					printw("^%c", c + 'A' - 1);
+					gui_attroff(GUI_IS_NOT_PRINT);
+				}else{
+					addch(c);
+				}
 				break;
 			}else if(c == ' ' && global_settings.list){
 				gui_attron( GUI_IS_NOT_PRINT);
@@ -595,11 +601,11 @@ void gui_move(int y, int x)
 
 	if(y < 0)
 		y = 0;
-	else if(y >= buffer_nlines(global_buffer))
-		y = buffer_nlines(global_buffer)-1;
+	else if(y >= buffer_nlines(current_buffer))
+		y = buffer_nlines(current_buffer)-1;
 
 	/* check that we're on the right x pos - ^I etc */
-	line = buffer_getindex(global_buffer, y)->data;
+	line = buffer_getindex(current_buffer, y)->data;
 
 	len = strlen(line) - 1;
 	if(len < 0)
@@ -627,7 +633,7 @@ void gui_move(int y, int x)
 
 void gui_inc(int n)
 {
-	int nl = buffer_nlines(global_buffer);
+	int nl = buffer_nlines(current_buffer);
 
 	if(pos_y < nl - 1){
 		pos_y += n;
@@ -676,7 +682,7 @@ int gui_scroll(enum scroll s)
 
 	switch(s){
 		case SINGLE_DOWN:
-			if(pos_top < buffer_nlines(global_buffer) - 1 - SCROLL_OFF){
+			if(pos_top < buffer_nlines(current_buffer) - 1 - SCROLL_OFF){
 				pos_top += SCROLL_OFF;
 				if(pos_y < pos_top + SCROLL_OFF)
 					pos_y = pos_top + SCROLL_OFF;
@@ -749,7 +755,7 @@ int gui_scroll(enum scroll s)
 
 char *gui_current_word()
 {
-	return word_at(buffer_getindex(global_buffer, pos_y)->data, pos_x);
+	return word_at(buffer_getindex(current_buffer, pos_y)->data, pos_x);
 }
 
 #if 0
@@ -885,6 +891,70 @@ static void macro_append(char c)
 	s[1] = '\0';
 
 	ustrcat(&macro_str, &macro_strlen, s, NULL);
+}
+
+buffer_t *gui_readfile(const char *filename)
+{
+	buffer_t *b = NULL;
+
+	if(filename){
+		FILE *f;
+
+		if(strcmp(filename, "-")){
+			f = fopen(filename, "r");
+		}else{
+			f = stdin;
+		}
+
+		if(f){
+			int nread = buffer_read(&b, f);
+
+			if(nread == -1){
+				gui_status(GUI_ERR, "read \"%s\": %s",
+						filename,
+						errno ? strerror(errno) : "unknown error - binary file?");
+
+			}else{
+				buffer_readonly(b) = access(filename, W_OK);
+
+				if(nread == 0)
+					gui_status(GUI_NONE, "%s: empty file%s", filename, buffer_readonly(b) ? " [read only]" : "");
+				else
+					gui_status(GUI_NONE, "%s%s: %dC, %dL%s%s",
+							filename,
+							buffer_readonly(b) ? " [read only]" : "",
+							buffer_nchars(b),
+							buffer_nlines(b),
+							buffer_eol(b)  ? "" : " [noeol]",
+							buffer_crlf(b) ? " [crlf]" : ""
+							);
+			}
+
+			if(f == stdin)
+				input_reopen();
+			else
+				fclose(f);
+
+		}else{
+			if(errno == ENOENT)
+				goto newfile;
+			gui_status(GUI_ERR, "open \"%s\": %s", filename, strerror(errno));
+		}
+
+	}else{
+newfile:
+		if(filename)
+			gui_status(GUI_NONE, "%s: new file", filename);
+		else
+			gui_status(GUI_NONE, "(new file)");
+	}
+
+	if(!b)
+		b = buffer_new_empty();
+	if(filename && strcmp(filename, "-"))
+		buffer_setfilename(b, filename);
+
+	return b;
 }
 
 #if 0

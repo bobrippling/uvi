@@ -22,9 +22,6 @@
 #include "../gui/gui.h"
 #include "../util/list.h"
 
-int canwrite(mode_t mode, uid_t uid, gid_t gid);
-
-
 void input_reopen()
 {
 	freopen("/dev/tty", "r", stdin);
@@ -49,70 +46,6 @@ void chomp_line()
 	tcsetattr(0, TCSANOW, &attr);
 
 	ungetch(c);
-}
-
-void *readfile(const char *filename)
-{
-	buffer_t *b = NULL;
-
-	if(filename){
-		FILE *f;
-
-		if(strcmp(filename, "-")){
-			f = fopen(filename, "r");
-		}else{
-			f = stdin;
-		}
-
-		if(f){
-			int nread = buffer_read(&b, f);
-
-			if(nread == -1){
-				gui_status(GUI_ERR, "read \"%s\": %s",
-						filename,
-						errno ? strerror(errno) : "unknown error - binary file?");
-
-			}else{
-				buffer_readonly(b) = access(filename, W_OK);
-
-				if(nread == 0)
-					gui_status(GUI_NONE, "%s: empty file%s", filename, buffer_readonly(b) ? " [read only]" : "");
-				else
-					gui_status(GUI_NONE, "%s%s: %dC, %dL%s%s",
-							filename,
-							buffer_readonly(b) ? " [read only]" : "",
-							buffer_nchars(b),
-							buffer_nlines(b),
-							buffer_eol(b)  ? "" : " [noeol]",
-							buffer_crlf(b) ? " [crlf]" : ""
-							);
-			}
-
-			if(f == stdin)
-				input_reopen();
-			else
-				fclose(f);
-
-		}else{
-			if(errno == ENOENT)
-				goto newfile;
-			gui_status(GUI_ERR, "open \"%s\": %s", filename, strerror(errno));
-		}
-
-	}else{
-newfile:
-		if(filename)
-			gui_status(GUI_NONE, "%s: new file", filename);
-		else
-			gui_status(GUI_NONE, "(new file)");
-	}
-
-	if(!b)
-		b = buffer_new_empty();
-	if(filename && strcmp(filename, "-"))
-		buffer_setfilename(b, filename);
-
-	return b;
 }
 
 void dumpbuffer(buffer_t *b)
@@ -160,11 +93,4 @@ void dumpbuffer(buffer_t *b)
 		buffer_dump(b, f);
 		fclose(f);
 	}
-}
-
-int exists(const char *fname)
-{
-	struct stat st;
-
-	return !stat(fname, &st);
 }

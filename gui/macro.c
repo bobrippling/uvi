@@ -1,7 +1,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <stdio.h>
 
+#include "../range.h"
+#include "../buffer.h"
 #include "gui.h"
 #include "macro.h"
 

@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <time.h>
+#include <unistd.h>
 
 #include "range.h"
 #include "buffer.h"
@@ -24,6 +25,7 @@
 #include "gui/gui.h"
 #include "util/io.h"
 #include "yank.h"
+#include "buffers.h"
 
 #define LEN(x) ((signed)(sizeof(x) / sizeof(x[0])))
 
@@ -47,8 +49,8 @@ char *argv_to_str(int argc, char **argv)
 
 void replace_buffer(const char *fname)
 {
-	buffer_free(global_buffer);
-	global_buffer = readfile(fname);
+	buffer_free(current_buffer);
+	current_buffer = gui_readfile(fname);
 	gui_move(0, 0);
 }
 
@@ -65,11 +67,11 @@ void cmd_r(int argc, char **argv, int force, struct range *rng)
 			gui_status(GUI_ERR, "pipe error: %s", strerror(errno));
 		}else if(l->data){
 			buffer_insertlistafter(
-					global_buffer,
-					buffer_getindex(global_buffer, gui_y()),
+					current_buffer,
+					buffer_getindex(current_buffer, gui_y()),
 					l);
 
-			buffer_modified(global_buffer) = 1;
+			buffer_modified(current_buffer) = 1;
 		}else{
 			list_free(l, free);
 			gui_status(GUI_ERR, "%s: no output", cmd);
@@ -82,11 +84,11 @@ void cmd_r(int argc, char **argv, int force, struct range *rng)
 
 		if(l){
 			buffer_insertlistafter(
-					global_buffer,
-					buffer_getindex(global_buffer, gui_y()),
+					current_buffer,
+					buffer_getindex(current_buffer, gui_y()),
 					l);
 
-			buffer_modified(global_buffer) = 1;
+			buffer_modified(current_buffer) = 1;
 		}else{
 			gui_status(GUI_ERR, "read: %s", strerror(errno));
 		}
@@ -112,7 +114,7 @@ void cmd_w(int argc, char **argv, int force, struct range *rng)
 		if(--rng->start < 0)
 			rng->start = 0;
 
-		list_to_write = buffer_copy_range(global_buffer, rng);
+		list_to_write = buffer_copy_range(current_buffer, rng);
 
 		if(argv[0][0] == '!'){
 			char *cmd = argv_to_str(argc, argv);
@@ -128,7 +130,7 @@ void cmd_w(int argc, char **argv, int force, struct range *rng)
 		list_free(list_to_write, free);
 		return;
 
-	}else if(buffer_readonly(global_buffer)){
+	}else if(buffer_readonly(current_buffer)){
 		gui_status(GUI_ERR, "buffer is read-only");
 		return;
 	}
@@ -152,7 +154,7 @@ usage:
 		char *cmd = argv_to_str(argc - 1, argv + 1);
 		char *bang = strchr(cmd, '!') + 1;
 
-		shellout(bang, buffer_gethead(global_buffer));
+		shellout(bang, buffer_gethead(current_buffer));
 
 		free(cmd);
 		return;
@@ -170,41 +172,41 @@ write_list:
 				return;
 			}
 		}
-		buffer_setfilename(global_buffer, argv[1]);
+		buffer_setfilename(current_buffer, argv[1]);
 
 	}else if(argc != 1 && (after == EDIT ? argc != 2 : 0)){
 		goto usage;
 
 	}
 
-	if(x && !buffer_modified(global_buffer))
+	if(x && !buffer_modified(current_buffer))
 		goto after;
 
-	if(!buffer_hasfilename(global_buffer)){
+	if(!buffer_hasfilename(current_buffer)){
 		gui_status(GUI_ERR, "buffer has no filename");
 		return;
 	}
 
-	if(!force && buffer_external_modified(global_buffer)){
+	if(!force && buffer_external_modified(current_buffer)){
 		gui_status(GUI_ERR, "buffer changed externally since last read");
 		return;
 	}
 
 	if(list_to_write){
-		nw = buffer_write_list(global_buffer, list_to_write);
+		nw = buffer_write_list(current_buffer, list_to_write);
 		nl = list_count(list_to_write);
 		list_free(list_to_write, free);
 	}else{
-		nw = buffer_write(global_buffer);
-		nl = buffer_nlines(global_buffer) - !buffer_eol(global_buffer);
+		nw = buffer_write(current_buffer);
+		nl = buffer_nlines(current_buffer) - !buffer_eol(current_buffer);
 	}
 
 	if(nw == -1){
-		gui_status(GUI_ERR, "couldn't write \"%s\": %s", buffer_filename(global_buffer), strerror(errno));
+		gui_status(GUI_ERR, "couldn't write \"%s\": %s", buffer_filename(current_buffer), strerror(errno));
 		return;
 	}
-	buffer_modified(global_buffer) = 0;
-	gui_status(GUI_NONE, "\"%s\" %dL, %dC written", buffer_filename(global_buffer), nl, nw);
+	buffer_modified(current_buffer) = 0;
+	gui_status(GUI_NONE, "\"%s\" %dL, %dC written", buffer_filename(current_buffer), nl, nw);
 
 after:
 	switch(after){
@@ -226,7 +228,7 @@ void cmd_q(int argc, char **argv, int force, struct range *rng)
 		return;
 	}
 
-	if(!force && buffer_modified(global_buffer))
+	if(!force && buffer_modified(current_buffer))
 		gui_status(GUI_ERR, "unsaved");
 	else
 		global_running = 0;
@@ -250,29 +252,29 @@ void cmd_bang(int argc, char **argv, int force, struct range *rng)
 		if(rng->end == -1)
 			rng->end = rng->start;
 
-		to_pipe = buffer_extract_range(global_buffer, rng);
+		to_pipe = buffer_extract_range(current_buffer, rng);
 
-		l = pipe_readwrite(cmd, to_pipe ? to_pipe : buffer_gethead(global_buffer));
+		l = pipe_readwrite(cmd, to_pipe ? to_pipe : buffer_gethead(current_buffer));
 
 		if(l){
 			if(l->data){
 				if(to_pipe){
 					struct list *inshere;
 
-					inshere = buffer_getindex(global_buffer, rng->start);
+					inshere = buffer_getindex(current_buffer, rng->start);
 
 					if(!inshere)
-						inshere = buffer_gettail(global_buffer);
+						inshere = buffer_gettail(current_buffer);
 
-					buffer_insertlistafter(global_buffer, inshere, l);
+					buffer_insertlistafter(current_buffer, inshere, l);
 
 					list_free_nodata(to_pipe);
 					to_pipe = NULL;
 				}else{
-					buffer_replace(global_buffer, l);
+					buffer_replace(current_buffer, l);
 				}
 
-				buffer_modified(global_buffer) = 1;
+				buffer_modified(current_buffer) = 1;
 			}else{
 				list_free(l, free);
 				gui_status(GUI_ERR, "%s: no output", cmd);
@@ -305,7 +307,7 @@ void cmd_e(int argc, char **argv, int force, struct range *rng)
 		return;
 	}
 
-	if(!force && buffer_modified(global_buffer)){
+	if(!force && buffer_modified(current_buffer)){
 		gui_status(GUI_ERR, "unsaved");
 	}else{
 		replace_buffer(argv[1]);
@@ -319,11 +321,11 @@ void cmd_new(int argc, char **argv, int force, struct range *rng)
 		return;
 	}
 
-	if(!force && buffer_modified(global_buffer)){
+	if(!force && buffer_modified(current_buffer)){
 		gui_status(GUI_ERR, "new: buffer modified");
 	}else{
-		buffer_free(global_buffer);
-		global_buffer = buffer_new_empty();
+		buffer_free(current_buffer);
+		current_buffer = buffer_new_empty();
 		gui_move(0, 0);
 	}
 }
@@ -381,7 +383,7 @@ void cmd_set(int argc, char **argv, int force, struct range *rng)
 						wait = 1;
 						break;
 					case FLIP:
-						vars_set(type, global_buffer, !vars_get(type, global_buffer));
+						vars_set(type, current_buffer, !vars_get(type, current_buffer));
 						break;
 
 					default:
@@ -389,7 +391,7 @@ void cmd_set(int argc, char **argv, int force, struct range *rng)
 				}
 
 			}else if(vars_isbool(type)){
-				vars_set(type, global_buffer, bool);
+				vars_set(type, current_buffer, bool);
 			}else if(gotbool){
 				gui_status(GUI_ERR, "\"%s\" is not a bool", vars_tostring(type));
 				return;
@@ -398,7 +400,7 @@ void cmd_set(int argc, char **argv, int force, struct range *rng)
 					gui_status(GUI_ERR, "need value for \"%s\"", vars_tostring(type));
 					return;
 				}else{
-					vars_set(type, global_buffer, atoi(argv[i]));
+					vars_set(type, current_buffer, atoi(argv[i]));
 				}
 			}
 		}
@@ -449,17 +451,17 @@ void cmd_A(int argc, char **argv, int force, struct range *rng)
 		return;
 	}
 
-	if(buffer_modified(global_buffer) && !force){
+	if(buffer_modified(current_buffer) && !force){
 		gui_status(GUI_ERR, "no write since last change");
 		return;
-	}else if(!buffer_hasfilename(global_buffer)){
+	}else if(!buffer_hasfilename(current_buffer)){
 		gui_status(GUI_ERR, "buffer has no filename");
 		return;
 	}
 
-	len = strlen(buffer_filename(global_buffer));
+	len = strlen(buffer_filename(current_buffer));
 	bfname = alloca(len + 1);
-	strcpy(bfname, buffer_filename(global_buffer));
+	strcpy(bfname, buffer_filename(current_buffer));
 
 	ext = strrchr(bfname, '.');
 	if(!ext){
@@ -476,9 +478,9 @@ void cmd_A(int argc, char **argv, int force, struct range *rng)
 
 		fname = ustrprintf("%s.c",  bfname);
 
-		if(!exists(fname)){
+		if(access(fname, F_OK)){
 			try = ustrprintf("%s.cpp",  bfname);
-			if(exists(try)){
+			if(!access(try, F_OK)){
 				free(fname);
 				fname = try;
 			}else{
@@ -493,6 +495,21 @@ void cmd_A(int argc, char **argv, int force, struct range *rng)
 	return;
 }
 
+void cmd_n(int argc, char **argv, int force, struct range *rng)
+{
+	if(argc != 1 || rng->start != -1 || rng->end != -1){
+		gui_status(GUI_ERR, "usage: %s[!]", *argv);
+		return;
+	}
+
+	if(!force && buffer_modified(current_buffer)){
+		gui_status(GUI_ERR, "buffer modified");
+		return;
+	}
+
+	if(buffers_next(**argv == 'n' ? 1 : -1))
+		gui_status(GUI_ERR, "file index out of range");
+}
 
 #ifdef BLOAT
 # include "bloat/command.c"
@@ -603,8 +620,8 @@ void filter_cmd(int argc, char **argv)
 	/* replacements */
 	char_replace('~', home, argc, argv);
 
-	if(buffer_hasfilename(global_buffer))
-		char_replace('%', buffer_filename(global_buffer), argc, argv);
+	if(buffer_hasfilename(current_buffer))
+		char_replace('%', buffer_filename(current_buffer), argc, argv);
 }
 
 void command_run(char *in)
@@ -629,6 +646,8 @@ void command_run(char *in)
 		CMD(set),
 		CMD(new),
 		CMD(regs),
+		CMD(n),
+		{ "N", cmd_n },
 #ifdef BLOAT
 # include "bloat/command.h"
 #endif
@@ -649,7 +668,7 @@ void command_run(char *in)
 		return;
 
 	lim.start = gui_y();
-	lim.end		= buffer_nlines(global_buffer);
+	lim.end		= buffer_nlines(current_buffer);
 
 	s = parserange(in, &rng, &lim);
 

@@ -22,6 +22,7 @@
 #include "util/alloc.h"
 #include "util/str.h"
 #include "util/list.h"
+#include "buffers.h"
 
 static void usage(const char *);
 
@@ -35,7 +36,7 @@ void usage(const char *s)
 void die(const char *s)
 {
 	gui_term();
-	preserve(global_buffer);
+	preserve(current_buffer);
 	fprintf(stderr, "dying: %s\n", s);
 	exit(1);
 }
@@ -43,7 +44,7 @@ void die(const char *s)
 void sigh(const int sig)
 {
 	gui_term();
-	preserve(global_buffer);
+	preserve(current_buffer);
 	fprintf(stderr, "We get signal %d\n", sig);
 	exit(sig + 128);
 }
@@ -51,8 +52,9 @@ void sigh(const int sig)
 int main(int argc, const char **argv)
 {
 	struct list *cmds = list_new(NULL);
-	int i, argv_options = 1, readonly = 0;
-	const char *fname = NULL;
+	int i, argv_options = 1;
+	int argv_fname_start = argc;
+	int ro = 0;
 
 	if(setlocale(LC_ALL, "") == NULL)
 		fprintf(stderr, "%s: Warning: Locale not specified :(\n", *argv);
@@ -78,7 +80,7 @@ int main(int argc, const char **argv)
 					}
 
 					case 'R':
-						readonly = 1;
+						ro = 1;
 						break;
 
 					default:
@@ -87,7 +89,7 @@ int main(int argc, const char **argv)
 				}
 			}else if(!strcmp(argv[i], "-")){
 				argv_options = 0;
-				fname = argv[i];
+				goto at_fnames;
 			}else{
 				fprintf(stderr, "invalid option: \"%s\"\n", argv[i]);
 				usage(*argv);
@@ -102,11 +104,9 @@ int main(int argc, const char **argv)
 				list_append(cmds, s);
 			}
 		}else{
-			argv_options = 0;
-			if(!fname)
-				fname = argv[i];
-			else
-				usage(*argv);
+at_fnames:
+			argv_fname_start = i;
+			break;
 		}
 
 	if(list_count(cmds) > 0){
@@ -128,16 +128,13 @@ int main(int argc, const char **argv)
 	gui_term();
 	rc_read();
 
-	gui_reload();
-	global_buffer = readfile(fname);
-	if(readonly)
-		buffer_readonly(global_buffer) = 1;
+	buffers_init(argv + argv_fname_start, ro);
+
 	gui_reload();
 	gui_run();
 
 	gui_term();
 	map_term();
-	buffer_free(global_buffer);
 
 	return 0;
 }

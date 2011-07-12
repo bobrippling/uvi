@@ -1,12 +1,10 @@
 #ifndef IO_H
 #define IO_H
 
-void chomp_line(void);
-void *readfile(const char *filename);
 void input_reopen(void);
+void chomp_line(void);
 #ifdef BUFFER_H
 void dumpbuffer(buffer_t *b);
 #endif
-int exists(const char *fname);
 
 #endif

@@ -13,8 +13,6 @@ struct settings
 
 extern struct settings global_settings;
 
-extern buffer_t *global_buffer;
-
 extern int global_running;
 
 #endif

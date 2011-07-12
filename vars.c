@@ -13,6 +13,7 @@
 #include "gui/motion.h"
 #include "gui/intellisense.h"
 #include "gui/gui.h"
+#include "buffers.h"
 
 #define LEN(x) ((sizeof(x) / sizeof(x[0])))
 
@@ -101,10 +102,10 @@ enum vartype vars_gettype(const char *s)
 void vars_show(enum vartype t)
 {
 	if(vars_isbool(t)){
-		gui_status_add_col(vars_get(t, global_buffer) ? "" : "no", GUI_COL_RED, vars_tostring(t), GUI_NONE, NULL);
+		gui_status_add_col(vars_get(t, current_buffer) ? "" : "no", GUI_COL_RED, vars_tostring(t), GUI_NONE, NULL);
 	}else{
 		char buf[8];
-		snprintf(buf, sizeof buf, "%d", vars_get(t, global_buffer));
+		snprintf(buf, sizeof buf, "%d", vars_get(t, current_buffer));
 		gui_status_add_col(vars_tostring(t), GUI_COL_BLUE, "=", GUI_NONE, buf, GUI_COL_GREEN, NULL);
 	}
 }

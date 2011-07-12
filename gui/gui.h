@@ -34,6 +34,9 @@ int gui_confirm(const char *p);
 #endif
 int gui_getch(int return_sigwinch);
 int gui_peekch(void);
+#ifdef BUFFER_H
+buffer_t *gui_readfile(const char *filename);
+#endif
 
 enum gui_attr
 {

@@ -15,6 +15,7 @@
 #include "marks.h"
 #include "../global.h"
 #include "../util/str.h"
+#include "../buffers.h"
 
 #define iswordpart(c) (isalnum(c) || (c) == '_')
 
@@ -204,7 +205,7 @@ int applymotion2(struct motion *motion, struct bufferpos *pos,
 	 *
 	 * and by char i mean iswordpart()
 	 */
-	char *const charstart = buffer_getindex(global_buffer, *pos->y)->data;
+	char *const charstart = buffer_getindex(current_buffer, *pos->y)->data;
 	char *      charpos   = charstart + *pos->x;
 
 	switch(motion->motion){
@@ -215,7 +216,7 @@ int applymotion2(struct motion *motion, struct bufferpos *pos,
 
 		case MOTION_DOWN:
 		{
-			int nlines = buffer_nlines(global_buffer);
+			int nlines = buffer_nlines(current_buffer);
 
 			if(nlines < 0)
 				nlines = 0;
@@ -315,10 +316,10 @@ int applymotion2(struct motion *motion, struct bufferpos *pos,
 		{
 			int mid;
 
-			if(buffer_nlines(global_buffer) - si->top > si->height)
+			if(buffer_nlines(current_buffer) - si->top > si->height)
 				mid = si->top + si->height/2;
 			else{
-				mid = si->top + (buffer_nlines(global_buffer) - si->top - 1)/2;
+				mid = si->top + (buffer_nlines(current_buffer) - si->top - 1)/2;
 				if(mid < 0)
 					mid = 0;
 			}
@@ -330,8 +331,8 @@ int applymotion2(struct motion *motion, struct bufferpos *pos,
 		case MOTION_SCREEN_BOTTOM:
 			*pos->y = si->top + si->height - 2 - SCROLL_OFF;
 
-			if(*pos->y >= buffer_nlines(global_buffer))
-				*pos->y = buffer_nlines(global_buffer)-1;
+			if(*pos->y >= buffer_nlines(current_buffer))
+				*pos->y = buffer_nlines(current_buffer)-1;
 			return 0;
 
 		case MOTION_PARA_PREV:
@@ -339,7 +340,7 @@ int applymotion2(struct motion *motion, struct bufferpos *pos,
 		{
 			const int rev = motion->motion == MOTION_PARA_PREV;
 			int y = *pos->y;
-			struct list *l = buffer_getindex(global_buffer, y);
+			struct list *l = buffer_getindex(current_buffer, y);
 #define NEXT() \
 			do \
 				if(rev){ \
@@ -365,7 +366,7 @@ int applymotion2(struct motion *motion, struct bufferpos *pos,
 			if(l)
 				*pos->y = y;
 			else
-				*pos->y = rev ? 0 : buffer_nlines(global_buffer);
+				*pos->y = rev ? 0 : buffer_nlines(current_buffer);
 
 			*pos->x = 0;
 			return 0;
@@ -376,7 +377,7 @@ int applymotion2(struct motion *motion, struct bufferpos *pos,
 		{
 			const int rev = motion->motion == MOTION_FUNC_PREV;
 			int y = *pos->y + (rev ? -1 : 1);
-			struct list *l = buffer_getindex(global_buffer, y);
+			struct list *l = buffer_getindex(current_buffer, y);
 
 			while(l){
 				if(*(char *)l->data == '{')
@@ -387,7 +388,7 @@ int applymotion2(struct motion *motion, struct bufferpos *pos,
 			if(l)
 				*pos->y = y;
 			else
-				*pos->y = rev ? 0 : buffer_nlines(global_buffer);
+				*pos->y = rev ? 0 : buffer_nlines(current_buffer);
 
 			*pos->x = 0;
 			return 0;
@@ -410,7 +411,7 @@ int applymotion2(struct motion *motion, struct bufferpos *pos,
 			if(motion->ntimes > 1)
 				goto MOTION_GOTO;
 
-			last = buffer_nlines(global_buffer) - 1;
+			last = buffer_nlines(current_buffer) - 1;
 			if(last < 0)
 				last = 0;
 
@@ -425,8 +426,8 @@ MOTION_GOTO:
 		int y = motion->ntimes - 1;
 		if(y < 0)
 			y = 0;
-		else if(y >= buffer_nlines(global_buffer))
-			y = buffer_nlines(global_buffer) - 1;
+		else if(y >= buffer_nlines(current_buffer))
+			y = buffer_nlines(current_buffer) - 1;
 
 		*pos->y = y;
 	}
@@ -435,7 +436,7 @@ MOTION_GOTO:
 
 static void percent(struct bufferpos *lp)
 {
-	struct list *listpos = buffer_getindex(global_buffer, *lp->y);
+	struct list *listpos = buffer_getindex(current_buffer, *lp->y);
 	char *line = listpos->data;
 	char *pos = line + *lp->x, *opposite;
 	int dir;

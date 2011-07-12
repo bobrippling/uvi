@@ -10,6 +10,7 @@
 #include "global.h"
 #include "util/io.h"
 #include "gui/map.h"
+#include "buffers.h"
 
 static const char *rc_file(void)
 {
@@ -88,10 +89,10 @@ int rc_read()
 					fprintf(stderr, PRE "extraneous data (%s)\n", ARGS, p);
 					haderr = 1;
 				}else{
-					vars_set(type, global_buffer, bool);
+					vars_set(type, current_buffer, bool);
 				}
 			}else if(p){
-				vars_set(type, global_buffer, atoi(p));
+				vars_set(type, current_buffer, atoi(p));
 			}else{
 				fprintf(stderr, PRE "need value for %s\n", ARGS, start);
 				haderr = 1;
