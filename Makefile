@@ -18,10 +18,10 @@ clean:
 	rm -f uvi `find -iname \*.o`
 
 install: uvi
-	cp uvi /usr/bin
+	cp uvi ${PREFIX}/bin
 
 uninstall:
-	rm -f /usr/bin/uvi
+	rm -f ${PREFIX}/bin/uvi
 
 .PHONY: clean
 
