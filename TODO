@@ -17,23 +17,16 @@ ncurses:
 regex:
 	simple (vi(1) - see '/'): ^$.[]*
 
-binary file handling? - '\0' for e.g
+binary file handling? (i.e. '\0')
 
 side scrolling with tabs - fix
 
 'nu'
-'cindent'
+'cindent' (aka just handle {} nesting)
 
 completion - show words
 
 fix i_S - currently joins with line below
-
-[[
-]]
-
-* and #
-
-~ is handled by buffer_read(), nowhere else
 
 cat <<! | uvi <<tim
 hi
@@ -45,18 +38,9 @@ tim
 store list of words after each buffer insertion, rather than generate
 buffer_getwords() - ->dirty etc etc
 
-uvi <<!
-G
-''
-!
-
 'scs' aka smartcase search
 
 i_R
-
-:reg[s] command
-
-show spaces cmd
 
 obscureword_yoyo
 obscureword_test
@@ -67,4 +51,4 @@ fix 'ai' for xyz\n\n\n<insert here>
 
 auto indent for ^[r\n
 
-:A
+on :e (etc) add file to buffers(.c)
