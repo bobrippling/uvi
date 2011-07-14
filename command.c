@@ -48,11 +48,17 @@ char *argv_to_str(int argc, char **argv)
 	return s;
 }
 
+void replace_buffer_t(buffer_t *b)
+{
+	/* FIXME: add file to buffers */
+	buffer_free(current_buffer);
+	current_buffer = b;
+	gui_move(0, 0);
+}
+
 void replace_buffer(const char *fname)
 {
-	buffer_free(current_buffer);
-	current_buffer = gui_readfile(fname);
-	gui_move(0, 0);
+	replace_buffer_t(gui_readfile(fname));
 }
 
 void cmd_r(int argc, char **argv, int force, struct range *rng)
@@ -325,9 +331,7 @@ void cmd_new(int argc, char **argv, int force, struct range *rng)
 	if(!force && buffer_modified(current_buffer)){
 		gui_status(GUI_ERR, "new: buffer modified");
 	}else{
-		buffer_free(current_buffer);
-		current_buffer = buffer_new_empty();
-		gui_move(0, 0);
+		replace_buffer_t(buffer_new_empty());
 	}
 }
 
@@ -512,6 +516,22 @@ void cmd_n(int argc, char **argv, int force, struct range *rng)
 		gui_status(GUI_ERR, "file index out of range");
 }
 
+void cmd_ls(int argc, char **argv, int force, struct range *rng)
+{
+	const char **iter;
+	const int cur = buffers_cur();
+	int i;
+
+	if(argc != 1 || rng->start != -1 || rng->end != -1 || force){
+		gui_status(GUI_ERR, "usage: %s", *argv);
+		return;
+	}
+
+	for(i = 0, iter = buffers_first(); *iter; iter++, i++)
+		gui_status_add(i == cur ? GUI_COL_BLUE : GUI_NONE, "%d: %s", i, *iter);
+	gui_status_wait();
+}
+
 #ifdef BLOAT
 # include "bloat/command.c"
 #endif
@@ -635,6 +655,7 @@ void command_run(char *in)
 #define CMD(x) { #x, cmd_##x }
 		{ "!",  cmd_bang },
 		{ "?",  cmd_where },
+
 		{ "we", cmd_w },
 		{ "wq", cmd_w },
 		{ "x",  cmd_w },
@@ -643,12 +664,15 @@ void command_run(char *in)
 		CMD(w),
 		CMD(q),
 		CMD(e),
+
 		CMD(A),
 		CMD(set),
-		CMD(new),
 		CMD(regs),
+
 		CMD(n),
 		{ "N", cmd_n },
+		CMD(ls),
+
 #ifdef BLOAT
 # include "bloat/command.h"
 #endif

@@ -15,6 +15,16 @@ static int start;
 static int current;
 static int end;
 
+const char **buffers_first()
+{
+	return fnames;
+}
+
+int buffers_cur()
+{
+	return current;
+}
+
 void buffers_init(const char **argv, int ro)
 {
 	for(end = 0; end[argv]; end++);
