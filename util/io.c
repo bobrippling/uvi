@@ -24,7 +24,11 @@
 
 void input_reopen()
 {
-	freopen("/dev/tty", "r", stdin);
+	if(!freopen("/dev/tty", "r", stdin)){
+		gui_term();
+		fprintf(stderr, "uvi: freopen(\"/dev/tty\", \"r\", stdin) = %s\n", strerror(errno));
+		exit(1);
+	}
 }
 
 void chomp_line()

@@ -554,7 +554,7 @@ void gui_addch(int c)
 
 		default:
 			if(!isprint(c)){
-				fprintf(stderr, "print unprintable: %d (%c)\n", c, c);
+				/*fprintf(stderr, "print unprintable: %d (%c)\n", c, c);*/
 				if(0 <= c && c <= 'A' - 1){
 					gui_attron( GUI_IS_NOT_PRINT);
 					printw("^%c", c + 'A' - 1);
@@ -899,11 +899,14 @@ buffer_t *gui_readfile(const char *filename)
 
 	if(filename){
 		FILE *f;
+		int read_stdin;
 
 		if(strcmp(filename, "-")){
 			f = fopen(filename, "r");
+			read_stdin = 0;
 		}else{
 			f = stdin;
+			read_stdin = 1;
 		}
 
 		if(f){
@@ -915,7 +918,10 @@ buffer_t *gui_readfile(const char *filename)
 						errno ? strerror(errno) : "unknown error - binary file?");
 
 			}else{
-				buffer_readonly(b) = access(filename, W_OK);
+				if(read_stdin)
+					buffer_readonly(b) = 0;
+				else
+					buffer_readonly(b) = access(filename, W_OK);
 
 				if(nread == 0)
 					gui_status(GUI_NONE, "%s: empty file%s", filename, buffer_readonly(b) ? " [read only]" : "");
@@ -930,10 +936,9 @@ buffer_t *gui_readfile(const char *filename)
 							);
 			}
 
-			if(f == stdin)
+			fclose(f);
+			if(read_stdin)
 				input_reopen();
-			else
-				fclose(f);
 
 		}else{
 			if(errno == ENOENT)
