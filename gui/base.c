@@ -40,7 +40,7 @@ REPEAT_FUNC(tilde);
 REPEAT_FUNC(replace);
 
 /* extra */
-static void colon(void);
+static void colon(const char *);
 static int  search(int, int);
 REPEAT_FUNC(showgirl);
 
@@ -602,9 +602,12 @@ static void join(unsigned int ntimes)
 	buffer_modified(current_buffer) = 1;
 }
 
-static void colon()
+static void colon(const char *initial)
 {
 	char *in = NULL;
+
+	if(initial && *initial)
+		gui_queue(initial);
 
 	if(!gui_prompt(":", &in, NULL)){
 		char *c = strchr(in, '\n');
@@ -705,10 +708,21 @@ switch_start:
 switch_switch:
 		switch(c){
 			case ':':
-				colon();
+			{
+				char buffer[16];
+				if(visual_get() != VISUAL_NONE)
+					snprintf(buffer, sizeof buffer, "%d,%d",
+							visual_get_start()->start + 1, /* convert to 1-based */
+							visual_get_end(  )->start + 1);
+				else
+					*buffer = '\0';
+
+				colon(buffer);
+
 				/* need to view_refresh_or_whatever() */
 				buffer_changed = 1;
 				break;
+			}
 
 			case '.':
 				if(prevcmd){

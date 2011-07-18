@@ -290,6 +290,8 @@ void cmd_bang(int argc, char **argv, int force, struct range *rng)
 			gui_status(GUI_ERR, "pipe_readwrite() error: %s", strerror(errno));
 		}
 
+		buffer_modified(current_buffer) = 1;
+
 		free(free_me);
 		if(to_pipe)
 			list_free(to_pipe, free);
@@ -699,7 +701,7 @@ void command_run(char *in)
 
 	if(!s){
 		if(errno == ERANGE){
-			if(gui_confirm("range backwards, flip? ")){
+			if(gui_confirm("range backwards, flip? (y/n) ")){
 				int i = rng.start;
 				rng.start = rng.end;
 				rng.end = i;
