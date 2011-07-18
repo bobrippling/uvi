@@ -21,18 +21,20 @@
 #include "macro.h"
 #include "marks.h"
 #include "../buffers.h"
+#include "visual.h"
 
 #define GUI_TAB_INDENT(x) \
 	(global_settings.tabstop - (x) % global_settings.tabstop)
 
 
+#if 0
 typedef struct
 {
 	const char *const start, *const end;
 	const int colour, attrib;
 } syntax;
+#endif
 
-/*#include "../config.h"*/
 static void gui_position_cursor(const char *);
 static void gui_coord_to_scr(int *py, int *px, const char *line);
 static void gui_attron( enum gui_attr);
@@ -448,18 +450,35 @@ void gui_redraw()
 
 void gui_draw()
 {
+	const struct range *visual_start, *visual_end;
+	const int vis = visual_get() != VISUAL_NONE;
+
 	struct list *l;
 	int y;
+	int real_y;
+
+	real_y = pos_top;
+
+	if(vis){
+		visual_start = visual_get_start();
+		visual_end   = visual_get_end();
+
+		if(visual_start->start < real_y && real_y < visual_end->start)
+			attron(A_REVERSE);
+	}
 
 	for(l = buffer_getindex(current_buffer, pos_top), y = 0;
 			l && y < LINES - 1;
-			l = l->next, y++){
+			l = l->next, y++, real_y++){
 
 		char *p;
 		int i;
 
 		move(y, 0);
 		clrtoeol();
+
+		if(vis && real_y == visual_start->start)
+			attron(A_REVERSE);
 
 		for(p = l->data, i = 0;
 				*p && i < pos_left + COLS;
@@ -482,7 +501,12 @@ void gui_draw()
 			if(i > pos_left) /* here so we get tabs right */
 				gui_addch(*p);
 		}
+
+		if(vis && real_y == visual_end->start)
+			attroff(A_REVERSE);
 	}
+
+	attroff(A_REVERSE);
 
 	attron( COLOR_PAIR(COLOR_BLUE) | A_BOLD);
 	for(; y < LINES - 1; y++)

@@ -25,6 +25,7 @@
 #include "../yank.h"
 #include "map.h"
 #include "../buffers.h"
+#include "visual.h"
 
 #define REPEAT_FUNC(nam) static void nam(unsigned int)
 
@@ -620,8 +621,10 @@ static void colon()
 static int iseditchar(int c)
 {
 	switch(c){
-		case 'O':
 		case 'o':
+			if(visual_get() != VISUAL_NONE)
+				break;
+		case 'O':
 		case 'X':
 		case 'x':
 		case 'C':
@@ -647,13 +650,13 @@ static int iseditchar(int c)
 void gui_run()
 {
 	struct motion motion;
-	int bufferchanged;
-	int viewchanged;
+	int buffer_changed;
+	int view_changed;
 	int prevcmd;
 	int multiple, prevmultiple;
 
-	bufferchanged = 0;
-	viewchanged = 1;
+	buffer_changed = 0;
+	view_changed = 1;
 	prevcmd = 0;
 	prevmultiple = multiple = 0;
 
@@ -661,14 +664,14 @@ void gui_run()
 		int flag = 0, resetmultiple = 1;
 		int c;
 
-		if(bufferchanged){
-			bufferchanged = 0;
-			viewchanged = 1;
+		if(buffer_changed){
+			buffer_changed = 0;
+			view_changed = 1;
 		}
-		if(viewchanged){
+		if(view_changed){
 			if(gui_peekunget() != ':')
 				gui_draw();
-			viewchanged = 0;
+			view_changed = 0;
 		}
 
 #define INC_MULTIPLE() \
@@ -704,7 +707,7 @@ switch_switch:
 			case ':':
 				colon();
 				/* need to view_refresh_or_whatever() */
-				bufferchanged = 1;
+				buffer_changed = 1;
 				break;
 
 			case '.':
@@ -728,15 +731,20 @@ switch_switch:
 
 			case CTRL_AND('g'):
 				showpos();
-				viewchanged = 1;
+				view_changed = 1;
 				break;
 
 			case 'O':
 				flag = 1;
 			case 'o':
-				open(flag);
-				bufferchanged = 1;
-				SET_DOT();
+				if(!flag && visual_get() != VISUAL_NONE){
+					visual_swap();
+					view_changed = 1;
+				}else{
+					open(flag);
+					buffer_changed = 1;
+					SET_DOT();
+				}
 				break;
 
 			case 's':
@@ -745,7 +753,7 @@ switch_switch:
 			case 'x':
 				SET_MOTION(c == 'X' ? MOTION_BACKWARD_LETTER : MOTION_FORWARD_LETTER);
 				motion_cmd(&motion, delete_line, delete_range);
-				bufferchanged = 1;
+				buffer_changed = 1;
 				SET_DOT();
 				if(flag)
 					insert(0, 0);
@@ -758,7 +766,7 @@ switch_switch:
 				motion_cmd(&motion, delete_line, delete_range);
 				if(flag)
 					insert(1 /* append */, 0);
-				bufferchanged = 1;
+				buffer_changed = 1;
 				SET_DOT();
 				break;
 
@@ -769,8 +777,8 @@ switch_switch:
 			case 'd':
 				motion.ntimes = multiple;
 				change(&motion, flag);
-				viewchanged = 1;
-				bufferchanged = 1;
+				view_changed = 1;
+				buffer_changed = 1;
 				SET_DOT();
 				break;
 
@@ -787,7 +795,7 @@ switch_switch:
 				flag = 1;
 			case 'p':
 				put(multiple, flag);
-				bufferchanged = 1;
+				buffer_changed = 1;
 				break;
 
 			case 'y':
@@ -811,7 +819,7 @@ switch_switch:
 			case 'i':
 case_i:
 				insert(flag, 0);
-				bufferchanged = 1;
+				buffer_changed = 1;
 				SET_DOT();
 				break;
 			case 'I':
@@ -821,33 +829,33 @@ case_i:
 
 			case 'J':
 				join(multiple);
-				bufferchanged = 1;
+				buffer_changed = 1;
 				SET_DOT();
 				break;
 
 			case 'r':
 				replace(multiple);
-				bufferchanged = 1;
+				buffer_changed = 1;
 				SET_DOT();
 				break;
 
 			case CTRL_AND('f'):
-				viewchanged = gui_scroll(PAGE_DOWN);
+				view_changed = gui_scroll(PAGE_DOWN);
 				break;
 			case CTRL_AND('b'):
-				viewchanged = gui_scroll(PAGE_UP);
+				view_changed = gui_scroll(PAGE_UP);
 				break;
 			case CTRL_AND('d'):
-				viewchanged = gui_scroll(HALF_DOWN);
+				view_changed = gui_scroll(HALF_DOWN);
 				break;
 			case CTRL_AND('u'):
-				viewchanged = gui_scroll(HALF_UP);
+				view_changed = gui_scroll(HALF_UP);
 				break;
 			case CTRL_AND('e'):
-				viewchanged = gui_scroll(SINGLE_DOWN);
+				view_changed = gui_scroll(SINGLE_DOWN);
 				break;
 			case CTRL_AND('y'):
-				viewchanged = gui_scroll(SINGLE_UP);
+				view_changed = gui_scroll(SINGLE_UP);
 				break;
 
 			case CTRL_AND('l'):
@@ -886,7 +894,7 @@ case_i:
 					next = tolower(c) == 'n';
 				}
 
-				viewchanged = !search(next, rev);
+				view_changed = !search(next, rev);
 				break;
 			}
 
@@ -894,14 +902,14 @@ case_i:
 				flag = 1;
 			case '<':
 				shift(multiple, flag);
-				bufferchanged = 1;
+				buffer_changed = 1;
 				SET_DOT();
 				break;
 
 			case '~':
 				tilde(multiple);
 				SET_DOT();
-				bufferchanged = 1;
+				buffer_changed = 1;
 				break;
 
 			case 'K':
@@ -921,14 +929,23 @@ case_i:
 						gui_scroll(CURSOR_BOTTOM);
 						break;
 				}
-				viewchanged = 1;
+				view_changed = 1;
 				break;
 
 			case CTRL_AND('['):
+				visual_set(VISUAL_NONE);
 				break;
 
 			case '\\':
 				map();
+				break;
+
+			case 'V':
+				if(visual_get() != VISUAL_LINE)
+					visual_set(VISUAL_LINE);
+				else
+					visual_set(VISUAL_NONE);
+				view_changed = 1;
 				break;
 
 			case 'Z':
@@ -939,6 +956,7 @@ case_i:
 				switch(c){
 					MAP('Z', "x");
 					MAP('Q', "q!");
+					MAP('W', "w");
 #undef MAP
 
 					default:
@@ -980,7 +998,7 @@ case_i:
 						if(isbigmotion(&motion) && motion.motion != MOTION_MARK)
 							mark_jump();
 						gui_move_motion(&motion);
-						viewchanged = 1;
+						view_changed = 1;
 					}
 				}
 		}

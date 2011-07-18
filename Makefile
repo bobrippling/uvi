@@ -2,7 +2,7 @@ include config.mk
 
 OBJS = main.o buffer.o buffers.o range.o command.o vars.o \
 	util/list.o util/alloc.o util/io.o util/pipe.o util/str.o util/term.o \
-	gui/gui.o gui/motion.o gui/marks.o gui/base.o gui/intellisense.o gui/map.o gui/macro.o \
+	gui/gui.o gui/motion.o gui/marks.o gui/base.o gui/intellisense.o gui/map.o gui/macro.o gui/visual.o \
 	global.o rc.o preserve.o yank.o
 
 
@@ -54,7 +54,7 @@ util/term.o: util/term.c
 gui/base.o: gui/base.c gui/../range.h gui/../buffer.h gui/../command.h \
  gui/../util/list.h gui/../global.h gui/motion.h gui/../util/alloc.h \
  gui/intellisense.h gui/gui.h gui/macro.h gui/marks.h gui/../main.h \
- gui/../util/str.h gui/../yank.h gui/map.h gui/../buffers.h
+ gui/../util/str.h gui/../yank.h gui/map.h gui/../buffers.h gui/visual.h
 gui/gui.o: gui/gui.c gui/../range.h gui/../util/list.h gui/../buffer.h \
  gui/motion.h gui/intellisense.h gui/gui.h gui/../global.h \
  gui/../util/alloc.h gui/../util/str.h gui/../util/term.h \
@@ -69,3 +69,4 @@ gui/marks.o: gui/marks.c gui/marks.h gui/gui.h
 gui/motion.o: gui/motion.c gui/../range.h gui/../util/list.h gui/../buffer.h \
  gui/motion.h gui/intellisense.h gui/gui.h gui/marks.h gui/../global.h \
  gui/../util/str.h gui/../buffers.h
+gui/visual.o: gui/visual.c gui/gui.h gui/visual.h
