@@ -78,14 +78,14 @@ int gui_init()
 		if(has_colors()){
 			start_color();
 			use_default_colors();
-			init_pair(COLOR_BLACK,   -1,            -1);
-			init_pair(COLOR_GREEN,   COLOR_GREEN,   -1);
-			init_pair(COLOR_WHITE,   COLOR_WHITE,   -1);
-			init_pair(COLOR_RED,     COLOR_RED,     -1);
-			init_pair(COLOR_CYAN,    COLOR_CYAN,    -1);
-			init_pair(COLOR_MAGENTA, COLOR_MAGENTA, -1);
-			init_pair(COLOR_BLUE,    COLOR_BLUE,    -1);
-			init_pair(COLOR_YELLOW,  COLOR_YELLOW,  -1);
+			init_pair(1 + COLOR_BLACK,   COLOR_BLACK,   -1);
+			init_pair(1 + COLOR_GREEN,   COLOR_GREEN,   -1);
+			init_pair(1 + COLOR_WHITE,   COLOR_WHITE,   -1);
+			init_pair(1 + COLOR_RED,     COLOR_RED,     -1);
+			init_pair(1 + COLOR_CYAN,    COLOR_CYAN,    -1);
+			init_pair(1 + COLOR_MAGENTA, COLOR_MAGENTA, -1);
+			init_pair(1 + COLOR_BLUE,    COLOR_BLUE,    -1);
+			init_pair(1 + COLOR_YELLOW,  COLOR_YELLOW,  -1);
 		}
 	}
 
@@ -111,22 +111,22 @@ void gui_term()
 	{ \
 		switch(a){ \
 			case GUI_ERR: \
-				fn(COLOR_PAIR(COLOR_RED) | A_BOLD); \
+				fn(COLOR_PAIR(1 + COLOR_RED) | A_BOLD); \
 				break; \
 			case GUI_IS_NOT_PRINT: \
-				fn(COLOR_PAIR(COLOR_BLUE)); \
+				fn(COLOR_PAIR(1 + COLOR_BLUE)); \
 				break; \
 			case GUI_NONE: \
 				break; \
 				\
-			case GUI_COL_BLUE:    fn(COLOR_PAIR(COLOR_BLUE)); break; \
-			case GUI_COL_BLACK:   fn(COLOR_PAIR(COLOR_BLACK)); break; \
-			case GUI_COL_GREEN:   fn(COLOR_PAIR(COLOR_GREEN)); break; \
-			case GUI_COL_WHITE:   fn(COLOR_PAIR(COLOR_WHITE)); break; \
-			case GUI_COL_RED:     fn(COLOR_PAIR(COLOR_RED)); break; \
-			case GUI_COL_CYAN:    fn(COLOR_PAIR(COLOR_CYAN)); break; \
-			case GUI_COL_MAGENTA: fn(COLOR_PAIR(COLOR_MAGENTA)); break; \
-			case GUI_COL_YELLOW:  fn(COLOR_PAIR(COLOR_YELLOW)); break; \
+			case GUI_COL_BLUE:    fn(COLOR_PAIR(1 + COLOR_BLUE)); break; \
+			case GUI_COL_BLACK:   fn(COLOR_PAIR(1 + COLOR_BLACK)); break; \
+			case GUI_COL_GREEN:   fn(COLOR_PAIR(1 + COLOR_GREEN)); break; \
+			case GUI_COL_WHITE:   fn(COLOR_PAIR(1 + COLOR_WHITE)); break; \
+			case GUI_COL_RED:     fn(COLOR_PAIR(1 + COLOR_RED)); break; \
+			case GUI_COL_CYAN:    fn(COLOR_PAIR(1 + COLOR_CYAN)); break; \
+			case GUI_COL_MAGENTA: fn(COLOR_PAIR(1 + COLOR_MAGENTA)); break; \
+			case GUI_COL_YELLOW:  fn(COLOR_PAIR(1 + COLOR_YELLOW)); break; \
 		} \
 	}
 
@@ -514,10 +514,10 @@ void gui_draw()
 
 	attroff(A_REVERSE);
 
-	attron( COLOR_PAIR(COLOR_BLUE) | A_BOLD);
+	attron( COLOR_PAIR(1 + COLOR_BLUE) | A_BOLD);
 	for(; y < LINES - 1; y++)
 		mvaddstr(y, 0, "~\n");
-	attroff(COLOR_PAIR(COLOR_BLUE) | A_BOLD);
+	attroff(COLOR_PAIR(1 + COLOR_BLUE) | A_BOLD);
 	gui_position_cursor(NULL);
 	refresh();
 }
@@ -883,13 +883,13 @@ void gui_drawbuffer(buffer_t *b)
 
 	move(y, 0);
 	if(global_settings.colour)
-		coloron(COLOR_BLUE, A_BOLD);
+		coloron(1 + COLOR_BLUE, A_BOLD);
 
 	while(++y <= LINES)
 		addstr("~\n");
 
 	if(global_settings.colour)
-		wcoloroff(COLOR_BLUE, A_BOLD);
+		wcoloroff(1 + COLOR_BLUE, A_BOLD);
 }
 #endif
 
