@@ -240,6 +240,12 @@ restart:
 
 	if(c == CTRL_AND('c')){
 		raise(SIGINT);
+		goto restart;
+	}else if(c == CTRL_AND('z')){
+		gui_term();
+		raise(SIGSTOP);
+		gui_reload();
+		goto restart;
 	}else if(c == 410 || c == -1){
 		if(return_sigwinch)
 			return CTRL_AND('l');
