@@ -254,23 +254,15 @@ lewpfin:
 	return indent / global_settings.tabstop;
 }
 
-static void insert(int append, int do_indent)
+void readlines(int do_indent, struct gui_read_opts *opts, char ***plines, int *pi)
 {
-	int i = 0, x = gui_x();
-	int nlines = 10;
+	int nlines;
+	char **lines;
 	int indent = 0;
-	char **lines = umalloc(nlines * sizeof *lines);
-	struct gui_read_opts opts;
+	int i = 0;
 
-	opts.intellisense = intellisense_insert;
-	opts.bspc_cancel  = 0;
-	opts.newline      = 1;
-	opts.textw        = global_settings.textwidth;
-
-	if(append){
-		x++;
-		gui_inc_cursor();
-	}
+	nlines = 10;
+	lines = umalloc(nlines * sizeof *lines);
 
 	if(do_indent && global_settings.autoindent){
 		struct list *lprev = buffer_getindex(current_buffer, gui_y() - 1);
@@ -286,7 +278,7 @@ static void insert(int append, int do_indent)
 			gui_ungetch('\t');
 
 		lines[i] = NULL;
-		esc = gui_getstr(&lines[i], &opts);
+		esc = gui_getstr(&lines[i], opts);
 		if(++i >= nlines)
 			lines = urealloc(lines, (nlines += 10) * sizeof *lines);
 
@@ -317,6 +309,29 @@ static void insert(int append, int do_indent)
 			/* ^[ */
 			break;
 	}
+
+	*plines = lines;
+	*pi = i;
+}
+
+static void insert(int append, int do_indent)
+{
+	char **lines;
+	struct gui_read_opts opts;
+	int x = gui_x();
+	int i;
+
+	opts.intellisense = intellisense_insert;
+	opts.bspc_cancel  = 0;
+	opts.newline      = 1;
+	opts.textw        = global_settings.textwidth;
+
+	if(append){
+		x++;
+		gui_inc_cursor();
+	}
+
+	readlines(do_indent, &opts, &lines, &i);
 
 	{
 		struct list *iter = buffer_getindex(current_buffer, gui_y());
@@ -351,6 +366,44 @@ static void insert(int append, int do_indent)
 
 	buffer_modified(current_buffer) = 1;
 	free(lines);
+}
+
+void overwrite()
+{
+	struct gui_read_opts opts;
+	struct list *iter;
+	int start_y, start_x;
+	char **lines;
+	int nl;
+	int i;
+
+	opts.intellisense = intellisense_insert;
+	opts.bspc_cancel  = 0;
+	opts.newline      = 1;
+	opts.textw        = global_settings.textwidth;
+
+	start_y = gui_y();
+	start_x = gui_x();
+
+	iter = buffer_getindex(current_buffer, start_y);
+
+	readlines(0 /* indent */, &opts, &lines, &nl);
+
+	if(strlen(*lines) > strlen(iter->data))
+		/* need to extend iter->data */
+		iter->data = urealloc(iter->data, strlen(iter->data) + strlen(*lines) + 1 /* plenty */);
+
+	/* don't copy the nul byte */
+	strncpy((char *)iter->data + start_x, *lines, strlen(*lines));
+
+	/* FIXME? if nl>0, instead of discarding *(iter->data + startx + strlen(*lines))..., tag it onto the end? */
+
+	/* tag all other lines onto the end */
+	for(i = nl - 1; i > 0; i--)
+		buffer_insertafter(current_buffer, iter, lines[i]);
+
+	gui_move(start_y + nl - 1, nl > 1 ? strlen(lines[nl-1]) : start_x + strlen(*lines) - 1);
+	buffer_modified(current_buffer) = 1;
 }
 
 static void open(int before)
@@ -840,6 +893,11 @@ case_i:
 				SET_MOTION(MOTION_LINE_START);
 				gui_move_motion(&motion);
 				goto case_i;
+
+			case 'R':
+				overwrite();
+				buffer_changed = 1;
+				break;
 
 			case 'J':
 				join(multiple);
