@@ -38,7 +38,7 @@ void die(const char *s)
 	gui_term();
 	preserve(current_buffer);
 	fprintf(stderr, "dying: %s\n", s);
-	exit(1);
+	abort();
 }
 
 void sigh(const int sig)
