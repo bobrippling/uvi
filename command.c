@@ -114,7 +114,7 @@ void cmd_w(int argc, char **argv, int force, struct range *rng)
 	int nw, nl;
 	int x = 0;
 
-	if(rng->start != -1 || rng->end != -1){
+	if(rng->start != -1){
 		if(rng->end == -1)
 			rng->start = rng->end;
 
@@ -130,16 +130,9 @@ void cmd_w(int argc, char **argv, int force, struct range *rng)
 			shellout(bang, list_to_write);
 
 			free(cmd);
-		}else{
-			goto write_list;
+			list_free(list_to_write, free);
+			return;
 		}
-
-		list_free(list_to_write, free);
-		return;
-
-	}else if(buffer_readonly(current_buffer)){
-		gui_status(GUI_ERR, "buffer is read-only");
-		return;
 	}
 
 	if(!strcmp(argv[0], "wq")){
@@ -147,56 +140,60 @@ void cmd_w(int argc, char **argv, int force, struct range *rng)
 	}else if(!strcmp(argv[0], "x")){
 		after = QUIT;
 		x = 1;
-
 	}else if(!strcmp(argv[0], "we")){
 		after = EDIT;
 	}else if(strcmp(argv[0], "w")){
 usage:
 		gui_status(GUI_ERR, "usage: w[qe][![!]] file|command");
-		return;
+		goto fin;
 	}
 
 	if(argc > 1 && argv[1][0] == '!'){
-		/* pipe */
+		/* same as above pipe, except the whole file */
 		char *cmd = argv_to_str(argc - 1, argv + 1);
 		char *bang = strchr(cmd, '!') + 1;
 
 		shellout(bang, buffer_gethead(current_buffer));
 
 		free(cmd);
-		return;
+		goto fin;
+	}
 
-	}else
-write_list:
-		if(argc == 2 && after != EDIT){
+	/* past the point of ! commands */
+	if(argc > 2)
+		goto usage;
+
+	if(argc == 2 && after != EDIT){
 		/* have a filename to save to */
-
 		if(!force){
 			struct stat st;
 
 			if(stat(argv[1], &st) == 0){
 				gui_status(GUI_ERR, "not over-writing %s", argv[1]);
-				return;
+				goto fin;
 			}
 		}
 		buffer_setfilename(current_buffer, argv[1]);
+		buffer_modified(current_buffer) = 1;
+	}
 
-	}else if(argc != 1 && (after == EDIT ? argc != 2 : 0)){
-		goto usage;
-
+	if(!buffer_hasfilename(current_buffer)){
+		gui_status(GUI_ERR, "buffer has no filename");
+		goto fin;
 	}
 
 	if(x && !buffer_modified(current_buffer))
 		goto after;
 
-	if(!buffer_hasfilename(current_buffer)){
-		gui_status(GUI_ERR, "buffer has no filename");
-		return;
-	}
-
-	if(!force && buffer_external_modified(current_buffer)){
-		gui_status(GUI_ERR, "buffer changed externally since last read");
-		return;
+	if(!force){
+		if(buffer_readonly(current_buffer)){
+			gui_status(GUI_ERR, "buffer is read-only");
+			goto fin;
+		}
+		if(buffer_external_modified(current_buffer)){
+			gui_status(GUI_ERR, "buffer changed externally since last read");
+			goto fin;
+		}
 	}
 
 	if(list_to_write){
@@ -210,10 +207,14 @@ write_list:
 
 	if(nw == -1){
 		gui_status(GUI_ERR, "couldn't write \"%s\": %s", buffer_filename(current_buffer), strerror(errno));
-		return;
+		goto fin;
 	}
+
 	buffer_modified(current_buffer) = 0;
-	gui_status(GUI_NONE, "\"%s\" %dL, %dC written", buffer_filename(current_buffer), nl, nw);
+	gui_status(GUI_NONE, "\"%s\" %s%dL, %dC written",
+			buffer_filename(current_buffer),
+			list_to_write ? "[partial-range] ":"",
+			nl, nw);
 
 after:
 	switch(after){
@@ -225,6 +226,10 @@ after:
 		case NONE:
 			break;
 	}
+
+fin:
+	if(list_to_write)
+		list_free(list_to_write, free);
 }
 
 
