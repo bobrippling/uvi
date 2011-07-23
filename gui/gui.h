@@ -97,7 +97,8 @@ void gui_clip(void);
 void gui_draw(void);
 void gui_redraw(void);
 
-char *gui_current_word(void);
+char *gui_current_word( void);
+char *gui_current_fname(void);
 
 int gui_macro_recording(void);
 void gui_macro_record(char);

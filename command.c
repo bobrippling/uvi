@@ -26,6 +26,7 @@
 #include "util/io.h"
 #include "yank.h"
 #include "buffers.h"
+#include "util/str.h"
 
 #define LEN(x) ((signed)(sizeof(x) / sizeof(x[0])))
 #define ERR_MODIFIED "buffer modified since last write"
@@ -613,25 +614,8 @@ void char_replace(int c, const char *rep, int argc, char **argv)
 {
 	int i;
 
-	for(i = 0; i < argc; i++){
-		char *p = strchr(argv[i], c);
-
-		while(p){
-			if((p > argv[i] ? p[-1] != '\\' : 1)){
-				char *sav = argv[i];
-				*p++ = '\0';
-
-				argv[i] = ustrprintf("%s%s%s", argv[i], rep, p);
-
-				p = strchr(argv[i] + (p - sav) + strlen(rep) - 1, c);
-
-				free(sav);
-			}else{
-				/* else, unescaped, continue looking */
-				p = strchr(p+1, c);
-			}
-		}
-	}
+	for(i = 0; i < argc; i++)
+		argv[i] = str_expand(argv[i], c, rep);
 }
 
 void filter_cmd(int argc, char **argv)

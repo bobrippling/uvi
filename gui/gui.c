@@ -783,9 +783,31 @@ int gui_scroll(enum scroll s)
 	return ret;
 }
 
+char *gui_current(char *(*f)(const char *, int))
+{
+	return f(buffer_getindex(current_buffer, pos_y)->data, pos_x);
+}
+
 char *gui_current_word()
 {
-	return word_at(buffer_getindex(current_buffer, pos_y)->data, pos_x);
+	return gui_current(word_at);
+}
+
+char *gui_current_fname()
+{
+	const char *home;
+	char *ret;
+
+	ret = gui_current(fname_at);
+
+	if(!ret)
+		return NULL;
+
+	home = getenv("HOME");
+	if(!home)
+		home = "/";
+	/* TODO: ~luser */
+	return str_expand(ret, '~', home);
 }
 
 #if 0

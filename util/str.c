@@ -8,9 +8,17 @@
 #include "str.h"
 #include "alloc.h"
 
-#define iswordchar(c) (isalnum(c) || c == '_')
+int iswordchar(int c)
+{
+	return isalnum(c) || c == '_';
+}
 
-char *word_at(const char *line, int x)
+int isfnamechar(int c)
+{
+	return !isspace(c); /* TODO: ignore trailing punctuation */
+}
+
+char *chars_at(const char *line, int x, int (*cmp)(int))
 {
 	const char *wordstart, *wordend;
 	char *word;
@@ -18,13 +26,13 @@ char *word_at(const char *line, int x)
 
 	wordend = wordstart = line + x;
 
-	if(!iswordchar(*wordstart))
+	if(!cmp(*wordstart))
 		return NULL;
 
-	while(wordstart > line && iswordchar(wordstart[-1]))
+	while(wordstart > line && cmp(wordstart[-1]))
 		wordstart--;
 
-	while(*wordend && iswordchar(*wordend))
+	while(*wordend && cmp(*wordend))
 		wordend++;
 
 	len = wordend - wordstart + 1;
@@ -35,6 +43,16 @@ char *word_at(const char *line, int x)
 	word[len - 1] = '\0';
 
 	return word;
+}
+
+char *word_at(const char *line, int x)
+{
+	return chars_at(line, x, iswordchar);
+}
+
+char *fname_at(const char *line, int x)
+{
+	return chars_at(line, x, isfnamechar);
 }
 
 char **words_begin(struct list *l, const char *s)
@@ -85,6 +103,29 @@ void str_escape(char *arg)
 			*s = '\n';
 			memmove(s+1, s+2, strlen(s+1));
 		}
+}
+
+char *str_expand(char *arg, char c, const char *rep)
+{
+	char *p = strchr(arg, c);
+
+	while(p){
+		if((p > arg ? p[-1] != '\\' : 1)){
+			char *sav = arg;
+			*p++ = '\0';
+
+			arg = ustrprintf("%s%s%s", arg, rep, p);
+
+			p = strchr(arg + (p - sav) + strlen(rep) - 1, c);
+
+			free(sav);
+		}else{
+			/* else, unescaped, continue looking */
+			p = strchr(p+1, c);
+		}
+	}
+
+	return arg;
 }
 
 int str_numeric(const char *s)

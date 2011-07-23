@@ -30,7 +30,7 @@ uninstall:
 ./buffers.o: buffers.c range.h buffer.h buffers.h gui/gui.h
 ./command.o: command.c range.h buffer.h command.h util/list.h vars.h \
  util/alloc.h util/pipe.h global.h gui/motion.h gui/intellisense.h \
- gui/gui.h util/io.h yank.h buffers.h
+ gui/gui.h util/io.h yank.h buffers.h util/str.h
 ./global.o: global.c range.h buffer.h global.h
 ./main.o: main.c main.h range.h buffer.h global.h gui/motion.h \
  gui/intellisense.h gui/gui.h rc.h command.h util/io.h preserve.h \
@@ -58,7 +58,7 @@ gui/base.o: gui/base.c gui/../range.h gui/../buffer.h gui/../command.h \
 gui/gui.o: gui/gui.c gui/../range.h gui/../util/list.h gui/../buffer.h \
  gui/motion.h gui/intellisense.h gui/gui.h gui/../global.h \
  gui/../util/alloc.h gui/../util/str.h gui/../util/term.h \
- gui/../util/io.h gui/macro.h gui/marks.h gui/../buffers.h
+ gui/../util/io.h gui/macro.h gui/marks.h gui/../buffers.h gui/visual.h
 gui/intellisense.o: gui/intellisense.c gui/intellisense.h gui/../range.h \
  gui/../buffer.h gui/../global.h gui/../util/str.h gui/../util/list.h \
  gui/../util/alloc.h gui/motion.h gui/gui.h gui/../buffers.h
@@ -69,4 +69,4 @@ gui/marks.o: gui/marks.c gui/marks.h gui/gui.h
 gui/motion.o: gui/motion.c gui/../range.h gui/../util/list.h gui/../buffer.h \
  gui/motion.h gui/intellisense.h gui/gui.h gui/marks.h gui/../global.h \
  gui/../util/str.h gui/../buffers.h
-gui/visual.o: gui/visual.c gui/gui.h gui/visual.h
+gui/visual.o: gui/visual.c gui/../range.h gui/gui.h gui/visual.h

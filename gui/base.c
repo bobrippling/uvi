@@ -185,6 +185,21 @@ void showgirl(unsigned int page)
 	free(word);
 }
 
+int go_file()
+{
+	char *fname = gui_current_fname();
+
+	if(fname){
+		/* TODO: query - rewrite gui_readfile() and so on, all goes through one f() */
+		replace_buffer(fname);
+		free(fname);
+		return 0;
+	}else{
+		gui_status(GUI_ERR, "no file selected");
+		return 1;
+	}
+}
+
 void replace(unsigned int n)
 {
 	int c;
@@ -1058,6 +1073,20 @@ case_i:
 						macro_play(m);
 				}
 				break;
+			}
+
+			case '!':
+			{
+				int ch = gui_getch(0);
+				switch(ch){
+					case 'f':
+						if(!go_file())
+							buffer_changed = 1;
+						break;
+					default:
+						gui_status(GUI_ERR, "Invalid ! suffix");
+						break;
+				}
 			}
 
 			default:
