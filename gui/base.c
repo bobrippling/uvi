@@ -775,6 +775,15 @@ switch_start:
 
 switch_switch:
 		switch(c){
+			/*
+			 * TODO: different switch when in visual mode
+			 * struct cmd
+			 * {
+			 *   char ch;
+			 *   void (*f)();
+			 *   int when_visual;
+			 * };
+			 */
 			case ':':
 			{
 				char buffer[16];
