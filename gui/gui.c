@@ -584,15 +584,12 @@ void gui_addch(int c)
 
 		default:
 			if(!isprint(c)){
-				/*fprintf(stderr, "print unprintable: %d (%c)\n", c, c);*/
 				if(0 <= c && c <= 'A' - 1){
 					gui_attron( GUI_IS_NOT_PRINT);
 					printw("^%c", c + 'A' - 1);
 					gui_attroff(GUI_IS_NOT_PRINT);
-				}else{
-					addch(c);
+					break;
 				}
-				break;
 			}else if(c == ' ' && global_settings.list){
 				gui_attron( GUI_IS_NOT_PRINT);
 				addch('.');
@@ -602,7 +599,7 @@ void gui_addch(int c)
 			/* else fall */
 
 		case '\n':
-			addch(c);
+			addch(c & A_CHARTEXT);
 			break;
 	}
 }
