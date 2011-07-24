@@ -473,7 +473,7 @@ void gui_draw()
 			attron(A_REVERSE);
 	}
 
-	for(l = buffer_getindex(current_buffer, pos_top), y = 0;
+	for(l = buffer_getindex(buffers_current(), pos_top), y = 0;
 			l && y < LINES - 1;
 			l = l->next, y++, real_y++){
 
@@ -531,7 +531,7 @@ static void gui_coord_to_scr(int *py, int *px, const char *line)
 	max = *px;
 
 	if(!line){
-		struct list *l = buffer_getindex(current_buffer, y);
+		struct list *l = buffer_getindex(buffers_current(), y);
 		if(l)
 			line = l->data;
 		else
@@ -631,11 +631,11 @@ void gui_move(int y, int x)
 
 	if(y < 0)
 		y = 0;
-	else if(y >= buffer_nlines(current_buffer))
-		y = buffer_nlines(current_buffer)-1;
+	else if(y >= buffer_nlines(buffers_current()))
+		y = buffer_nlines(buffers_current())-1;
 
 	/* check that we're on the right x pos - ^I etc */
-	line = buffer_getindex(current_buffer, y)->data;
+	line = buffer_getindex(buffers_current(), y)->data;
 
 	len = strlen(line) - 1;
 	if(len < 0)
@@ -663,7 +663,7 @@ void gui_move(int y, int x)
 
 void gui_inc(int n)
 {
-	int nl = buffer_nlines(current_buffer);
+	int nl = buffer_nlines(buffers_current());
 
 	if(pos_y < nl - 1){
 		pos_y += n;
@@ -712,7 +712,7 @@ int gui_scroll(enum scroll s)
 
 	switch(s){
 		case SINGLE_DOWN:
-			if(pos_top < buffer_nlines(current_buffer) - 1 - SCROLL_OFF){
+			if(pos_top < buffer_nlines(buffers_current()) - 1 - SCROLL_OFF){
 				pos_top += SCROLL_OFF;
 				if(pos_y < pos_top + SCROLL_OFF)
 					pos_y = pos_top + SCROLL_OFF;
@@ -785,7 +785,7 @@ int gui_scroll(enum scroll s)
 
 char *gui_current(char *(*f)(const char *, int))
 {
-	return f(buffer_getindex(current_buffer, pos_y)->data, pos_x);
+	return f(buffer_getindex(buffers_current(), pos_y)->data, pos_x);
 }
 
 char *gui_current_word()
@@ -809,111 +809,6 @@ char *gui_current_fname()
 	/* TODO: ~luser */
 	return str_expand(ret, '~', home);
 }
-
-#if 0
-void gui_drawbuffer(buffer_t *b)
-{
-	struct list *l = buffer_getindex(b, pos_top);
-	int y = 0;
-
-	int keyword_on = 0;
-	int colour_on = 0, waitlen = 0, needcolouroff = 0;
-	unsigned int current_syntax = -1;
-
-	const char newline[] = "\n";
-	KEYWORDS;
-#define KEYWORD_COUNT (sizeof(keyword)/sizeof(keyword[0]))
-
-	clear();
-	move(0, 0);
-
-	if(global_settings.colour){
-		while(l){
-			char *c = l->data;
-			int lim = COLS - 1, i;
-
-			while(*c && lim > 0){
-				checkcolour(c, &waitlen, &colour_on,
-						&current_syntax, &needcolouroff);
-
-				if(keyword_on && !--keyword_on)
-					/* a keyword's last character has been added */
-					wcoloroff(KEYWORD_COLOUR, A_BOLD);
-
-				if(*c == '\t')
-					if(global_settings.showtabs)
-						lim -= 2;
-					else
-						lim -= global_settings.tabstop;
-				else
-					lim--;
-
-				if(!colour_on && !keyword_on)
-					for(i = 0; i < (signed)KEYWORD_COUNT; i++)
-						if(!strncmp(keyword[i].kw, c, keyword[i].len)){
-							wcoloron(KEYWORD_COLOUR, A_BOLD);
-							keyword_on = keyword[i].len;
-							break;
-						}
-
-				view_waddch(pad, *c++);
-			}
-
-			while(*c)
-				checkcolour(c++, &waitlen, &colour_on,
-						&current_syntax, &needcolouroff);
-
-			checkcolour(newline, &waitlen, &colour_on,
-					&current_syntax, &needcolouroff);
-
-			waddch(pad, '\n');
-			y++;
-			l = l->next;
-		}
-	}else
-		while(l){
-			if(strchr(l->data, '\t')){
-				/* write at most COLS-1 chars */
-				char *iter;
-				int pos;
-
-				for(iter = l->data, pos = 0;
-						*iter && pos < COLS;
-						iter++, pos++){
-
-					if(*iter == '\t')
-						/* FIXME: proper tabs != 8 spaces */
-						if(global_settings.showtabs)
-							pos += 8;
-						else
-							pos += global_settings.tabstop;
-					else
-						pos++;
-
-					fprintf(stderr, "gui_addch('%c'), pos = %d + 1\n", *iter, pos);
-					gui_addch(*iter);
-				}
-			}else{
-				fprintf(stderr, "addnstr('%s', %d - 1);\n", l->data, COLS);
-				addnstr(l->data, COLS - 1);
-			}
-			addch('\n');
-
-			y++;
-			l = l->next;
-		}
-
-	move(y, 0);
-	if(global_settings.colour)
-		coloron(1 + COLOR_BLUE, A_BOLD);
-
-	while(++y <= LINES)
-		addstr("~\n");
-
-	if(global_settings.colour)
-		wcoloroff(1 + COLOR_BLUE, A_BOLD);
-}
-#endif
 
 int gui_macro_recording()
 {
@@ -944,134 +839,3 @@ static void macro_append(char c)
 
 	ustrcat(&macro_str, &macro_strlen, s, NULL);
 }
-
-buffer_t *gui_readfile(const char *filename)
-{
-	buffer_t *b = NULL;
-
-	if(filename){
-		FILE *f;
-		int read_stdin;
-
-		if(strcmp(filename, "-")){
-			f = fopen(filename, "r");
-			read_stdin = 0;
-		}else{
-			f = stdin;
-			read_stdin = 1;
-		}
-
-		if(f){
-			int nread = buffer_read(&b, f);
-
-			if(nread == -1){
-				gui_status(GUI_ERR, "read \"%s\": %s",
-						filename,
-						errno ? strerror(errno) : "unknown error - binary file?");
-
-			}else{
-				if(read_stdin)
-					buffer_readonly(b) = 0;
-				else
-					buffer_readonly(b) = access(filename, W_OK);
-
-				if(nread == 0)
-					gui_status(GUI_NONE, "%s: empty file%s", filename, buffer_readonly(b) ? " [read only]" : "");
-				else
-					gui_status(GUI_NONE, "%s%s: %dC, %dL%s%s",
-							filename,
-							buffer_readonly(b) ? " [read only]" : "",
-							buffer_nchars(b),
-							buffer_nlines(b),
-							buffer_eol(b)  ? "" : " [noeol]",
-							buffer_crlf(b) ? " [crlf]" : ""
-							);
-			}
-
-			fclose(f);
-			if(read_stdin)
-				input_reopen();
-
-		}else{
-			if(errno == ENOENT)
-				goto newfile;
-			gui_status(GUI_ERR, "open \"%s\": %s", filename, strerror(errno));
-		}
-
-	}else{
-newfile:
-		if(filename)
-			gui_status(GUI_NONE, "%s: new file", filename);
-		else
-			gui_status(GUI_NONE, "(new file)");
-	}
-
-	if(!b)
-		b = buffer_new_empty();
-	if(filename && strcmp(filename, "-"))
-		buffer_setfilename(b, filename);
-
-	return b;
-}
-
-#if 0
-static void checkcolour(const char *c, char *waitlen, char *colour_on,
-		unsigned int *current, char *needcolouroff)
-{
-	unsigned int i;
-	SYNTAXES;
-#define SYNTAX_COUNT  (sizeof(syntax)/sizeof(syntax[0]))
-
-	if(*waitlen <= 0){
-		if(*colour_on){
-			/* assert(*current >= 0); */
-			const char *ptr = syntax[i = *current].end;
-
-			if(!strncmp(c, ptr, syntax[i].elen)){
-				*colour_on = 0;
-				if(c[1] == '\0'){
-					wcoloroff(syntax[i].colour, syntax[i].attrib);
-				}else{
-					int stayon = 0;
-					unsigned int j;
-
-					c++;
-					for(j = 0; j < SYNTAX_COUNT; j++)
-						if(!strncmp(c, syntax[j].start, syntax[j].slen)){
-							stayon = 1;
-							wcoloroff(syntax[i].colour, syntax[i].attrib);
-							wcoloron( syntax[j].colour, syntax[j].attrib);
-							break;
-						}
-
-					if(!stayon){
-						*needcolouroff = 1;
-						*waitlen = syntax[i].elen;
-					}
-					/*
-					 * wait until the chars have been added before removing colour
-					 * below in the else bit
-					 */
-				}
-			}
-		}else
-			for(i = 0; i < SYNTAX_COUNT; i++){
-				const char *ptr = *colour_on ? syntax[i].end : syntax[i].start;
-
-				if(!strncmp(c, ptr, *colour_on ? syntax[i].elen : syntax[i].slen)){
-					wcoloron(syntax[i].colour, syntax[i].attrib);
-
-					*current = i;
-					*colour_on = 1;
-					*waitlen = syntax[i].slen - 1;
-					break;
-				}
-			}
-	}else if(--*waitlen == 0){
-		if(*needcolouroff){
-			wcoloroff(syntax[*current].colour, syntax[*current].attrib);
-			*needcolouroff = 0;
-		}
-	}
-}
-#endif

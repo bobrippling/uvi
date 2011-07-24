@@ -9,6 +9,7 @@ struct settings
 	int autoindent;
 	int colour;
 	int textwidth;
+	int fsync;
 };
 
 extern struct settings global_settings;

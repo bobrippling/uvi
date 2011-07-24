@@ -32,6 +32,7 @@ static struct
 	[VARS_LIST]       = { "list",     1, &global_settings.list },
 	[VARS_AUTOINDENT] = { "ai",       1, &global_settings.autoindent },
 	[VARS_TEXTWIDTH]  = { "tw",       0, &global_settings.textwidth },
+	[VARS_FSYNC]      = { "fsync",    1, &global_settings.fsync },
 };
 
 void vars_set(enum vartype t, buffer_t *b, int v)
@@ -102,10 +103,10 @@ enum vartype vars_gettype(const char *s)
 void vars_show(enum vartype t)
 {
 	if(vars_isbool(t)){
-		gui_status_add_col(vars_get(t, current_buffer) ? "" : "no", GUI_COL_RED, vars_tostring(t), GUI_NONE, NULL);
+		gui_status_add_col(vars_get(t, buffers_current()) ? "" : "no", GUI_COL_RED, vars_tostring(t), GUI_NONE, NULL);
 	}else{
 		char buf[8];
-		snprintf(buf, sizeof buf, "%d", vars_get(t, current_buffer));
+		snprintf(buf, sizeof buf, "%d", vars_get(t, buffers_current()));
 		gui_status_add_col(vars_tostring(t), GUI_COL_BLUE, "=", GUI_NONE, buf, GUI_COL_GREEN, NULL);
 	}
 }

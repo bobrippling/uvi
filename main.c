@@ -36,7 +36,7 @@ void usage(const char *s)
 void die(const char *s)
 {
 	gui_term();
-	preserve(current_buffer);
+	preserve(buffers_current());
 	fprintf(stderr, "dying: %s\n", s);
 	abort();
 }
@@ -44,7 +44,7 @@ void die(const char *s)
 void sigh(const int sig)
 {
 	gui_term();
-	preserve(current_buffer);
+	preserve(buffers_current());
 	fprintf(stderr, "We get signal %d\n", sig);
 	exit(sig + 128);
 }
@@ -128,7 +128,7 @@ at_fnames:
 	gui_term();
 	rc_read();
 
-	buffers_init(argv + argv_fname_start, ro);
+	buffers_init(argc - argv_fname_start, argv + argv_fname_start, ro);
 
 	gui_reload();
 	gui_run();

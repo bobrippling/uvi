@@ -27,7 +27,7 @@ uninstall:
 
 # :r!for d in . util gui; do cc -MM $d/*.c | sed "s;^[^ \t];$d/&;"; done
 ./buffer.o: buffer.c util/alloc.h range.h buffer.h util/list.h util/io.h
-./buffers.o: buffers.c range.h buffer.h buffers.h gui/gui.h
+./buffers.o: buffers.c range.h buffer.h buffers.h gui/gui.h util/io.h
 ./command.o: command.c range.h buffer.h command.h util/list.h vars.h \
  util/alloc.h util/pipe.h global.h gui/motion.h gui/intellisense.h \
  gui/gui.h util/io.h yank.h buffers.h util/str.h
