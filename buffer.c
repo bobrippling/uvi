@@ -14,6 +14,7 @@
 #include "buffer.h"
 #include "util/list.h"
 #include "util/io.h"
+#include "global.h"
 
 buffer_t *buffer_new_list(struct list *l)
 {
@@ -158,6 +159,11 @@ int buffer_write_list(buffer_t *b, struct list *l)
 		nwrite += w;
 
 	b->opentime = time(NULL);
+
+	if(global_settings.fsync && (fflush(f) || fsync(fileno(f)))){
+		nwrite = -1;
+		goto bail;
+	}
 
 bail:
 	eno = errno;
