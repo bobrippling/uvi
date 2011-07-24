@@ -141,35 +141,33 @@ int buffers_goto(int n)
 
 	if(arg_ro)
 		buffer_readonly(buffers_current()) = 1;
+
+	gui_move(0, 0);
 	return 0;
 }
 
 void buffers_load(const char *fname)
 {
-	buffer_t *b;
 	const char **iter;
-	int idx;
-	int found;
+	int found = 0, i;
 
-	for(found = idx = 0, iter = fnames; *iter; iter++, idx++)
-		if(!strcmp(*iter, fname)){
-			found = 1;
-			break;
-		}
+	if(fname)
+		for(i = 0, iter = fnames; *iter; iter++, i++)
+			if(!strcmp(*iter, fname)){
+				found = 1;
+				break;
+			}
 
-	b = buffers_readfile(fname); /* creates empty if not found */
-
-	if(!found && fname){
-		idx = count++;
-		fnames = urealloc(fnames, (count + 1) * sizeof *fnames);
-		fnames[idx]   = ustrdup(fname);
+	if(found){
+		buffers_goto(i);
+	}else if(fname){
+		i = count++;
+		fnames        = urealloc(fnames, (count + 1) * sizeof *fnames);
+		fnames[i]     = ustrdup(fname);
 		fnames[count] = NULL;
-	}else if(!found){
-		idx = -1;
+		buffers_goto(i);
+	}else{
+		current_buf = buffers_readfile(NULL);
+		current     = -1;
 	}
-
-	buffer_free(current_buf);
-	current_buf = b;
-	current = idx;
-	gui_move(0, 0);
 }
