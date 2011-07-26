@@ -553,8 +553,10 @@ int shellout(const char *cmd, struct list *l)
 
 	gui_term();
 
-	if(buffer_modified(buffers_current()))
+	if(buffer_modified(buffers_current())){
 		puts("uvi: No write since last change");
+		fflush(stdout);
+	}
 
 	if(l){
 		if(pipe_write(cmd, l, 0) == -1){
