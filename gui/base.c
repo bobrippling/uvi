@@ -77,7 +77,7 @@ static int search(int next, int rev)
 	/* TODO: allow SIGINT to stop search */
 	/* FIXME: start at curpos */
 	for(y = gui_y() + (rev ? -1 : 1),
-			l = buffer_getindex(current_buffer, y);
+			l = buffer_getindex(buffers_current(), y);
 			l;
 			l = (rev ? l->prev : l->next),
 			rev ? y-- : y++)
@@ -99,7 +99,7 @@ static int search(int next, int rev)
 
 void shift(unsigned int nlines, int indent)
 {
-	struct list *l = buffer_getindex(current_buffer, gui_y());
+	struct list *l = buffer_getindex(buffers_current(), gui_y());
 
 	if(!nlines)
 		nlines = 1;
@@ -134,12 +134,12 @@ void shift(unsigned int nlines, int indent)
 	}
 
 	gui_move(gui_y(), gui_x());
-	buffer_modified(current_buffer) = 1;
+	buffer_modified(buffers_current()) = 1;
 }
 
 void tilde(unsigned int rep)
 {
-	char *data = (char *)buffer_getindex(current_buffer, gui_y())->data;
+	char *data = (char *)buffer_getindex(buffers_current(), gui_y())->data;
 	char *pos = data + gui_x();
 
 	if(!rep)
@@ -159,7 +159,7 @@ void tilde(unsigned int rep)
 			break;
 	}
 
-	buffer_modified(current_buffer) = 1;
+	buffer_modified(buffers_current()) = 1;
 }
 
 void showgirl(unsigned int page)
@@ -191,7 +191,7 @@ int go_file()
 
 	if(fname){
 		/* TODO: query - rewrite gui_readfile() and so on, all goes through one f() */
-		replace_buffer(fname);
+		buffers_load(fname);
 		free(fname);
 		return 0;
 	}else{
@@ -203,7 +203,7 @@ int go_file()
 void replace(unsigned int n)
 {
 	int c;
-	struct list *cur = buffer_getindex(current_buffer, gui_y());
+	struct list *cur = buffer_getindex(buffers_current(), gui_y());
 	char *s = cur->data;
 
 	if(!*s)
@@ -224,7 +224,7 @@ void replace(unsigned int n)
 		memset(off - n + 1, '\0', n);
 		strcpy(cpy, off + 1);
 
-		buffer_insertafter(current_buffer, cur, cpy);
+		buffer_insertafter(buffers_current(), cur, cpy);
 
 		gui_move(gui_y() + 1, 0);
 	}else{
@@ -234,16 +234,16 @@ void replace(unsigned int n)
 			s[x + n] = c;
 	}
 
-	buffer_modified(current_buffer) = 1;
+	buffer_modified(buffers_current()) = 1;
 }
 
 static void showpos()
 {
-	const int i = buffer_nlines(current_buffer);
+	const int i = buffer_nlines(buffers_current());
 
 	gui_status(GUI_NONE, "\"%s\"%s %d/%d %.2f%%",
-			buffer_filename(current_buffer),
-			buffer_modified(current_buffer) ? " [Modified]" : "",
+			buffer_filename(buffers_current()),
+			buffer_modified(buffers_current()) ? " [Modified]" : "",
 			1 + gui_y(), i,
 			100.0f * (float)(1 + gui_y()) /(float)i);
 }
@@ -280,7 +280,7 @@ void readlines(int do_indent, struct gui_read_opts *opts, char ***plines, int *p
 	lines = umalloc(nlines * sizeof *lines);
 
 	if(do_indent && global_settings.autoindent){
-		struct list *lprev = buffer_getindex(current_buffer, gui_y() - 1);
+		struct list *lprev = buffer_getindex(buffers_current(), gui_y() - 1);
 		if(lprev)
 			indent = findindent(lprev->data);
 	}
@@ -349,7 +349,7 @@ static void insert(int append, int do_indent)
 	readlines(do_indent, &opts, &lines, &i);
 
 	{
-		struct list *iter = buffer_getindex(current_buffer, gui_y());
+		struct list *iter = buffer_getindex(buffers_current(), gui_y());
 		char *ins;
 		char *after;
 
@@ -367,7 +367,7 @@ static void insert(int append, int do_indent)
 			ustrcat(&lines[i-1], NULL, after, NULL);
 
 			for(j = i - 1; j > 0; j--)
-				buffer_insertafter(current_buffer, iter, lines[j]);
+				buffer_insertafter(buffers_current(), iter, lines[j]);
 
 			gui_move(gui_y() + i - 1, strlen(after) + strlen(lines[i-1]));
 		}else{
@@ -379,7 +379,7 @@ static void insert(int append, int do_indent)
 		free(after);
 	}
 
-	buffer_modified(current_buffer) = 1;
+	buffer_modified(buffers_current()) = 1;
 	free(lines);
 }
 
@@ -400,7 +400,7 @@ void overwrite()
 	start_y = gui_y();
 	start_x = gui_x();
 
-	iter = buffer_getindex(current_buffer, start_y);
+	iter = buffer_getindex(buffers_current(), start_y);
 
 	readlines(0 /* indent */, &opts, &lines, &nl);
 
@@ -415,23 +415,23 @@ void overwrite()
 
 	/* tag all other lines onto the end */
 	for(i = nl - 1; i > 0; i--)
-		buffer_insertafter(current_buffer, iter, lines[i]);
+		buffer_insertafter(buffers_current(), iter, lines[i]);
 
 	gui_move(start_y + nl - 1, nl > 1 ? strlen(lines[nl-1]) : start_x + strlen(*lines) - 1);
-	buffer_modified(current_buffer) = 1;
+	buffer_modified(buffers_current()) = 1;
 }
 
 static void open(int before)
 {
 	struct list *here;
 
-	here = buffer_getindex(current_buffer, gui_y());
+	here = buffer_getindex(buffers_current(), gui_y());
 
 	if(before){
-		buffer_insertbefore(current_buffer, here, ustrdup(""));
+		buffer_insertbefore(buffers_current(), here, ustrdup(""));
 		gui_move(gui_y(), 0);
 	}else{
-		buffer_insertafter(current_buffer, here, ustrdup(""));
+		buffer_insertafter(buffers_current(), here, ustrdup(""));
 		gui_move(gui_y() + 1, gui_x());
 	}
 
@@ -473,7 +473,7 @@ static void motion_cmd(struct motion *motion,
 			/* delete lines between gui_y() and y, inclusive */
 			f_line(&from);
 		}else{
-			char *data = buffer_getindex(current_buffer, gui_y())->data;
+			char *data = buffer_getindex(buffers_current(), gui_y())->data;
 			int startx = gui_x();
 
 			if(from.start < from.end){
@@ -509,10 +509,10 @@ static void motion_cmd(struct motion *motion,
 
 static void delete_line(struct range *from)
 {
-	struct list *l = buffer_extract_range(current_buffer, from);
+	struct list *l = buffer_extract_range(buffers_current(), from);
 	yank_set_list(yank_char, l);
 	gui_move(gui_y(), gui_x());
-	buffer_modified(current_buffer) = 1;
+	buffer_modified(buffers_current()) = 1;
 }
 static void delete_range(char *data, int startx, int x)
 {
@@ -524,12 +524,12 @@ static void delete_range(char *data, int startx, int x)
 
 	/* remove the chars between startx and x, inclusive */
 	memmove(data + startx, data + x, strlen(data + x) + 1);
-	buffer_modified(current_buffer) = 1;
+	buffer_modified(buffers_current()) = 1;
 }
 
 static void yank_line(struct range *from)
 {
-	yank_set_list(yank_char, buffer_copy_range(current_buffer, from));
+	yank_set_list(yank_char, buffer_copy_range(buffers_current(), from));
 }
 static void yank_range(char *data, int startx, int x)
 {
@@ -602,8 +602,8 @@ static void put(unsigned int ntimes, int rev)
 	if(ynk->is_list){
 #define INS(f) \
 		f( \
-			current_buffer, \
-			buffer_getindex(current_buffer, gui_y()), \
+			buffers_current(), \
+			buffer_getindex(buffers_current(), gui_y()), \
 			list_copy(ynk->v, (void *(*)(void *))ustrdup) \
 		)
 
@@ -615,7 +615,7 @@ static void put(unsigned int ntimes, int rev)
 		gui_move(gui_y() + 1 - rev, gui_x());
 
 	}else{
-		struct list *l = buffer_getindex(current_buffer, gui_y());
+		struct list *l = buffer_getindex(buffers_current(), gui_y());
 		const int x = gui_x() + 1 - rev;
 		char *data = l->data;
 		char *after = alloca(strlen(data + x) + 1);
@@ -632,17 +632,17 @@ static void put(unsigned int ntimes, int rev)
 		gui_move(gui_y(), x + strlen(ynk->v) - 1);
 	}
 
-	buffer_modified(current_buffer) = 1;
+	buffer_modified(buffers_current()) = 1;
 }
 
 static void join(unsigned int ntimes)
 {
-	struct list *jointhese, *l, *cur = buffer_getindex(current_buffer, gui_y());
+	struct list *jointhese, *l, *cur = buffer_getindex(buffers_current(), gui_y());
 	struct range r;
 	char *alloced;
 	int len = 0;
 
-	if(gui_y() + ntimes >= (unsigned)buffer_nlines(current_buffer)){
+	if(gui_y() + ntimes >= (unsigned)buffer_nlines(buffers_current())){
 		gui_status(GUI_ERR, "can't join %d line%s", ntimes,
 				ntimes > 1 ? "s" : "");
 		return;
@@ -651,7 +651,7 @@ static void join(unsigned int ntimes)
 	r.start = gui_y() + 1; /* extract the next line(s) */
 	r.end   = r.start + ntimes;
 
-	jointhese = buffer_extract_range(current_buffer, &r);
+	jointhese = buffer_extract_range(buffers_current(), &r);
 
 	for(l = jointhese; l; l = l->next)
 		len += strlen(l->data);
@@ -667,7 +667,7 @@ static void join(unsigned int ntimes)
 
 	list_free(jointhese, free);
 
-	buffer_modified(current_buffer) = 1;
+	buffer_modified(buffers_current()) = 1;
 }
 
 static void colon(const char *initial)
@@ -768,7 +768,7 @@ void gui_run()
 switch_start:
 		yank_char = 0;
 		c = gui_getch(1);
-		if(iseditchar(c) && buffer_readonly(current_buffer)){
+		if(iseditchar(c) && buffer_readonly(buffers_current())){
 			gui_status(GUI_ERR, "buffer is read-only");
 			continue;
 		}

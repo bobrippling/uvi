@@ -12,6 +12,7 @@ enum vartype
 	VARS_LIST,
 	VARS_AUTOINDENT,
 	VARS_TEXTWIDTH,
+	VARS_FSYNC,
 	VARS_UNKNOWN
 } vars_gettype(const char *);
 

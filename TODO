@@ -36,20 +36,24 @@ there
 tim
 
 store list of words after each buffer insertion, rather than generate
-buffer_getwords() - ->dirty etc etc
+	buffer_getwords() - ->dirty etc etc
 
 'scs' aka smartcase search
 
 i_R
 
-obscureword_yoyo
-obscureword_test
-obscureword_^n - fix
+^n:
+	obscureword_yoyo
+	obscureword_test
+	obscureword_^n - fix
+
+	complete from currently inserted text?
 
 fix 'ai' for ^[O
 fix 'ai' for xyz\n\n\n<insert here> (fixed?)
 
 auto indent for ^[r\n
+<<<<<<< HEAD
 
 on :e (etc) add file to buffers(.c)
 

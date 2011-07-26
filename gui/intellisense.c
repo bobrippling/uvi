@@ -62,7 +62,7 @@ int intellisense_insert(char **pstr, int *psize, int *pos, char ch)
 
 	wlen = strlen(w);
 
-	words = words_begin(buffer_gethead(current_buffer), w);
+	words = words_begin(buffer_gethead(buffers_current()), w);
 	len = longest_match(words);
 
 	if((diff = len - wlen) > 0){
