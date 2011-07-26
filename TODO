@@ -53,3 +53,5 @@ fix 'ai' for ^[O
 fix 'ai' for xyz\n\n\n<insert here> (fixed?)
 
 auto indent for ^[r\n
+
+buffer_write(): write to temp file, then rename into place
