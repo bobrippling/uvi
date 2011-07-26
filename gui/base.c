@@ -86,6 +86,7 @@ static int search(int next, int rev)
 			int x = p - (char *)l->data;
 			found = 1;
 			gui_move(y, x);
+			gui_status(GUI_NONE, "y=%d x=%d", y, x);
 			break;
 		}
 
