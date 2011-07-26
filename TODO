@@ -52,3 +52,5 @@ fix 'ai' for xyz\n\n\n<insert here> (fixed?)
 auto indent for ^[r\n
 
 on :e (etc) add file to buffers(.c)
+
+on d{, position cursor to top
