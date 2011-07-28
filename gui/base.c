@@ -436,6 +436,7 @@ static void open(int before)
 		gui_move(gui_y() + 1, gui_x());
 	}
 
+	gui_clrtoeol();
 	insert(0, 1);
 
 #if 0
@@ -1057,7 +1058,7 @@ case_i:
 #undef MAP
 
 					default:
-						gui_status(GUI_ERR, "unknown Z postfix", c);
+						gui_status(GUI_ERR, "unknown Z suffix", c);
 				}
 				break;
 			}
