@@ -22,6 +22,7 @@
 #include "marks.h"
 #include "../buffers.h"
 #include "visual.h"
+#include "../yank.h"
 
 #define GUI_TAB_INDENT(x) \
 	(global_settings.tabstop - (x) % global_settings.tabstop)
@@ -355,6 +356,29 @@ int gui_getstr(char **ps, const struct gui_read_opts *opts)
 				x = 1 + (i = p - start);
 				move(y, x);
 				clrtoeol();
+				break;
+			}
+
+			case CTRL_AND('r'):
+			{
+				int rnam;
+				int y, x;
+
+				getyx(stdscr, y, x);
+
+				gui_attron(GUI_COL_BLUE);
+				gui_addch('"');
+				gui_attroff(GUI_COL_BLUE);
+				rnam = gui_getch(0);
+				move(y, x);
+
+				if(yank_char_valid(rnam)){
+					struct yank *y;
+
+					y = yank_get(rnam);
+					if(y->v && !y->is_list)
+						gui_queue(y->v);
+				}
 				break;
 			}
 

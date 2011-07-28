@@ -40,8 +40,6 @@ store list of words after each buffer insertion, rather than generate
 
 'scs' aka smartcase search
 
-i_R
-
 ^n:
 	obscureword_yoyo
 	obscureword_test
