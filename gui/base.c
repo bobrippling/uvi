@@ -44,7 +44,7 @@ static void colon(const char *);
 static int  search(int, int);
 REPEAT_FUNC(showgirl);
 
-static int iseditchar(int);
+static int is_edit_char(int);
 
 static void showpos(void);
 
@@ -691,7 +691,7 @@ static void colon(const char *initial)
 	free(in);
 }
 
-static int iseditchar(int c)
+static int is_edit_char(int c)
 {
 	switch(c){
 		case 'o':
@@ -770,9 +770,13 @@ void gui_run()
 switch_start:
 		yank_char = 0;
 		c = gui_getch(1);
-		if(iseditchar(c) && buffer_readonly(buffers_current())){
-			gui_status(GUI_ERR, "buffer is read-only");
-			continue;
+		if(is_edit_char(c)){
+			if(buffer_readonly(buffers_current())){
+				gui_status(GUI_ERR, "buffer is read-only");
+				continue;
+			}
+
+			mark_edit();
 		}
 
 switch_switch:

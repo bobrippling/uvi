@@ -7,21 +7,26 @@ struct mark
 {
 	int y, x;
 	int set;
-} marks[27] = {
+} marks[28] = {
 	{ 0, 0, 0 }
 };
 
 static int mark_idx(int c)
 {
-	if(c == '\'')
-		return 26;
+	switch(c){
+		case '\'': return 26;
+		case '.':  return 27;
+	}
 	return c - 'a';
 }
 
-void mark_jump(void)
+static void mark_cur(int c)
 {
-	mark_set_last(gui_y(), gui_x());
+	mark_set(c, gui_y(), gui_x());
 }
+
+void mark_jump(void) { mark_cur('\''); }
+void mark_edit(void) { mark_cur('.');  }
 
 void mark_set(int c, int y, int x)
 {
@@ -43,12 +48,7 @@ int mark_get(int c, int *y, int *x)
 	return 1;
 }
 
-int mark_isset(int c)
+int mark_is_set(int c)
 {
 	return marks[mark_idx(c)].set;
-}
-
-void mark_set_last(int y, int x)
-{
-	mark_set('\'', y, x);
 }

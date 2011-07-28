@@ -154,7 +154,7 @@ int getmotion(struct motion *m)
 			{
 				int c = gui_getch(0);
 				if(mark_valid(c)){
-					if(mark_isset(c)){
+					if(mark_is_set(c)){
 						m->motion = MOTION_MARK;
 						m->extra = c;
 						return 0;
