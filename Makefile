@@ -1,21 +1,21 @@
 include config.mk
 
-OBJS = main.o buffer.o buffers.o range.o command.o vars.o \
+OBJ = main.o buffer.o buffers.o range.o command.o vars.o \
 	util/list.o util/alloc.o util/io.o util/pipe.o util/str.o util/term.o \
 	gui/gui.o gui/motion.o gui/marks.o gui/base.o gui/intellisense.o gui/map.o gui/macro.o gui/visual.o \
 	global.o rc.o preserve.o yank.o
 
 
-uvi: ${OBJS} config.mk
+uvi: ${OBJ} config.mk
 	@echo LD $@
-	@${LD} -o $@ ${OBJS} ${LDFLAGS}
+	@${LD} -o $@ ${OBJ} ${LDFLAGS}
 
-%.o:%.c
+.c.o:
 	@echo CC $<
 	@${CC} ${CFLAGS} -c -o $@ $<
 
 clean:
-	rm -f uvi `find -iname \*.o`
+	rm -f uvi `find . -iname \*.o`
 
 install: uvi
 	cp uvi ${PREFIX}/bin
@@ -26,8 +26,10 @@ uninstall:
 .PHONY: clean
 
 # :r!for d in . util gui; do cc -MM $d/*.c | sed "s;^[^ \t];$d/&;"; done
-./buffer.o: buffer.c util/alloc.h range.h buffer.h util/list.h util/io.h
-./buffers.o: buffers.c range.h buffer.h buffers.h gui/gui.h util/io.h
+./buffer.o: buffer.c util/alloc.h range.h buffer.h util/list.h util/io.h \
+ global.h
+./buffers.o: buffers.c range.h buffer.h buffers.h gui/gui.h util/io.h \
+ util/alloc.h
 ./command.o: command.c range.h buffer.h command.h util/list.h vars.h \
  util/alloc.h util/pipe.h global.h gui/motion.h gui/intellisense.h \
  gui/gui.h util/io.h yank.h buffers.h util/str.h
@@ -58,7 +60,8 @@ gui/base.o: gui/base.c gui/../range.h gui/../buffer.h gui/../command.h \
 gui/gui.o: gui/gui.c gui/../range.h gui/../util/list.h gui/../buffer.h \
  gui/motion.h gui/intellisense.h gui/gui.h gui/../global.h \
  gui/../util/alloc.h gui/../util/str.h gui/../util/term.h \
- gui/../util/io.h gui/macro.h gui/marks.h gui/../buffers.h gui/visual.h
+ gui/../util/io.h gui/macro.h gui/marks.h gui/../buffers.h gui/visual.h \
+ gui/../yank.h
 gui/intellisense.o: gui/intellisense.c gui/intellisense.h gui/../range.h \
  gui/../buffer.h gui/../global.h gui/../util/str.h gui/../util/list.h \
  gui/../util/alloc.h gui/motion.h gui/gui.h gui/../buffers.h

@@ -3,6 +3,7 @@
 #include <time.h>
 #include <errno.h>
 #include <unistd.h>
+#include <stdarg.h>
 
 #include "range.h"
 #include "buffer.h"

@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <time.h>
 
 #include "../range.h"
 #include "../buffer.h"
