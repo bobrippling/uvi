@@ -55,9 +55,12 @@ int main(int argc, const char **argv)
 	int i, argv_options = 1;
 	int argv_fname_start = argc;
 	int ro = 0;
+	int wait = 0;
 
-	if(setlocale(LC_ALL, "") == NULL)
+	if(setlocale(LC_ALL, "") == NULL){
 		fprintf(stderr, "%s: Warning: Locale not specified :(\n", *argv);
+		wait = 1;
+	}
 
 	signal(SIGHUP,  &sigh);
 	signal(SIGINT,  &sigh);
@@ -118,17 +121,27 @@ at_fnames:
 	}
 	list_free(cmds, free);
 
-	if(!isatty(STDIN_FILENO))
+	if(!isatty(STDIN_FILENO)){
 		fputs("uvi: warning: input is not a terminal\n", stderr);
-	if(!isatty(STDOUT_FILENO))
+		wait = 1;
+	}
+	if(!isatty(STDOUT_FILENO)){
 		fputs("uvi: warning: output is not a terminal\n", stderr);
+		wait = 1;
+	}
+
+	if(wait)
+		sleep(1);
 
 	map_init();
 	gui_init();
 	gui_term();
 	rc_read();
 
-	buffers_init(argc - argv_fname_start, argv + argv_fname_start, ro);
+	buffers_init(
+			argc - argv_fname_start,
+			argv + argv_fname_start,
+			ro);
 
 	gui_reload();
 	gui_run();
