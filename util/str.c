@@ -91,7 +91,7 @@ char **words_begin(struct list *l, const char *s)
 	}
 	words[i] = NULL;
 
-	uniq(words, &i, sizeof words[0], qsortstrcmp, word_uniq, NULL);
+	uniq(words, &i, sizeof words[0], qsortstrcmp, word_uniq, NULL, free);
 
 	return words;
 }
@@ -182,7 +182,7 @@ int str_eqoffset(const char *w1, const char *w2, unsigned int len, unsigned int 
 void uniq(void *bas, size_t *pnmemb, size_t size,
 		int (*compar)(const void *, const void *),
 		int (*uni)(const void *, const void *, void *),
-		void *uni_extra)
+		void *uni_extra, void (*freef)(void *))
 {
 	size_t nmemb = *pnmemb;
 	unsigned int i;
@@ -194,7 +194,8 @@ void uniq(void *bas, size_t *pnmemb, size_t size,
 	/* uniq */
 	for(i = 1; i < nmemb;)
 		if(uni(&base[i], &base[i - 1], uni_extra)){
-			free(base[i]);
+			if(freef)
+				freef(base[i]);
 
 			memmove(&base[i], &base[i+1], size * (nmemb - i));
 

@@ -17,6 +17,12 @@
 #include "gui.h"
 #include "../buffers.h"
 
+#ifdef __FreeBSD__
+# define WORDEXP_FREE NULL
+#else
+# define WORDEXP_FREE free
+#endif
+
 int longest_match(char **words)
 {
 	int minlen = INT_MAX;
@@ -188,7 +194,7 @@ int intellisense_file(char **pstr, int *psize, int *pos, char ch)
 
 				/* sort|uniq */
 				uniq(exp.we_wordv, &exp.we_wordc, sizeof exp.we_wordv[0],
-						qsortstrcmp, file_uniq, &offset);
+						qsortstrcmp, file_uniq, &offset, WORDEXP_FREE);
 
 				p = fnames = alloca(exp.we_wordc * (2 + FILE_SUFFIX_LEN) + 3);
 				/*

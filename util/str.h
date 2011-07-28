@@ -19,6 +19,6 @@ int qsortstrcmp(const void *a, const void *b);
 void uniq(void *base, size_t *nmemb, size_t size,
 		int (*compar)(const void *, const void *),
 		int (*uni)(const void *, const void *, void *),
-		void *uni_extra);
+		void *uni_extra, void (*freef)(void *));
 
 #endif
