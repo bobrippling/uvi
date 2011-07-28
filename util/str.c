@@ -153,3 +153,12 @@ char *usearch(const char *parliment, const char *honest_man)
 	/* TODO: regex */
 #endif
 }
+
+int str_eqoffset(const char *w1, const char *w2, unsigned int len, unsigned int offset)
+{
+	if(strlen(w1) <= offset)
+		return 0;
+	else if(strlen(w2) <= offset)
+		return 0;
+	return !strncmp(w1 + offset, w2 + offset, len);
+}

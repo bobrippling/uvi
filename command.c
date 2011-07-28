@@ -346,6 +346,7 @@ void cmd_set(int argc, char **argv, int force, struct range *rng)
 	int i;
 	int wait = 0;
 
+	gui_status_add_start();
 	if(argc == 1){
 		/* set dump */
 		do
@@ -407,7 +408,7 @@ void cmd_set(int argc, char **argv, int force, struct range *rng)
 		}
 
 	if(wait)
-		gui_status_wait();
+		gui_status_wait(-1, -1, NULL);
 }
 
 void cmd_yanks(int argc, char **argv, int force, struct range *rng)
@@ -424,6 +425,7 @@ void cmd_yanks(int argc, char **argv, int force, struct range *rng)
 		struct yank *y = yank_get(i);
 		char c = i == 'a'-1 ? '"': i;
 
+		gui_status_add_start();
 		if(y->v){
 			if(y->is_list)
 				gui_status_add(GUI_NONE, "%c: list, head: \"%s\"", c, (const char *)(((struct list *)y->v)->data));
@@ -435,7 +437,7 @@ void cmd_yanks(int argc, char **argv, int force, struct range *rng)
 	}
 
 	if(one)
-		gui_status_wait();
+		gui_status_wait(-1, -1, NULL);
 	else
 		gui_status(GUI_ERR, "no yanks");
 }
@@ -519,9 +521,10 @@ void cmd_ls(int argc, char **argv, int force, struct range *rng)
 		return;
 	}
 
+	gui_status_add_start();
 	for(i = 0, iter = buffers_array(); *iter; iter++, i++)
 		gui_status_add(i == cur ? GUI_COL_BLUE : GUI_NONE, "%d: %s", i, *iter);
-	gui_status_wait();
+	gui_status_wait(-1, -1, NULL);
 }
 
 void cmd_b(int argc, char **argv, int force, struct range *rng)
@@ -631,6 +634,7 @@ void filter_cmd(int argc, char **argv)
 	const char *home;
 	int i;
 
+	/* FIXME: ~root, etc */
 	if(!(home = getenv("HOME")))
 		home = "/";
 

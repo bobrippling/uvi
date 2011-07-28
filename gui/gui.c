@@ -220,10 +220,39 @@ void gui_status_add(enum gui_attr a, const char *s, ...)
 	va_end(l);
 }
 
-void gui_status_wait()
+void gui_status_wait(int y, int x, const char *s)
 {
-	gui_status_add(GUI_NONE, "any key to continue...\r");
+	if(!s)
+		s = "any key to continue...";
+	gui_status_add(GUI_NONE, "%s\r", s);
+	if(y != -1 && x != -1)
+		move(y, x);
 	gui_peekch();
+}
+
+void gui_show_array(enum gui_attr a, int y, int x, const char **ar)
+{
+	const int max_x = COLS  - x;
+	const int max_y = LINES;
+	int i = y;
+
+	gui_attron(a);
+	while(*ar && i < max_y){
+		move(i++, x - 1);
+		addch(' ');
+		addnstr(*ar++, max_x);
+	}
+	gui_attroff(a);
+	move(y, x);
+}
+
+void gui_getyx(int *y, int *x)
+{
+	getyx(stdscr, *y, *x);
+}
+void gui_setyx(int y, int x)
+{
+	move(y, x);
 }
 
 int gui_getch(int return_sigwinch)
@@ -425,12 +454,21 @@ fin:
 				return 0;
 
 			case CTRL_AND('N'):
-				if(opts->intellisense && !opts->intellisense(&start, &size, &i, c)){
-					/* redraw the line */
-					x = xstart + strlen(start);
-					mvprintw(y, xstart, "%s", start);
+			case '\t':
+				if(i > 0){
+					if(opts->intellisense){
+						start[i] = '\0';
+						if(!opts->intellisense(&start, &size, &i, c)){
+							/* redraw the line */
+							x = xstart + i;
+							move(y, xstart);
+							clrtoeol();
+							addstr(start);
+						}
+					}
+					break;
 				}
-				break;
+				/* i == 0 --> fall through */
 
 			default:
 				start[i] = c;

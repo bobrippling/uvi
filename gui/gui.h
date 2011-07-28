@@ -60,8 +60,12 @@ void gui_status_add(     enum gui_attr, const char *s, ...);
 void gui_status_addl(    enum gui_attr, const char *s,va_list);
 void gui_status_col(     const char *, enum gui_attr, ...);
 void gui_status_add_col( const char *, enum gui_attr, ...);
-void gui_status_wait(void);
+#define gui_status_add_start() gui_status(GUI_NONE, "")
+void gui_status_wait();
+void gui_show_array(enum gui_attr, int y, int x, const char **);
 
+void gui_getyx(int *, int *);
+void gui_setyx(int  , int  );
 void gui_clrtoeol(void);
 
 enum scroll

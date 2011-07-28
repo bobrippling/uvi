@@ -679,7 +679,7 @@ static void colon(const char *initial)
 	if(initial && *initial)
 		gui_queue(initial);
 
-	if(!gui_prompt(":", &in, NULL)){
+	if(!gui_prompt(":", &in, intellisense_file)){
 		char *c = strchr(in, '\n');
 
 		if(c)
