@@ -55,12 +55,26 @@ char *fname_at(const char *line, int x)
 	return chars_at(line, x, isfnamechar);
 }
 
+int qsortstrcmp(const void *a, const void *b)
+{
+	return strcmp(*(const char **)a, *(const char **)b);
+}
+
+int word_uniq(const void *v, const void *w, void *unused)
+{
+	const char *a = *(const char **)v;
+	const char *b = *(const char **)w;
+	return !strcmp(a, b);
+}
+
 char **words_begin(struct list *l, const char *s)
 {
 	const int slen = strlen(s);
-	int nwords;
-	char **words = umalloc(sizeof(*words) * (nwords = 10));
-	int i = 0;
+	size_t nwords;
+	char **words;
+	size_t i = 0;
+
+	words = umalloc(sizeof(*words) * (nwords = 10));
 
 	for(; l; l = l->next){
 		char *p;
@@ -76,6 +90,8 @@ char **words_begin(struct list *l, const char *s)
 		}
 	}
 	words[i] = NULL;
+
+	uniq(words, &i, sizeof words[0], qsortstrcmp, word_uniq, NULL);
 
 	return words;
 }
@@ -161,4 +177,31 @@ int str_eqoffset(const char *w1, const char *w2, unsigned int len, unsigned int 
 	else if(strlen(w2) <= offset)
 		return 0;
 	return !strncmp(w1 + offset, w2 + offset, len);
+}
+
+void uniq(void *bas, size_t *pnmemb, size_t size,
+		int (*compar)(const void *, const void *),
+		int (*uni)(const void *, const void *, void *),
+		void *uni_extra)
+{
+	size_t nmemb = *pnmemb;
+	unsigned int i;
+	int **base = (int **)bas;
+
+
+	qsort(base, nmemb, size, compar);
+
+	/* uniq */
+	for(i = 1; i < nmemb;)
+		if(uni(&base[i], &base[i - 1], uni_extra)){
+			free(base[i]);
+
+			memmove(&base[i], &base[i+1], size * (nmemb - i));
+
+			nmemb--;
+		}else{
+			i++;
+		}
+
+	*pnmemb = nmemb;
 }

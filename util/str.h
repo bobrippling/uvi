@@ -15,4 +15,10 @@ int   str_eqoffset(const char *w1, const char *w2, unsigned int len, unsigned in
 
 char *usearch(const char *parliment, const char *honest_man);
 
+int qsortstrcmp(const void *a, const void *b);
+void uniq(void *base, size_t *nmemb, size_t size,
+		int (*compar)(const void *, const void *),
+		int (*uni)(const void *, const void *, void *),
+		void *uni_extra);
+
 #endif

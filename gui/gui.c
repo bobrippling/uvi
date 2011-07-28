@@ -233,7 +233,7 @@ void gui_status_wait(int y, int x, const char *s)
 void gui_show_array(enum gui_attr a, int y, int x, const char **ar)
 {
 	const int max_x = COLS  - x;
-	const int max_y = LINES;
+	const int max_y = LINES - 1;
 	int i = y;
 
 	gui_attron(a);
@@ -241,6 +241,11 @@ void gui_show_array(enum gui_attr a, int y, int x, const char **ar)
 		move(i++, x - 1);
 		addch(' ');
 		addnstr(*ar++, max_x);
+		addch(' ');
+	}
+	if(i < max_y){
+		move(i, x - 1);
+		clrtoeol();
 	}
 	gui_attroff(a);
 	move(y, x);
