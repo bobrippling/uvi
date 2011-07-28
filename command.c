@@ -410,7 +410,7 @@ void cmd_set(int argc, char **argv, int force, struct range *rng)
 		gui_status_wait();
 }
 
-void cmd_regs(int argc, char **argv, int force, struct range *rng)
+void cmd_yanks(int argc, char **argv, int force, struct range *rng)
 {
 	int one = 0;
 	int i;
@@ -666,7 +666,7 @@ void command_run(char *in)
 
 		CMD(A),
 		CMD(set),
-		CMD(regs),
+		CMD(yanks),
 
 		CMD(n),
 		{ "N", cmd_n },
