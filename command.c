@@ -531,7 +531,7 @@ void cmd_b(int argc, char **argv, int force, struct range *rng)
 {
 	int n;
 
-	if(argc != 2 || rng->start != -1 || rng->end != -1 || force){
+	if(argc != 2 || rng->start != -1 || rng->end != -1){
 usage:
 		gui_status(GUI_ERR, "usage: %s idx", *argv);
 		return;
