@@ -1,13 +1,7 @@
 ncurses:
 	change 'w' and 'b' to toggle between /\s/ and !/\s/ like gui textboxes
 
-	:e autocomplete?
-
 	'u' (aka undo)
-
-	Fix segfault on d'a, where a is marked as above current position
-
-	SIGWINCH - handle?
 
 	^Vx[0-9]+ = hex char insert - ^Vx1 inserts '\x01'
 
@@ -21,9 +15,6 @@ binary file handling? (i.e. '\0')
 
 side scrolling with tabs - fix
 
-'nu'
-'cindent' (aka just handle {} nesting)
-
 fix i_S - currently joins with line below
 
 cat <<! | uvi <<tim
@@ -36,6 +27,8 @@ tim
 store list of words after each buffer insertion, rather than generate
 	buffer_getwords() - ->dirty etc etc
 
+'nu'
+'cindent' (aka just handle {} nesting)
 'scs' aka smartcase search
 
 fix 'ai' for ^[O
@@ -45,4 +38,6 @@ auto indent for ^[r\n
 
 buffer_write(): write to temp file, then rename into place
 
-on d{, position cursor to top
+on d[motion above], position cursor to top
+
+visual 'd' and 'c' commands (<, > and others too)
