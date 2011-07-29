@@ -25,14 +25,22 @@ struct gui_read_opts
 	int bspc_cancel;
 	int textw;
 	int newline;
+
 	intellisensef intellisense;
+	int intellisense_ch;
 };
 
 int gui_getstr(char **ps, const struct gui_read_opts *);
-int gui_prompt(const char *p, char **, intellisensef);
+int gui_prompt(const char *p, char **pbuf, struct gui_read_opts *opts);
 int gui_confirm(const char *p);
 #endif
-int gui_getch(int return_sigwinch);
+enum getch_opt
+{
+	GETCH_COOKED,      /* handle sigwinch, sigint, etc */
+	GETCH_MEDIUM_RARE, /* handle sigint, etc, pass back sigwinch */
+	GETCH_RAW          /* pass back all characters */
+};
+int gui_getch(enum getch_opt);
 int gui_peekch(void);
 #ifdef BUFFER_H
 buffer_t *gui_readfile(const char *filename);

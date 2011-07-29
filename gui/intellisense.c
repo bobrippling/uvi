@@ -23,7 +23,7 @@
 # define WORDEXP_FREE free
 #endif
 
-int longest_match(char **words)
+static int longest_match(char **words)
 {
 	int minlen = INT_MAX;
 	int i;
@@ -52,7 +52,7 @@ int longest_match(char **words)
 	return minlen;
 }
 
-void intellisense_complete_to(char **pstr, int *psize, int *pos,
+static void intellisense_complete_to(char **pstr, int *psize, int *pos,
 		const char *word, int longest_len, int offset_into_word)
 {
 	const int space_left = *psize - *pos - longest_len + offset_into_word - 1;
@@ -222,4 +222,27 @@ int intellisense_file(char **pstr, int *psize, int *pos, char ch)
 
 	wordfree(&exp);
 	return ret;
+}
+
+void intellisense_init_opt(void *v, enum intellisense_opt o)
+{
+	struct gui_read_opts *opts = v;
+	memset(opts, 0, sizeof *opts);
+	switch(o){
+		case INTELLI_NONE:
+			break;
+
+		case INTELLI_CMD:
+			opts->intellisense    = intellisense_file;
+			opts->intellisense_ch = '\t';
+			opts->newline         = 0;
+			break;
+
+		case INTELLI_INS:
+			opts->intellisense    = intellisense_insert;
+			opts->intellisense_ch = CTRL_AND('n');
+			opts->newline         = 1;
+			opts->textw           = global_settings.textwidth;
+			break;
+	}
 }

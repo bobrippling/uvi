@@ -67,8 +67,10 @@ static int search(int next, int rev)
 		}
 		rev = rev - search_rev; /* obey the previous "?" or "/" */
 	}else{
+		struct gui_read_opts opts;
 		search_rev = rev;
-		if(gui_prompt(rev ? "?" : "/", &search_str, NULL))
+		intellisense_init_opt(&opts, INTELLI_NONE);
+		if(gui_prompt(rev ? "?" : "/", &search_str, &opts))
 			return 1;
 	}
 
@@ -215,7 +217,7 @@ void replace(unsigned int n)
 	else if(n > strlen(s + gui_x()))
 		return;
 
-	c = gui_getch(0);
+	c = gui_getch(GETCH_RAW);
 
 	if(c == '\n'){
 		/* delete n chars, and insert 1 line */
@@ -228,7 +230,7 @@ void replace(unsigned int n)
 		buffer_insertafter(buffers_current(), cur, cpy);
 
 		gui_move(gui_y() + 1, 0);
-	}else{
+	}else if(c != CTRL_AND('[')){
 		int x = gui_x();
 
 		while(n--)
@@ -337,10 +339,7 @@ static void insert(int append, int do_indent)
 	int x = gui_x();
 	int i;
 
-	opts.intellisense = intellisense_insert;
-	opts.bspc_cancel  = 0;
-	opts.newline      = 1;
-	opts.textw        = global_settings.textwidth;
+	intellisense_init_opt(&opts, INTELLI_INS);
 
 	if(append){
 		x++;
@@ -393,10 +392,7 @@ void overwrite()
 	int nl;
 	int i;
 
-	opts.intellisense = intellisense_insert;
-	opts.bspc_cancel  = 0;
-	opts.newline      = 1;
-	opts.textw        = global_settings.textwidth;
+	intellisense_init_opt(&opts, INTELLI_INS);
 
 	start_y = gui_y();
 	start_x = gui_x();
@@ -546,7 +542,7 @@ static void yank_range(char *data, int startx, int x)
 
 static void change(struct motion *motion, int ins)
 {
-	int c = gui_getch(0);
+	int c = gui_getch(GETCH_COOKED);
 	int x, y, dollar = 0;
 
 	if(c == 'd' || c == 'c'){
@@ -674,12 +670,15 @@ static void join(unsigned int ntimes)
 
 static void colon(const char *initial)
 {
+	struct gui_read_opts opts;
 	char *in = NULL;
 
 	if(initial && *initial)
 		gui_queue(initial);
 
-	if(!gui_prompt(":", &in, intellisense_file)){
+	intellisense_init_opt(&opts, INTELLI_CMD);
+
+	if(!gui_prompt(":", &in, &opts)){
 		char *c = strchr(in, '\n');
 
 		if(c)
@@ -769,7 +768,7 @@ void gui_run()
 
 switch_start:
 		yank_char = 0;
-		c = gui_getch(1);
+		c = gui_getch(GETCH_MEDIUM_RARE);
 		if(is_edit_char(c)){
 			if(buffer_readonly(buffers_current())){
 				gui_status(GUI_ERR, "buffer is read-only");
@@ -817,7 +816,7 @@ switch_switch:
 				break;
 
 			case 'm':
-				c = gui_getch(0);
+				c = gui_getch(GETCH_COOKED);
 				if(mark_valid(c)){
 					mark_set(c, gui_y(), gui_x());
 					gui_status(GUI_NONE, "'%c' => (%d, %d)", c, gui_x(), gui_y());
@@ -880,12 +879,12 @@ switch_switch:
 				break;
 
 			case '"':
-				yank_char = gui_getch(0);
+				yank_char = gui_getch(GETCH_COOKED);
 				if(!yank_char_valid(yank_char)){
 					yank_char = 0;
 					break;
 				}
-				c = gui_getch(0);
+				c = gui_getch(GETCH_COOKED);
 				goto switch_switch;
 
 			case 'P':
@@ -896,7 +895,7 @@ switch_switch:
 				break;
 
 			case 'y':
-				c = gui_getch(0);
+				c = gui_getch(GETCH_COOKED);
 				if(c == 'y'){
 					SET_MOTION(MOTION_WHOLE_LINE);
 				}else{
@@ -1020,7 +1019,7 @@ case_i:
 
 			case 'z':
 				/* screen move - vim's zz, zt & zb */
-				switch(gui_getch(0)){
+				switch(gui_getch(GETCH_COOKED)){
 					case 'z':
 						gui_scroll(CURSOR_MIDDLE);
 						break;
@@ -1053,7 +1052,7 @@ case_i:
 			case 'Z':
 			{
 				char buf[4];
-				c = gui_getch(0);
+				c = gui_getch(GETCH_COOKED);
 #define MAP(c, cmd) case c: strcpy(buf, cmd); command_run(buf); break
 				switch(c){
 					MAP('Z', "x");
@@ -1071,7 +1070,7 @@ case_i:
 				if(gui_macro_recording()){
 					gui_status(GUI_NONE, "recorded to %c", gui_macro_complete());
 				}else{
-					int m = gui_getch(0);
+					int m = gui_getch(GETCH_COOKED);
 					if(macro_char_valid(m)){
 						gui_status(GUI_COL_MAGENTA, "recording (%c)", m);
 						gui_macro_record(m);
@@ -1080,7 +1079,7 @@ case_i:
 				break;
 			case '@':
 			{
-				int m = gui_getch(0);
+				int m = gui_getch(GETCH_COOKED);
 				if(macro_char_valid(m)){
 					if(!multiple)
 						multiple = 1;
@@ -1092,7 +1091,7 @@ case_i:
 
 			case '!':
 			{
-				int ch = gui_getch(0);
+				int ch = gui_getch(GETCH_COOKED);
 				switch(ch){
 					case 'f':
 						if(!go_file())

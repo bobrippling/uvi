@@ -99,7 +99,7 @@ int getmotion(struct motion *m)
 	/* m->ntimes is already initialised */
 
 	do{
-		switch((m->motion = gui_getch(0))){
+		switch((m->motion = gui_getch(GETCH_COOKED))){
 			case MOTION_FORWARD_LETTER:
 			case MOTION_BACKWARD_LETTER:
 			case MOTION_FORWARD_WORD:
@@ -140,7 +140,7 @@ int getmotion(struct motion *m)
 			case MOTION_TIL:
 			case MOTION_FIND_REV:
 			case MOTION_TIL_REV:
-				m->extra = gui_getch(0);
+				m->extra = gui_getch(GETCH_COOKED);
 				if(!isprint(m->extra) && m->extra != '\t'){
 					gui_status(GUI_ERR, "unknown find character");
 					return 1;
@@ -152,7 +152,7 @@ int getmotion(struct motion *m)
 
 			case MOTION_MARK:
 			{
-				int c = gui_getch(0);
+				int c = gui_getch(GETCH_COOKED);
 				if(mark_valid(c)){
 					if(mark_is_set(c)){
 						m->motion = MOTION_MARK;

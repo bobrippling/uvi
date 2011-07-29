@@ -260,7 +260,7 @@ void gui_setyx(int y, int x)
 	move(y, x);
 }
 
-int gui_getch(int return_sigwinch)
+int gui_getch(enum getch_opt o)
 {
 	int c;
 
@@ -275,6 +275,9 @@ restart:
 		c = unget_buf[--unget_i];
 	}
 
+	if(o == GETCH_RAW)
+		goto skip;
+
 	if(c == CTRL_AND('c')){
 		raise(SIGINT);
 		goto restart;
@@ -284,12 +287,15 @@ restart:
 		gui_reload();
 		goto restart;
 	}else if(c == 410 || c == -1){
-		if(return_sigwinch)
+		if(o == GETCH_MEDIUM_RARE)
 			return CTRL_AND('l');
 		else
+			/* else we're in cooked, goto restart */
 			goto restart;
 	}
 
+
+skip:
 	if(macro_record_char)
 		macro_append(c);
 
@@ -318,7 +324,7 @@ int gui_peekunget()
 
 int gui_peekch()
 {
-	int c = gui_getch(0);
+	int c = gui_getch(GETCH_COOKED);
 	gui_ungetch(c);
 	return c;
 }
@@ -356,7 +362,7 @@ int gui_getstr(char **ps, const struct gui_read_opts *opts)
 	for(;;){
 		int c;
 
-		c = gui_getch(0);
+		c = gui_getch(GETCH_COOKED);
 
 		if(i >= size){
 			size += 64;
@@ -364,8 +370,6 @@ int gui_getstr(char **ps, const struct gui_read_opts *opts)
 		}
 
 		switch(c){
-			/* TODO: ^V */
-
 			case CTRL_AND('U'):
 				x = xstart;
 				i = 0;
@@ -403,7 +407,7 @@ int gui_getstr(char **ps, const struct gui_read_opts *opts)
 				gui_attron(GUI_COL_BLUE);
 				gui_addch('"');
 				gui_attroff(GUI_COL_BLUE);
-				rnam = gui_getch(0);
+				rnam = gui_getch(GETCH_COOKED);
 				move(y, x);
 
 				if(yank_char_valid(rnam)){
@@ -458,28 +462,38 @@ fin:
 				*ps = start;
 				return 0;
 
-			case CTRL_AND('N'):
-			case '\t':
-				if(i > 0){
-					if(opts->intellisense){
-						start[i] = '\0';
-						if(!opts->intellisense(&start, &size, &i, c)){
-							/* redraw the line */
-							x = xstart + i;
-							move(y, xstart);
-							clrtoeol();
-							addstr(start);
-						}
+			case CTRL_AND('v'):
+			{
+				int y, x;
+
+				getyx(stdscr, y, x);
+
+				gui_attron(GUI_COL_BLUE);
+				gui_addch('^');
+				gui_attroff(GUI_COL_BLUE);
+				c = gui_getch(GETCH_RAW);
+				move(y, x);
+
+				goto ins_ch;
+			}
+
+			default:
+				if(opts->intellisense && c == opts->intellisense_ch && i > 0){
+					start[i] = '\0';
+					if(!opts->intellisense(&start, &size, &i, c)){
+						/* redraw the line */
+						x = xstart + i;
+						move(y, xstart);
+						clrtoeol();
+						addstr(start);
 					}
 					break;
 				}
-				/* i == 0 --> fall through */
-
-			default:
-				start[i] = c;
+ins_ch:
+				start[i++] = c;
 				gui_addch(c);
 				x++;
-				if(++i > opts->textw && opts->textw)
+				if(opts->textw && i > opts->textw)
 					goto fin;
 		}
 	}
@@ -492,16 +506,13 @@ void gui_printprompt(const char *p)
 	addstr(p);
 }
 
-int gui_prompt(const char *p, char **pbuf, intellisensef f)
+int gui_prompt(const char *p, char **pbuf, struct gui_read_opts *opts)
 {
-	struct gui_read_opts opts;
 	gui_printprompt(p);
 
-	memset(&opts, 0, sizeof opts);
-	opts.bspc_cancel  = 1;
-	opts.intellisense = f;
+	opts->bspc_cancel  = 1;
 
-	return gui_getstr(pbuf, &opts);
+	return gui_getstr(pbuf, opts);
 }
 
 int gui_confirm(const char *p)
@@ -509,7 +520,7 @@ int gui_confirm(const char *p)
 	int c;
 
 	gui_printprompt(p);
-	c = gui_getch(0);
+	c = gui_getch(GETCH_COOKED);
 
 	if(c == 'y' || c == 'Y')
 		return 1;
