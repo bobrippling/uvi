@@ -42,8 +42,12 @@ on d[motion above], position cursor to top
 
 visual 'd' and 'c' commands (<, > and others too)
 
-intellisense_file:
-	if fully complete, on tab, add '/' if S_ISDIR()
-	change > from [0-9]> to >{motion}
+change > from [0-9]> to [0-9]>{motion}
+
+intellisense
+	fix * being appended on no match
+	file:
+		if fully complete, on tab, add '/' if S_ISDIR()
+		first match: -x $PATH
 
 fix :<range>! filtering - a new line appears from nowhere
