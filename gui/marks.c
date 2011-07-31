@@ -7,17 +7,26 @@ struct mark
 {
 	int y, x;
 	int set;
-} marks[28] = {
+} marks[38] = {
 	{ 0, 0, 0 }
 };
+
+/*
+ * 0-25: 'a' - 'z'
+ * 26-35: '0' - '9'
+ * 36: last
+ * 37: '.'
+ */
 
 static int mark_idx(int c)
 {
 	switch(c){
-		case '\'': return 26;
-		case '.':  return 27;
+		case '\'': return 36;
+		case '.':  return 37;
 	}
-	return c - 'a';
+	if('a' <= c && c <= 'z')
+		return c - 'a';
+	return c - '0';
 }
 
 static void mark_cur(int c)

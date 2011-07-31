@@ -16,12 +16,12 @@ static buffer_t *current_buf;
 
 static int arg_ro = 0;
 
-static const char **fnames;
+static struct old_buffer **fnames;
 
 static int current;
 static int count;
 
-const char **buffers_array()
+struct old_buffer **buffers_array()
 {
 	return fnames;
 }
@@ -36,6 +36,15 @@ buffer_t *buffers_current()
 	return current_buf;
 }
 
+struct old_buffer *new_old_buf(const char *fname)
+{
+	struct old_buffer *b;
+	b         = umalloc(sizeof *b);
+	b->fname  = ustrdup(fname);
+	b->last_y = 0;
+	return b;
+}
+
 void buffers_init(int argc, const char **argv, int ro)
 {
 	int i;
@@ -46,7 +55,8 @@ void buffers_init(int argc, const char **argv, int ro)
 	fnames = umalloc((count + 1) * sizeof *fnames);
 
 	for(i = 0; i < count; i++)
-		fnames[i] = ustrdup(argv[i]);
+		fnames[i] = new_old_buf(argv[i]);
+
 	fnames[count] = NULL;
 
 	current = count > 0 ? 0 : -1;
@@ -131,44 +141,58 @@ int buffers_next(int n)
 	return buffers_goto(current + n);
 }
 
+void buffers_save_pos()
+{
+	if(0 <= current && current < count)
+		/* save position */
+		fnames[current]->last_y = gui_y();
+}
+
 int buffers_goto(int n)
 {
 	if(n < 0 || n >= count)
 		return 1;
 
+	buffers_save_pos();
+
 	current = n;
 	buffer_free(current_buf);
-	current_buf = buffers_readfile(fnames[current]);
+	current_buf = buffers_readfile(fnames[current]->fname);
 
 	if(arg_ro)
 		buffer_readonly(buffers_current()) = 1;
 
-	gui_move(0, 0);
+	gui_move(fnames[n]->last_y, 0);
 	return 0;
 }
 
 void buffers_load(const char *fname)
 {
-	const char **iter;
+	struct old_buffer **iter;
 	int found = 0, i;
 
 	if(fname)
 		for(i = 0, iter = fnames; *iter; iter++, i++)
-			if(!strcmp(*iter, fname)){
+			if(!strcmp((*iter)->fname, fname)){
 				found = 1;
 				break;
 			}
+
+	buffers_save_pos();
 
 	if(found){
 		buffers_goto(i);
 	}else if(fname){
 		i = count++;
 		fnames        = urealloc(fnames, (count + 1) * sizeof *fnames);
-		fnames[i]     = ustrdup(fname);
+
+		fnames[i]     = new_old_buf(fname);
+
 		fnames[count] = NULL;
 		buffers_goto(i);
 	}else{
 		current_buf = buffers_readfile(NULL);
 		current     = -1;
+		gui_move(0, 0);
 	}
 }

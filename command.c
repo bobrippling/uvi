@@ -513,7 +513,7 @@ void cmd_n(int argc, char **argv, int force, struct range *rng)
 void cmd_ls(int argc, char **argv, int force, struct range *rng)
 {
 	const int cur = buffers_idx();
-	const char **iter;
+	struct old_buffer **iter;
 	int i;
 
 	if(argc != 1 || rng->start != -1 || rng->end != -1 || force){
@@ -523,7 +523,7 @@ void cmd_ls(int argc, char **argv, int force, struct range *rng)
 
 	gui_status_add_start();
 	for(i = 0, iter = buffers_array(); *iter; iter++, i++)
-		gui_status_add(i == cur ? GUI_COL_BLUE : GUI_NONE, "%d: %s", i, *iter);
+		gui_status_add(i == cur ? GUI_COL_BLUE : GUI_NONE, "%d: %s", i, (*iter)->fname);
 	gui_status_wait(-1, -1, NULL);
 }
 

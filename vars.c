@@ -33,6 +33,7 @@ static struct
 	[VARS_AUTOINDENT] = { "ai",       1, &global_settings.autoindent },
 	[VARS_TEXTWIDTH]  = { "tw",       0, &global_settings.textwidth },
 	[VARS_FSYNC]      = { "fsync",    1, &global_settings.fsync },
+	[VARS_CINDENT]    = { "cindent",  1, &global_settings.cindent },
 };
 
 void vars_set(enum vartype t, buffer_t *b, int v)

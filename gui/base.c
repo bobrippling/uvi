@@ -100,6 +100,37 @@ static int search(int next, int rev)
 	return !found;
 }
 
+void shiftline(char **ps, int indent)
+{
+	char *s = *ps;
+
+	if(indent){
+		int len = strlen(s) + 1;
+		char *new = realloc(s, len + 1);
+
+		if(!new)
+			die("realloc()");
+
+		s = new;
+
+		memmove(new+1, new, len);
+		*new = '\t';
+
+		*ps = s;
+	}else{
+		switch(*s){
+			case ' ':
+				if(s[1] == ' ')
+					memmove(s, s+2, strlen(s+1));
+				break;
+
+			case '\t':
+				memmove(s, s+1, strlen(s));
+				break;
+		}
+	}
+}
+
 void shift(unsigned int nlines, int indent)
 {
 	struct list *l = buffer_getindex(buffers_current(), gui_y());
@@ -108,31 +139,7 @@ void shift(unsigned int nlines, int indent)
 		nlines = 1;
 
 	while(nlines-- && l){
-		char *data = l->data;
-
-		if(indent){
-			int len = strlen(data) + 1;
-			char *new = realloc(data, len + 1);
-
-			if(!new)
-				die("realloc()");
-
-			l->data = new;
-
-			memmove(new+1, new, len);
-			*new = '\t';
-		}else
-			switch(*data){
-				case ' ':
-					if(data[1] == ' ')
-						memmove(data, data+2, strlen(data+1));
-					break;
-
-				case '\t':
-					memmove(data, data+1, strlen(data));
-					break;
-			}
-
+		shiftline((char **)&l->data, indent);
 		l = l->next;
 	}
 
@@ -323,6 +330,23 @@ void readlines(int do_indent, struct gui_read_opts *opts, char ***plines, int *p
 			indent = findindent(lines[i-1]);
 		}
 
+		if(global_settings.cindent){
+			int len = strlen(lines[i-1]);
+			switch(lines[i-1][len-1]){
+				case '{':
+					indent++;
+					break;
+
+				case '}':
+					/* need to unindent by one */
+					indent--;
+					shiftline(&lines[i-1], 0 /* unindent */);
+					break;
+			}
+		}
+
+
+		/* must be last, to trim, etc, before returning */
 		if(esc)
 			/* ^[ */
 			break;

@@ -7,6 +7,7 @@ struct settings
 	int showtabs;
 	int list;
 	int autoindent;
+	int cindent;
 	int colour;
 	int textwidth;
 	int fsync;

@@ -8,6 +8,6 @@ int  mark_is_set(int);
 void mark_jump(void);
 void mark_edit(void);
 
-#define mark_valid(c) (('a' <= (c) && (c) <= 'z') || (c) == '\'' || (c) == '.')
+#define mark_valid(c) (('a' <= (c) && (c) <= 'z') || ('0' <= (c) && (c) <= '9') || (c) == '\'' || (c) == '.')
 
 #endif
