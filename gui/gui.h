@@ -48,19 +48,30 @@ buffer_t *gui_readfile(const char *filename);
 
 enum gui_attr
 {
-	GUI_NONE,
-	GUI_ERR,
-	GUI_IS_NOT_PRINT,
+	GUI_NONE         = 0,
+	GUI_ERR          = 1,
+	GUI_IS_NOT_PRINT = 2,
 
-	GUI_COL_BLUE,
-	GUI_COL_BLACK,
-	GUI_COL_GREEN,
-	GUI_COL_WHITE,
-	GUI_COL_RED,
-	GUI_COL_CYAN,
-	GUI_COL_MAGENTA,
-	GUI_COL_YELLOW,
+	GUI_COL_BLUE       = 0x4,
+	GUI_COL_BLACK      = 0x8,
+	GUI_COL_GREEN      = 0x10,
+	GUI_COL_WHITE      = 0x20,
+	GUI_COL_RED        = 0x40,
+	GUI_COL_CYAN       = 0x80,
+	GUI_COL_MAGENTA    = 0x100,
+	GUI_COL_YELLOW     = 0x200,
+
+	GUI_COL_BG_BLUE    = 0x400,
+	GUI_COL_BG_BLACK   = 0x800,
+	GUI_COL_BG_GREEN   = 0x1000,
+	GUI_COL_BG_WHITE   = 0x2000,
+	GUI_COL_BG_RED     = 0x4000,
+	GUI_COL_BG_CYAN    = 0x8000,
+	GUI_COL_BG_MAGENTA = 0x10000,
+	GUI_COL_BG_YELLOW  = 0x20000
 };
+
+#define GUI_SEARCH_COL GUI_COL_RED
 
 void gui_status(         enum gui_attr, const char *, ...);
 void gui_statusl(        enum gui_attr, const char *, va_list);

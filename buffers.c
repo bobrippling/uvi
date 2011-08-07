@@ -163,6 +163,7 @@ int buffers_goto(int n)
 		buffer_readonly(buffers_current()) = 1;
 
 	gui_move(fnames[n]->last_y, 0);
+	gui_scroll(CURSOR_MIDDLE);
 	return 0;
 }
 

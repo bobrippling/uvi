@@ -30,6 +30,7 @@ static struct
 	[VARS_TABSTOP]    = { "ts",       0, &global_settings.tabstop },
 	[VARS_SHOWTABS]   = { "st",       1, &global_settings.showtabs },
 	[VARS_LIST]       = { "list",     1, &global_settings.list },
+	[VARS_HIGHLIGHT]  = { "hls",      1, &global_settings.hls },
 	[VARS_AUTOINDENT] = { "ai",       1, &global_settings.autoindent },
 	[VARS_TEXTWIDTH]  = { "tw",       0, &global_settings.textwidth },
 	[VARS_FSYNC]      = { "fsync",    1, &global_settings.fsync },

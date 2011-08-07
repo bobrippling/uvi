@@ -6,6 +6,7 @@ struct settings
 	int tabstop;
 	int showtabs;
 	int list;
+	int hls;
 	int autoindent;
 	int cindent;
 	int colour;

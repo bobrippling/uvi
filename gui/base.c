@@ -49,7 +49,7 @@ static int is_edit_char(int);
 static void showpos(void);
 
 
-static char *search_str = NULL;
+char *search_str = NULL;
 static int  search_rev  = 0;
 static int  yank_char = 0;
 

@@ -79,6 +79,7 @@ int gui_init()
 		if(has_colors()){
 			start_color();
 			use_default_colors();
+
 			init_pair(1 + COLOR_BLACK,   COLOR_BLACK,   -1);
 			init_pair(1 + COLOR_GREEN,   COLOR_GREEN,   -1);
 			init_pair(1 + COLOR_WHITE,   COLOR_WHITE,   -1);
@@ -87,6 +88,15 @@ int gui_init()
 			init_pair(1 + COLOR_MAGENTA, COLOR_MAGENTA, -1);
 			init_pair(1 + COLOR_BLUE,    COLOR_BLUE,    -1);
 			init_pair(1 + COLOR_YELLOW,  COLOR_YELLOW,  -1);
+
+			init_pair(9 + COLOR_BLACK,   -1, COLOR_BLACK);
+			init_pair(9 + COLOR_GREEN,   -1, COLOR_GREEN);
+			init_pair(9 + COLOR_WHITE,   -1, COLOR_WHITE);
+			init_pair(9 + COLOR_RED,     -1, COLOR_RED);
+			init_pair(9 + COLOR_CYAN,    -1, COLOR_CYAN);
+			init_pair(9 + COLOR_MAGENTA, -1, COLOR_MAGENTA);
+			init_pair(9 + COLOR_BLUE,    -1, COLOR_BLUE);
+			init_pair(9 + COLOR_YELLOW,  -1, COLOR_YELLOW);
 		}
 	}
 
@@ -119,15 +129,25 @@ void gui_term()
 				break; \
 			case GUI_NONE: \
 				break; \
-				\
-			case GUI_COL_BLUE:    fn(COLOR_PAIR(1 + COLOR_BLUE)); break; \
-			case GUI_COL_BLACK:   fn(COLOR_PAIR(1 + COLOR_BLACK)); break; \
-			case GUI_COL_GREEN:   fn(COLOR_PAIR(1 + COLOR_GREEN)); break; \
-			case GUI_COL_WHITE:   fn(COLOR_PAIR(1 + COLOR_WHITE)); break; \
-			case GUI_COL_RED:     fn(COLOR_PAIR(1 + COLOR_RED)); break; \
-			case GUI_COL_CYAN:    fn(COLOR_PAIR(1 + COLOR_CYAN)); break; \
-			case GUI_COL_MAGENTA: fn(COLOR_PAIR(1 + COLOR_MAGENTA)); break; \
-			case GUI_COL_YELLOW:  fn(COLOR_PAIR(1 + COLOR_YELLOW)); break; \
+			\
+			default: \
+				if(a & GUI_COL_BLUE)       fn(COLOR_PAIR(1 + COLOR_BLUE)); \
+				if(a & GUI_COL_BLACK)      fn(COLOR_PAIR(1 + COLOR_BLACK)); \
+				if(a & GUI_COL_GREEN)      fn(COLOR_PAIR(1 + COLOR_GREEN)); \
+				if(a & GUI_COL_WHITE)      fn(COLOR_PAIR(1 + COLOR_WHITE)); \
+				if(a & GUI_COL_RED)        fn(COLOR_PAIR(1 + COLOR_RED)); \
+				if(a & GUI_COL_CYAN)       fn(COLOR_PAIR(1 + COLOR_CYAN)); \
+				if(a & GUI_COL_MAGENTA)    fn(COLOR_PAIR(1 + COLOR_MAGENTA)); \
+				if(a & GUI_COL_YELLOW)     fn(COLOR_PAIR(1 + COLOR_YELLOW)); \
+			\
+				if(a & GUI_COL_BG_BLUE)     fn(COLOR_PAIR(9 + COLOR_BLUE)); \
+				if(a & GUI_COL_BG_BLACK)    fn(COLOR_PAIR(9 + COLOR_BLACK)); \
+				if(a & GUI_COL_BG_GREEN)    fn(COLOR_PAIR(9 + COLOR_GREEN)); \
+				if(a & GUI_COL_BG_WHITE)    fn(COLOR_PAIR(9 + COLOR_WHITE)); \
+				if(a & GUI_COL_BG_RED)      fn(COLOR_PAIR(9 + COLOR_RED)); \
+				if(a & GUI_COL_BG_CYAN)     fn(COLOR_PAIR(9 + COLOR_CYAN)); \
+				if(a & GUI_COL_BG_MAGENTA)  fn(COLOR_PAIR(9 + COLOR_MAGENTA)); \
+				if(a & GUI_COL_BG_YELLOW)   fn(COLOR_PAIR(9 + COLOR_YELLOW)); \
 		} \
 	}
 
@@ -537,6 +557,9 @@ void gui_draw()
 	const struct range *visual_start, *visual_end;
 	const int vis = visual_get() != VISUAL_NONE;
 
+	extern char *search_str;
+	int search_len;
+
 	struct list *l;
 	int y;
 	int real_y;
@@ -551,10 +574,16 @@ void gui_draw()
 			attron(A_REVERSE);
 	}
 
+	if(search_str)
+		search_len = strlen(search_str);
+	else
+		search_len = 0;
+
 	for(l = buffer_getindex(buffers_current(), pos_top), y = 0;
 			l && y < LINES - 1;
 			l = l->next, y++, real_y++){
 
+		char *hls;
 		char *p;
 		int i;
 
@@ -564,9 +593,19 @@ void gui_draw()
 		if(vis && real_y == visual_start->start)
 			attron(A_REVERSE);
 
+		if(global_settings.hls && search_str && search_len)
+			hls = usearch(l->data, search_str);
+		else
+			hls = NULL;
+
 		for(p = l->data, i = 0;
 				*p && i < pos_left + COLS;
 				p++){
+
+			if(p == hls)
+				gui_attron(GUI_SEARCH_COL);
+			else if(p == hls + search_len)
+				gui_attroff(GUI_SEARCH_COL);
 
 			switch(*p){
 				case '\t':
@@ -585,6 +624,8 @@ void gui_draw()
 			if(i > pos_left) /* here so we get tabs right */
 				gui_addch(*p);
 		}
+
+		gui_attroff(GUI_SEARCH_COL);
 
 		if(vis && real_y == visual_end->start)
 			attroff(A_REVERSE);
