@@ -103,6 +103,8 @@ int intellisense_insert(char **pstr, int *psize, int *pos, char ch)
 	free(w);
 	for(iter = words; *iter; iter++)
 		free(*iter);
+	if(!*words)
+		gui_status(GUI_ERR, "no completions");
 	free(words);
 
 	return ret;
