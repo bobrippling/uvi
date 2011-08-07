@@ -1066,10 +1066,12 @@ case_i:
 				break;
 
 			case 'V':
-				if(visual_get() != VISUAL_LINE)
+				if(visual_get() != VISUAL_LINE){
 					visual_set(VISUAL_LINE);
-				else
+					visual_status();
+				}else{
 					visual_set(VISUAL_NONE);
+				}
 				view_changed = 1;
 				break;
 
@@ -1137,6 +1139,8 @@ case_i:
 						if(isbigmotion(&motion) && motion.motion != MOTION_MARK)
 							mark_jump();
 						gui_move_motion(&motion);
+						if(visual_get() != VISUAL_NONE)
+							visual_status();
 						view_changed = 1;
 					}
 				}

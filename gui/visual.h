@@ -14,4 +14,6 @@ void        visual_swap();
 const struct range *visual_get_start();
 const struct range *visual_get_end();
 
+void visual_status();
+
 #endif
