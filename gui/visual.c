@@ -18,8 +18,10 @@ void visual_update(struct range *v)
 
 void visual_set(enum visual v)
 {
-	if((visual_state = v) != VISUAL_NONE)
+	if((visual_state = v) != VISUAL_NONE){
 		visual_update(&visual_a);
+		visual_update(&visual_b);
+	}
 }
 
 enum visual visual_get()
@@ -65,4 +67,12 @@ void visual_swap()
 		move_to = &visual_a;
 
 	gui_move(move_to->start, move_to->end);
+}
+
+void visual_status()
+{
+	gui_status(GUI_NONE, "%d-%d: %d",
+			visual_a.start,
+			visual_b.start,
+			visual_b.start - visual_a.start);
 }
