@@ -787,8 +787,8 @@ void gui_inc(int n)
 		if(pos_y >= nl)
 			pos_y = nl - 1;
 
-		if(pos_y > pos_top + LINES - 2 - SCROLL_OFF)
-			pos_top = pos_y - LINES + 2 + SCROLL_OFF;
+		if(pos_y > pos_top + LINES - 2 - global_settings.scrolloff)
+			pos_top = pos_y - LINES + 2 + global_settings.scrolloff;
 	}
 }
 
@@ -799,8 +799,8 @@ void gui_dec(int n)
 		if(pos_y < 0)
 			pos_y = 0;
 
-		if(pos_y - pos_top < SCROLL_OFF)
-			pos_top = pos_y - SCROLL_OFF;
+		if(pos_y - pos_top < global_settings.scrolloff)
+			pos_top = pos_y - global_settings.scrolloff;
 			if(pos_top < 0)
 				pos_top = 0;
 	}
@@ -828,10 +828,10 @@ int gui_scroll(enum scroll s)
 
 	switch(s){
 		case SINGLE_DOWN:
-			if(pos_top < buffer_nlines(buffers_current()) - 1 - SCROLL_OFF){
-				pos_top += SCROLL_OFF;
-				if(pos_y < pos_top + SCROLL_OFF)
-					pos_y = pos_top + SCROLL_OFF;
+			if(pos_top < buffer_nlines(buffers_current()) - 1 - global_settings.scrolloff){
+				pos_top += global_settings.scrolloff;
+				if(pos_y < pos_top + global_settings.scrolloff)
+					pos_y = pos_top + global_settings.scrolloff;
 				check = 1;
 				ret = 1;
 			}
@@ -839,7 +839,7 @@ int gui_scroll(enum scroll s)
 
 		case SINGLE_UP:
 			if(pos_top){
-				pos_top -= SCROLL_OFF;
+				pos_top -= global_settings.scrolloff;
 				check = 1;
 				ret = 1;
 			}
@@ -870,13 +870,13 @@ int gui_scroll(enum scroll s)
 			break;
 
 		case CURSOR_TOP:
-			pos_top = pos_y - SCROLL_OFF;
+			pos_top = pos_y - global_settings.scrolloff;
 			if(pos_top < 0)
 				pos_top = 0;
 			break;
 
 		case CURSOR_BOTTOM:
-			pos_top = pos_y - LINES + 2 + SCROLL_OFF;
+			pos_top = pos_y - LINES + 2 + global_settings.scrolloff;
 			break;
 
 		case CURSOR_MIDDLE:
@@ -888,11 +888,11 @@ int gui_scroll(enum scroll s)
 		pos_top = 0;
 
 	if(check){
-		const int lim = pos_top + LINES - 1 - SCROLL_OFF;
+		const int lim = pos_top + LINES - 1 - global_settings.scrolloff;
 		if(pos_y >= lim)
 			pos_y = lim - 1;
-		if(pos_y < pos_top + (pos_top ? SCROLL_OFF : 0))
-			pos_y = pos_top + (pos_top ? SCROLL_OFF : 0);
+		if(pos_y < pos_top + (pos_top ? global_settings.scrolloff : 0))
+			pos_y = pos_top + (pos_top ? global_settings.scrolloff : 0);
 	}
 
 	gui_move(pos_y, pos_x);

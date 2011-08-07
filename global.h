@@ -4,6 +4,7 @@
 struct settings
 {
 	int tabstop;
+	int scrolloff;
 	int showtabs;
 	int list;
 	int hls;

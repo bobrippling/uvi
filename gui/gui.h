@@ -128,6 +128,5 @@ void gui_macro_record(char);
 int gui_macro_complete(void);
 
 #define CTRL_AND(c)  ((c) & 037)
-#define SCROLL_OFF 3
 
 #endif
