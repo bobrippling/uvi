@@ -51,3 +51,8 @@ intellisense
 		first match: -x $PATH
 
 fix :<range>! filtering - a new line appears from nowhere
+
+uvi - :set ts=-5 // check
+
+$ vim +help\ Visual-mode
+^ check keys
