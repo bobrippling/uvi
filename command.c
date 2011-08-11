@@ -27,6 +27,7 @@
 #include "yank.h"
 #include "buffers.h"
 #include "util/str.h"
+#include "rc.h"
 
 #define LEN(x) ((signed)(sizeof(x) / sizeof(x[0])))
 
@@ -546,6 +547,45 @@ usage:
 		gui_status(GUI_ERR, "index %d out of range", n);
 }
 
+void cmd_pwd(int argc, char **argv, int force, struct range *rng)
+{
+	char wd[256];
+	if(argc != 1 || force || rng->start != -1 || rng->end != -1){
+		gui_status(GUI_ERR, "usage: %s", *argv);
+		return;
+	}
+
+	if(getcwd(wd, sizeof wd) == NULL)
+		gui_status(GUI_ERR, "getcwd(): %s", strerror(errno));
+	else
+		gui_status(GUI_NONE, "%s", wd);
+}
+
+void cmd_cd(int argc, char **argv, int force, struct range *rng)
+{
+	if(argc != 2 || force || rng->start != -1 || rng->end != -1){
+		gui_status(GUI_ERR, "usage: %s dir", *argv);
+		return;
+	}
+
+	if(chdir(argv[1]))
+		gui_status(GUI_ERR, "chdir(): %s", strerror(errno));
+}
+
+void cmd_so(int argc, char **argv, int force, struct range *rng)
+{
+	if(argc != 2 || force || rng->start != -1 || rng->end != -1){
+		gui_status(GUI_ERR, "usage: %s file", *argv);
+		return;
+	}
+
+	gui_term();
+	if(!rc_source(argv[1])) /* waits by itself */
+		gui_status(GUI_NONE, "sourced %s", argv[1]);
+	gui_reload();
+}
+
+
 #ifdef BLOAT
 # include "bloat/command.c"
 #endif
@@ -676,6 +716,10 @@ void command_run(char *in)
 		{ "N", cmd_n },
 		CMD(ls),
 		CMD(b),
+
+		CMD(cd),
+		CMD(pwd),
+		CMD(so),
 
 #ifdef BLOAT
 # include "bloat/command.h"

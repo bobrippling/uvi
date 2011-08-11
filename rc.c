@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
+#include <errno.h>
 
 #include "rc.h"
 #include "range.h"
@@ -26,7 +28,14 @@ static const char *rc_file(void)
 
 int rc_read()
 {
-	const char *fname = rc_file();
+	const char *fn = rc_file();
+	if(!access(fn, F_OK))
+		return rc_source(fn);
+	return 1;
+}
+
+int rc_source(const char *fname)
+{
 	char buf[512];
 	FILE *f;
 	int ret = 0;
@@ -37,8 +46,11 @@ int rc_read()
 		return 1;
 
 	f = fopen(fname, "r");
-	if(!f)
-		return 1;
+	if(!f){
+		fprintf(stderr, "open %s: %s\n", fname, strerror(errno));
+		haderr = 1;
+		goto fin;
+	}
 
 	while(fgets(buf, sizeof buf, f)){
 #define MAKE_NUL(c) \
@@ -106,6 +118,7 @@ int rc_read()
 		ret = 1;
 	fclose(f);
 
+fin:
 	if(haderr){
 		fputs("any key to continue...\n", stderr);
 		chomp_line();

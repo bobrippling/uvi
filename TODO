@@ -56,3 +56,8 @@ uvi - :set ts=-5 // check
 
 $ vim +help\ Visual-mode
 ^ check keys
+
+:cd and :pwd - change buffer list to accomodate
+	- copy vim
+	- store absolute paths for all
+	- store open directory fds, and use openat()
