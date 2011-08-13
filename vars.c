@@ -23,16 +23,16 @@ static struct
 	int isbool, canzero;
 	int *val;
 } vars[] = {
-	[VARS_READONLY]   = { "ro",         1, 0, NULL },
-	[VARS_MODIFIED]   = { "modified",   1, 0, NULL },
-	[VARS_EOL]        = { "eol",        1, 0, NULL },
-	[VARS_CRLF]       = { "crlf",       1, 0, NULL },
-	[VARS_SHOWTABS]   = { "st",         1, 0, &global_settings.showtabs },
-	[VARS_LIST]       = { "list",       1, 0, &global_settings.list },
-	[VARS_HIGHLIGHT]  = { "hls",        1, 0, &global_settings.hls },
-	[VARS_AUTOINDENT] = { "ai",         1, 0, &global_settings.autoindent },
-	[VARS_FSYNC]      = { "fsync",      1, 0, &global_settings.fsync },
-	[VARS_CINDENT]    = { "cindent",    1, 0, &global_settings.cindent },
+	[VARS_READONLY]   = { "ro",         1, 1, NULL },
+	[VARS_MODIFIED]   = { "modified",   1, 1, NULL },
+	[VARS_EOL]        = { "eol",        1, 1, NULL },
+	[VARS_CRLF]       = { "crlf",       1, 1, NULL },
+	[VARS_SHOWTABS]   = { "st",         1, 1, &global_settings.showtabs },
+	[VARS_LIST]       = { "list",       1, 1, &global_settings.list },
+	[VARS_HIGHLIGHT]  = { "hls",        1, 1, &global_settings.hls },
+	[VARS_AUTOINDENT] = { "ai",         1, 1, &global_settings.autoindent },
+	[VARS_FSYNC]      = { "fsync",      1, 1, &global_settings.fsync },
+	[VARS_CINDENT]    = { "cindent",    1, 1, &global_settings.cindent },
 
 	[VARS_TABSTOP]    = { "ts",         0, 0, &global_settings.tabstop },
 	[VARS_TEXTWIDTH]  = { "tw",         0, 1, &global_settings.textwidth },
