@@ -186,6 +186,13 @@ int intellisense_file(char **pstr, int *psize, int *pos, char ch)
 			char *s;
 			int len;
 
+			/* check for no matches */
+			if(!strcmp(exp.we_wordv[0], match)){
+				gui_status(GUI_NONE, ":%s  [no matches]", *pstr);
+				ret = 1; /* no redraw */
+				break;
+			}
+
 			len = strlen(exp.we_wordv[0]);
 			s = alloca(len + 2);
 
