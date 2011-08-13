@@ -20,27 +20,33 @@
 static struct
 {
 	const char *nam;
-	int isbool;
+	int isbool, canzero;
 	int *val;
 } vars[] = {
-	[VARS_READONLY]   = { "ro",         1, NULL },
-	[VARS_MODIFIED]   = { "modified",   1, NULL },
-	[VARS_EOL]        = { "eol",        1, NULL },
-	[VARS_CRLF]       = { "crlf",       1, NULL },
-	[VARS_TABSTOP]    = { "ts",         0, &global_settings.tabstop },
-	[VARS_SHOWTABS]   = { "st",         1, &global_settings.showtabs },
-	[VARS_LIST]       = { "list",       1, &global_settings.list },
-	[VARS_HIGHLIGHT]  = { "hls",        1, &global_settings.hls },
-	[VARS_AUTOINDENT] = { "ai",         1, &global_settings.autoindent },
-	[VARS_TEXTWIDTH]  = { "tw",         0, &global_settings.textwidth },
-	[VARS_FSYNC]      = { "fsync",      1, &global_settings.fsync },
-	[VARS_CINDENT]    = { "cindent",    1, &global_settings.cindent },
-	[VARS_SCROLLOFF]  = { "scrolloff",  0, &global_settings.scrolloff },
+	[VARS_READONLY]   = { "ro",         1, 0, NULL },
+	[VARS_MODIFIED]   = { "modified",   1, 0, NULL },
+	[VARS_EOL]        = { "eol",        1, 0, NULL },
+	[VARS_CRLF]       = { "crlf",       1, 0, NULL },
+	[VARS_SHOWTABS]   = { "st",         1, 0, &global_settings.showtabs },
+	[VARS_LIST]       = { "list",       1, 0, &global_settings.list },
+	[VARS_HIGHLIGHT]  = { "hls",        1, 0, &global_settings.hls },
+	[VARS_AUTOINDENT] = { "ai",         1, 0, &global_settings.autoindent },
+	[VARS_FSYNC]      = { "fsync",      1, 0, &global_settings.fsync },
+	[VARS_CINDENT]    = { "cindent",    1, 0, &global_settings.cindent },
+
+	[VARS_TABSTOP]    = { "ts",         0, 0, &global_settings.tabstop },
+	[VARS_TEXTWIDTH]  = { "tw",         0, 1, &global_settings.textwidth },
+	[VARS_SCROLLOFF]  = { "scrolloff",  0, 1, &global_settings.scrolloff },
 };
 
 void vars_set(enum vartype t, buffer_t *b, int v)
 {
 	int *p = vars_addr(t, b);
+
+	if(v < 0)
+		v = 0;
+	if(v == 0 && !vars[t].canzero)
+		v = 1;
 
 	*p = v;
 	if(t == VARS_EOL || t == VARS_CRLF)
