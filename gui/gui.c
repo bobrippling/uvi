@@ -602,10 +602,17 @@ void gui_draw()
 				*p && i < pos_left + COLS;
 				p++){
 
-			if(p == hls)
+check_search:
+			if(p == hls){
 				gui_attron(GUI_SEARCH_COL);
-			else if(p == hls + search_len)
+			}else if(p == hls + search_len){
 				gui_attroff(GUI_SEARCH_COL);
+
+				/* //g */
+				hls = usearch(p, search_str);
+				if(hls)
+					goto check_search;
+			}
 
 			switch(*p){
 				case '\t':

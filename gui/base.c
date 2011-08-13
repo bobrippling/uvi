@@ -1019,7 +1019,8 @@ case_i:
 					next = tolower(c) == 'n';
 				}
 
-				view_changed = !search(next, rev);
+				view_changed = 1;
+				search(next, rev);
 				break;
 			}
 
