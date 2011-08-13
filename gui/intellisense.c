@@ -6,6 +6,11 @@
 #include <limits.h>
 #include <wordexp.h>
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+
 #include "intellisense.h"
 #include "../range.h"
 #include "../buffer.h"
@@ -176,10 +181,24 @@ int intellisense_file(char **pstr, int *psize, int *pos, char ch)
 			break;
 
 		case 1:
-			intellisense_complete_to(pstr, psize, pos,
-					exp.we_wordv[0], strlen(exp.we_wordv[0]), offset);
+		{
+			struct stat st;
+			char *s;
+			int len;
+
+			len = strlen(exp.we_wordv[0]);
+			s = alloca(len + 2);
+
+			if(!stat(exp.we_wordv[0], &st) && S_ISDIR(st.st_mode))
+				len++, sprintf(s, "%s/", exp.we_wordv[0]);
+			else
+				strcpy(s, exp.we_wordv[0]);
+
+			intellisense_complete_to(pstr, psize, pos, s, len, offset);
+
 			ret = 0;
 			break;
+		}
 
 		default:
 		{

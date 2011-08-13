@@ -61,3 +61,5 @@ $ vim +help\ Visual-mode
 	- copy vim
 	- store absolute paths for all
 	- store open directory fds, and use openat()
+
+[cd]w deletes all whitespace
