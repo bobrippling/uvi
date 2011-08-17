@@ -310,14 +310,19 @@ void cmd_bang(int argc, char **argv, int force, struct range *rng)
 
 void cmd_e(int argc, char **argv, int force, struct range *rng)
 {
-	if(argc != 2 || rng->start != -1 || rng->end != -1){
+	if(argc > 2 || rng->start != -1 || rng->end != -1){
 		gui_status(GUI_ERR, "usage: e[!] fname");
 		return;
 	}
 
 	MODIFIED_CHECK();
 
-	buffers_load(argv[1]);
+	if(argc == 1 && !buffer_hasfilename(buffers_current())){
+		gui_status(GUI_ERR, "no filename");
+		return;
+	}
+
+	buffers_load(argc == 1 ? buffer_filename(buffers_current()) : argv[1]);
 }
 
 void cmd_new(int argc, char **argv, int force, struct range *rng)
