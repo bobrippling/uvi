@@ -61,5 +61,4 @@ $ vim +help\ Visual-mode
 
 [cd]w deletes all whitespace
 
-:e % - quote percent
 :tabnew :tn
