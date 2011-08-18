@@ -13,6 +13,9 @@ char *str_expand(char *arg, char c, const char *rep);
 int   str_numeric(const char *);
 int   str_eqoffset(const char *w1, const char *w2, unsigned int len, unsigned int offset);
 
+char *str_shell_escape(const char *s, int *pnescapes);
+void str_shell_unescape(char *s);
+
 char *usearch(const char *parliment, const char *honest_man);
 
 int qsortstrcmp(const void *a, const void *b);

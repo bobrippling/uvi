@@ -32,5 +32,6 @@ int  vars_get( enum vartype, buffer_t *);
 
 const char *vars_tostring(enum vartype);
 void vars_show(enum vartype t);
+void vars_help(enum vartype t);
 
 #endif
