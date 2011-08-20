@@ -19,24 +19,24 @@
 
 static struct
 {
-	const char *nam;
+	const char *nam, *help;
 	int isbool, canzero;
 	int *val;
 } vars[] = {
-	[VARS_READONLY]   = { "ro",         1, 1, NULL },
-	[VARS_MODIFIED]   = { "modified",   1, 1, NULL },
-	[VARS_EOL]        = { "eol",        1, 1, NULL },
-	[VARS_CRLF]       = { "crlf",       1, 1, NULL },
-	[VARS_SHOWTABS]   = { "st",         1, 1, &global_settings.showtabs },
-	[VARS_LIST]       = { "list",       1, 1, &global_settings.list },
-	[VARS_HIGHLIGHT]  = { "hls",        1, 1, &global_settings.hls },
-	[VARS_AUTOINDENT] = { "ai",         1, 1, &global_settings.autoindent },
-	[VARS_FSYNC]      = { "fsync",      1, 1, &global_settings.fsync },
-	[VARS_CINDENT]    = { "cindent",    1, 1, &global_settings.cindent },
+	[VARS_READONLY]   = { "ro",         "buffer is read only",         1, 1, NULL },
+	[VARS_MODIFIED]   = { "modified",   "buffer is modified",          1, 1, NULL },
+	[VARS_EOL]        = { "eol",        "buffer ends with a newline",  1, 1, NULL },
+	[VARS_CRLF]       = { "crlf",       "buffer has carrige returns",  1, 1, NULL },
+	[VARS_SHOWTABS]   = { "st",         "show tabs",                   1, 1, &global_settings.showtabs },
+	[VARS_LIST]       = { "list",       "show spaces",                 1, 1, &global_settings.list },
+	[VARS_HIGHLIGHT]  = { "hls",        "highlight search terms",      1, 1, &global_settings.hls },
+	[VARS_AUTOINDENT] = { "ai",         "auto indent",                 1, 1, &global_settings.autoindent },
+	[VARS_FSYNC]      = { "fsync",      "call fsync() after write()",  1, 1, &global_settings.fsync },
+	[VARS_CINDENT]    = { "cindent",    "c-style indentation",         1, 1, &global_settings.cindent },
 
-	[VARS_TABSTOP]    = { "ts",         0, 0, &global_settings.tabstop },
-	[VARS_TEXTWIDTH]  = { "tw",         0, 1, &global_settings.textwidth },
-	[VARS_SCROLLOFF]  = { "scrolloff",  0, 1, &global_settings.scrolloff },
+	[VARS_TABSTOP]    = { "ts",         "tab stop",                    0, 0, &global_settings.tabstop },
+	[VARS_TEXTWIDTH]  = { "tw",         "max text width",              0, 1, &global_settings.textwidth },
+	[VARS_SCROLLOFF]  = { "scrolloff",  "context lines around cursor", 0, 1, &global_settings.scrolloff },
 };
 
 void vars_set(enum vartype t, buffer_t *b, int v)
@@ -118,4 +118,17 @@ void vars_show(enum vartype t)
 		snprintf(buf, sizeof buf, "%d", vars_get(t, buffers_current()));
 		gui_status_add_col(vars_tostring(t), GUI_COL_BLUE, "=", GUI_NONE, buf, GUI_COL_GREEN, NULL);
 	}
+}
+
+void vars_help(enum vartype t)
+{
+	const char *s = vars_tostring(t);
+
+	gui_status_add_col(
+		s,                               GUI_COL_RED,
+		strlen(s) > 6 ? ":\t" : ":\t\t", GUI_NONE,
+		vars_isbool(t) ? "bool" : "int", GUI_COL_BLUE,
+		":\t",                           GUI_NONE,
+		vars[t].help,                    GUI_NONE,
+		NULL);
 }

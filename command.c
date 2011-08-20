@@ -310,14 +310,19 @@ void cmd_bang(int argc, char **argv, int force, struct range *rng)
 
 void cmd_e(int argc, char **argv, int force, struct range *rng)
 {
-	if(argc != 2 || rng->start != -1 || rng->end != -1){
+	if(argc > 2 || rng->start != -1 || rng->end != -1){
 		gui_status(GUI_ERR, "usage: e[!] fname");
 		return;
 	}
 
 	MODIFIED_CHECK();
 
-	buffers_load(argv[1]);
+	if(argc == 1 && !buffer_hasfilename(buffers_current())){
+		gui_status(GUI_ERR, "no filename");
+		return;
+	}
+
+	buffers_load(argc == 1 ? buffer_filename(buffers_current()) : argv[1]);
 }
 
 void cmd_new(int argc, char **argv, int force, struct range *rng)
@@ -343,16 +348,15 @@ void cmd_where(int argc, char **argv, int force, struct range *rng)
 
 void cmd_set(int argc, char **argv, int force, struct range *rng)
 {
-	enum vartype type = 0;
+	enum vartype type;
 	int i;
 	int wait = 0;
 
 	gui_status_add_start();
 	if(argc == 1){
 		/* set dump */
-		do
-			vars_show(type++);
-		while(type != VARS_UNKNOWN);
+		for(type = 0; type != VARS_UNKNOWN; type++)
+			vars_show(type);
 		wait = 1;
 	}else
 		for(i = 1; i < argc; i++){
@@ -585,6 +589,19 @@ void cmd_so(int argc, char **argv, int force, struct range *rng)
 	gui_reload();
 }
 
+void cmd_help(int argc, char **argv, int force, struct range *rng)
+{
+	enum vartype type;
+
+	if(argc != 1 || force || rng->start != -1 || rng->end != -1){
+		gui_status(GUI_ERR, "usage: %s", *argv);
+		return;
+	}
+
+	for(type = 0; type != VARS_UNKNOWN; type++)
+		vars_help(type);
+	gui_status_wait(-1, -1,  NULL);
+}
 
 #ifdef BLOAT
 # include "bloat/command.c"
@@ -717,6 +734,8 @@ void command_run(char *in)
 		CMD(cd),
 		CMD(pwd),
 		CMD(so),
+
+		CMD(help),
 
 #ifdef BLOAT
 # include "bloat/command.h"

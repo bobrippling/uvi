@@ -251,9 +251,9 @@ static void showpos()
 {
 	const int i = buffer_nlines(buffers_current());
 
-	gui_status(GUI_NONE, "\"%s\"%s %d/%d %.2f%%",
+	gui_status(GUI_NONE, "\"%s\" [%c] %d/%d %.2f%%",
 			buffer_filename(buffers_current()),
-			buffer_modified(buffers_current()) ? " [Modified]" : "",
+			"+-"[!buffer_modified(buffers_current())],
 			1 + gui_y(), i,
 			100.0f * (float)(1 + gui_y()) /(float)i);
 }

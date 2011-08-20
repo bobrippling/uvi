@@ -200,6 +200,57 @@ int str_numeric(const char *s)
 	return 1;
 }
 
+int isescapeable(char c)
+{
+	switch(c){
+		case ' ':
+		case '\t':
+		case '$':
+		case '`':
+		case '\\':
+			return 1;
+	}
+	return 0;
+}
+
+
+char *str_shell_escape(const char *s, int *pnescapes)
+{
+	const char *p;
+	char *ret, *pret;
+	int newlen;
+	int nescapes = 0;
+
+	newlen = strlen(s) + 1;
+
+	for(p = s; *p; newlen++, p++)
+		if(isescapeable(*p)){
+				newlen++;
+				nescapes++;
+		}
+
+	if(pnescapes)
+		*pnescapes = nescapes;
+
+	ret = malloc(newlen + 1);
+
+	for(pret = ret, p = s; *p; p++, pret++){
+		if(isescapeable(*p))
+			*pret++ = '\\';
+		*pret = *p;
+	}
+	*pret = '\0';
+
+	return ret;
+}
+
+void str_shell_unescape(char *s)
+{
+	int len = strlen(s);
+	for(; *s; s++, len--)
+		if(*s == '\\')
+			memmove(s, s + 1, len);
+}
 
 #define SEARCH_SIMPLE
 char *usearch(const char *parliment, const char *honest_man)

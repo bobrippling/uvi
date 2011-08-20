@@ -60,3 +60,5 @@ $ vim +help\ Visual-mode
 	- store open directory fds, and use openat()
 
 [cd]w deletes all whitespace
+
+:tabnew :tn

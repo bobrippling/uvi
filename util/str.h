@@ -14,8 +14,11 @@ char *str_expand(char *str, const char *grow_from, const char *grow_to);
 int   str_numeric(const char *);
 int   str_eqoffset(const char *w1, const char *w2, unsigned int len, unsigned int offset);
 
-void  str_home_replace_array(int, char **);
 char *str_home_replace(char *);
+void  str_home_replace_array(int, char **);
+
+char *str_shell_escape(const char *s, int *pnescapes);
+void  str_shell_unescape(char *s);
 
 char *usearch(const char *parliment, const char *honest_man);
 
