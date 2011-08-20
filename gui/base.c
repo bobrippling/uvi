@@ -604,13 +604,6 @@ static void change(struct motion *motion, int ins)
 	}
 }
 
-#ifndef alloca
-void *alloca(size_t l)
-{
-	return umalloc(l);
-}
-#endif
-
 static void put(unsigned int ntimes, int rev)
 {
 	struct yank *ynk = yank_get(yank_char);
@@ -640,7 +633,7 @@ static void put(unsigned int ntimes, int rev)
 		struct list *l = buffer_getindex(buffers_current(), gui_y());
 		const int x = gui_x() + 1 - rev;
 		char *data = l->data;
-		char *after = alloca(strlen(data + x) + 1);
+		char *after = ALLOCA(strlen(data + x) + 1);
 		char *new;
 
 		strcpy(after, data + x);

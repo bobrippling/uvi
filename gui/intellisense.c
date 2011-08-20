@@ -73,7 +73,7 @@ static void intellisense_complete_to(char **pstr, int *psize, int *pos,
 		char *str;
 		int nescapes;
 
-		copy = alloca(nextra + 1);
+		copy = ALLOCA(nextra + 1);
 		/*fprintf(stderr, "strncpy(copy=%p, word + offset_into_word = \"%s\", nextra=%d);\n", copy,word+offset_into_word,nextra);*/
 		strncpy(copy, word + offset_into_word, nextra);
 		copy[nextra] = '\0';
@@ -173,7 +173,7 @@ int intellisense_file(char **pstr, int *psize, int *pos, char ch)
 	}
 
 	arglen = strlen(arg) + 2;
-	match = alloca(arglen);
+	match = ALLOCA(arglen);
 
 	str_shell_unescape(arg);
 	snprintf(match, arglen, "%s*", arg);
@@ -201,7 +201,7 @@ int intellisense_file(char **pstr, int *psize, int *pos, char ch)
 			}
 
 			len = strlen(exp.we_wordv[0]);
-			s = alloca(len + 2);
+			s = ALLOCA(len + 2);
 
 			if(!stat(exp.we_wordv[0], &st) && S_ISDIR(st.st_mode))
 				len++, sprintf(s, "%s/", exp.we_wordv[0]);
@@ -231,7 +231,7 @@ int intellisense_file(char **pstr, int *psize, int *pos, char ch)
 				uniq(exp.we_wordv, &exp.we_wordc, sizeof exp.we_wordv[0],
 						qsortstrcmp, file_uniq, &offset, WORDEXP_FREE);
 
-				p = fnames = alloca(exp.we_wordc * (2 + FILE_SUFFIX_LEN) + 3);
+				p = fnames = ALLOCA(exp.we_wordc * (2 + FILE_SUFFIX_LEN) + 3);
 				/*
 				 * e.g. config.\t   (-e config.mk && -e config.h)
 				 * becomes

@@ -467,7 +467,7 @@ void cmd_A(int argc, char **argv, int force, struct range *rng)
 	}
 
 	len = strlen(buffer_filename(buffers_current()));
-	bfname = alloca(len + 1);
+	bfname = ALLOCA(len + 1);
 	strcpy(bfname, buffer_filename(buffers_current()));
 
 	ext = strrchr(bfname, '.');
