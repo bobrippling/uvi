@@ -151,6 +151,7 @@ int intellisense_file(char **pstr, int *psize, int *pos, char ch)
 	if((match = strchr(*pstr, '~')) && (match > *pstr ? match[-1] != '\\' : 1)){
 		*pstr = str_home_replace(*pstr);
 		*pos += strlen(*pstr) - *pos;
+		*psize = *pos + 1;
 		/*return 0;*/
 	}
 
