@@ -666,23 +666,20 @@ void char_replace(int c, const char *rep, int argc, char **argv)
 	int i;
 
 	for(i = 0; i < argc; i++)
-		argv[i] = str_expand(argv[i], c, rep);
+		argv[i] = chr_expand(argv[i], c, rep);
 }
 
 void filter_cmd(int argc, char **argv)
 {
-	const char *home;
 	int i;
 
-	/* FIXME: ~root, etc */
-	if(!(home = getenv("HOME")))
-		home = "/";
-
+	/* setup */
 	for(i = 0; i < argc; i++)
 		argv[i] = ustrdup(argv[i]);
 
+
 	/* replacements */
-	char_replace('~', home, argc, argv);
+	str_home_replace_array(argc, argv);
 
 	if(buffer_hasfilename(buffers_current()))
 		char_replace('%', buffer_filename(buffers_current()), argc, argv);

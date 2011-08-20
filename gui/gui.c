@@ -918,7 +918,6 @@ char *gui_current_word()
 
 char *gui_current_fname()
 {
-	const char *home;
 	char *ret;
 
 	ret = gui_current(fname_at);
@@ -926,11 +925,7 @@ char *gui_current_fname()
 	if(!ret)
 		return NULL;
 
-	home = getenv("HOME");
-	if(!home)
-		home = "/";
-	/* TODO: ~luser */
-	return str_expand(ret, '~', home);
+	return str_home_replace(ret);
 }
 
 int gui_macro_recording()

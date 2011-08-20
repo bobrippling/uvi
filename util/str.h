@@ -9,9 +9,13 @@ char **words_begin(struct list *, const char *);
 int line_isspace(const char *s);
 
 void  str_escape(char *arg);
-char *str_expand(char *arg, char c, const char *rep);
+char *chr_expand(char *arg, char c, const char *rep);
+char *str_expand(char *str, const char *grow_from, const char *grow_to);
 int   str_numeric(const char *);
 int   str_eqoffset(const char *w1, const char *w2, unsigned int len, unsigned int offset);
+
+void  str_home_replace_array(int, char **);
+char *str_home_replace(char *);
 
 char *usearch(const char *parliment, const char *honest_man);
 

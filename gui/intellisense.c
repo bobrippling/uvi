@@ -131,20 +131,9 @@ int intellisense_file(char **pstr, int *psize, int *pos, char ch)
 	if(strchr(*pstr, '*'))
 		return 1;
 
-	if((match = strchr(*pstr, '~'))){
-		const char *home;
-		int len;
-
-		/* FIXME: ~root, etc */
-		if(!(home = getenv("HOME")))
-			home = "/";
-
-		*pstr = str_expand(*pstr, '~', home);
-		*pos += strlen(home) - 1;
-		if(*psize < (len = strlen(*pstr)))
-			*psize += len + 64;
-		/* reallocate up to original size + a bit */
-		*pstr = urealloc(*pstr, *psize);
+	if((match = strchr(*pstr, '~')) && (match > *pstr ? match[-1] != '\\' : 1)){
+		*pstr = str_home_replace(*pstr);
+		*pos += strlen(*pstr) - *pos;
 		return 0;
 	}
 

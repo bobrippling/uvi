@@ -709,6 +709,8 @@ static void colon(const char *initial)
 			*c = '\0';
 
 		command_run(in);
+	}else{
+		gui_status(GUI_NONE, "");
 	}
 
 	free(in);

@@ -3,10 +3,16 @@
 #include <string.h>
 #include <ctype.h>
 
+#include <sys/types.h>
+#include <pwd.h>
+
 #include "../range.h"
 #include "list.h"
 #include "str.h"
 #include "alloc.h"
+
+#define ispwchr(x) (isalpha(x) || (x) == '_')
+
 
 int iswordchar(int c)
 {
@@ -121,8 +127,9 @@ void str_escape(char *arg)
 		}
 }
 
-char *str_expand(char *arg, char c, const char *rep)
+char *chr_expand(char *arg, char c, const char *rep)
 {
+#if 0
 	char *p = strchr(arg, c);
 
 	while(p){
@@ -142,6 +149,40 @@ char *str_expand(char *arg, char c, const char *rep)
 	}
 
 	return arg;
+#else
+	char s[2];
+	s[0] = c;
+	s[1] = '\0';
+	return str_expand(arg, s, rep);
+#endif
+}
+
+char *str_expand(char *str, const char *grow_from, const char *grow_to)
+{
+	const int from_offset = strlen(grow_from);
+	char *p = strstr(str, grow_from);
+
+	while(p){
+		if((p > str ? p[-1] != '\\' : 1)){
+			char *sav = str;
+			*p = '\0';
+
+			p += from_offset;
+
+			str = ustrprintf("%s%s%s", str, grow_to, p);
+
+			p = str + (p - sav) + strlen(grow_to) - from_offset;
+
+			p = strstr(p, grow_from);
+
+			free(sav);
+		}else{
+			/* else, unescaped, continue looking */
+			p = strstr(p+1, grow_from);
+		}
+	}
+
+	return str;
 }
 
 int str_numeric(const char *s)
@@ -205,4 +246,68 @@ void uniq(void *bas, size_t *pnmemb, size_t size,
 		}
 
 	*pnmemb = nmemb;
+}
+
+void  str_home_replace_array(int argc, char **argv)
+{
+	int i;
+	for(i = 0; i < argc; i++)
+		argv[i] = str_home_replace(argv[i]);
+}
+
+char *str_home_replace(char *s)
+{
+	struct passwd *pw;
+	char *p;
+	char **names = NULL;
+	int nnames = 0;
+	int i;
+
+	for(p = strchr(s, '~'); p && *p; p++)
+		if(isalpha(p[1])){
+			char *iter, old;
+
+			for(iter = ++p; *iter && ispwchr(*iter); iter++);
+
+			old   = *iter;
+			*iter = '\0';
+			pw    = getpwnam(p);
+			if(pw){
+				names = urealloc(names, ++nnames * sizeof *names);
+				names[nnames-1] = umalloc(strlen(p) + 2);
+				sprintf(names[nnames-1], "~%s", p);
+			}
+			*iter = old;
+		}
+
+	for(i = 0; i < nnames; i++){
+		pw = getpwnam(names[i] + 1);
+		if(pw)
+			s = str_expand(s, names[i], pw->pw_dir);
+		free(names[i]);
+	}
+	free(names);
+
+	if((p = strchr(s, '~')))
+		if(!ispwchr(p[1])){
+			/* ~ by itself */
+			const char *home;
+			char *with_me;
+			char rep[3];
+
+			rep[0] = '~';
+			rep[1] = p[1];
+			rep[2] = '\0';
+
+			home = getenv("HOME");
+			if(!home)
+				home = "/"; /* getpwuid? */
+
+			with_me = alloca(strlen(home) + 2);
+			sprintf(with_me, "%s%c", home, p[1]);
+
+			s = str_expand(s, rep, with_me);
+		}
+
+	return s;
 }
