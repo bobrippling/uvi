@@ -7,8 +7,8 @@
 
 static enum  visual visual_state = VISUAL_NONE;
 
-static struct range visual_a = { -1, -1 };
-static struct range visual_b = { -1, -1 };
+static struct range visual_cursor;
+static struct range visual_anchor;
 
 void visual_update(struct range *v)
 {
@@ -19,8 +19,8 @@ void visual_update(struct range *v)
 void visual_set(enum visual v)
 {
 	if((visual_state = v) != VISUAL_NONE){
-		visual_update(&visual_a);
-		visual_update(&visual_b);
+		visual_update(&visual_cursor);
+		visual_update(&visual_anchor);
 	}
 }
 
@@ -33,23 +33,23 @@ const struct range *visual_get_start()
 {
 	int diff;
 
-	visual_update(&visual_b);
+	visual_update(&visual_cursor);
 
-	diff = visual_a.start - visual_b.start;
+	diff = visual_cursor.start - visual_anchor.start;
 
 	if(diff > 0)
-		return &visual_b;
+		return &visual_anchor;
 	else if(diff < 0)
-		return &visual_a;
+		return &visual_cursor;
 
-	return visual_a.end > visual_b.end ? &visual_b : &visual_a;
+	return visual_cursor.end > visual_anchor.end ? &visual_anchor : &visual_cursor;
 }
 
 const struct range *visual_get_end()
 {
-	if(visual_get_start() == &visual_a)
-		return &visual_b;
-	return &visual_a;
+	if(visual_get_start() == &visual_cursor)
+		return &visual_anchor;
+	return &visual_cursor;
 }
 
 void visual_swap()
@@ -57,22 +57,31 @@ void visual_swap()
 	struct range *move_to;
 	struct range tmp;
 
-	memcpy(&tmp,      &visual_a, sizeof tmp);
-	memcpy(&visual_a, &visual_b, sizeof tmp);
-	memcpy(&visual_b,      &tmp, sizeof tmp);
+	tmp           = visual_cursor;
+	visual_cursor = visual_anchor;
+	visual_anchor = tmp;
 
-	if(gui_y() == visual_a.start && gui_x() == visual_a.end)
-		move_to = &visual_b;
+	if(gui_y() == visual_cursor.start && gui_x() == visual_cursor.end)
+		move_to = &visual_anchor;
 	else
-		move_to = &visual_a;
+		move_to = &visual_cursor;
 
 	gui_move(move_to->start, move_to->end);
 }
 
 void visual_status()
 {
-	gui_status(GUI_NONE, "%d-%d: %d",
-			visual_a.start,
-			visual_b.start,
-			visual_b.start - visual_a.start);
+#define VIS_INF(v) v->start + 1, v->end + 1
+	const struct range *v1, *v2;
+	int diff_lines;
+
+	v1 = visual_get_start();
+	v2 = visual_get_end();
+
+	diff_lines = v2->start - v1->start + 1;
+
+	gui_status(GUI_NONE, "(%d,%d)-(%d,%d): %d lines",
+			VIS_INF(v1),
+			VIS_INF(v2),
+			diff_lines);
 }
