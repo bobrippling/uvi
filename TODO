@@ -64,3 +64,7 @@ $ vim +help\ Visual-mode
 :tabnew :tn
 
 :e %\t
+
+# ???
+map I i#include "
+map i i#include <
