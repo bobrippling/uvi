@@ -354,7 +354,7 @@ char *str_home_replace(char *s)
 			if(!home)
 				home = "/"; /* getpwuid? */
 
-			with_me = alloca(strlen(home) + 2);
+			with_me = ALLOCA(strlen(home) + 2);
 			sprintf(with_me, "%s%c", home, p[1]);
 
 			s = str_expand(s, rep, with_me);

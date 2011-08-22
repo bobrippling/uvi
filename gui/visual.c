@@ -80,8 +80,9 @@ void visual_status()
 
 	diff_lines = v2->start - v1->start + 1;
 
-	gui_status(GUI_NONE, "(%d,%d)-(%d,%d): %d lines",
+	gui_status(GUI_NONE, "(%d,%d)-(%d,%d): %d line%s",
 			VIS_INF(v1),
 			VIS_INF(v2),
-			diff_lines);
+			diff_lines,
+			diff_lines == 1 ? "" : "s");
 }
