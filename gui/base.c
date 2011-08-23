@@ -31,7 +31,7 @@
 
 /* text altering */
 static void open(int); /* as in, 'o' & 'O' */
-static void shift(unsigned int, int);
+static void shift(int);
 static void insert(int append, int indent);
 static void put(unsigned int ntimes, int rev);
 static void change(struct motion *motion, int flag);
@@ -93,7 +93,7 @@ static int search(int next, int rev)
 		}
 
 	if(!found){
-		gui_status(GUI_ERR, "not found");
+		gui_status(GUI_ERR, "not found %s", rev ? "above" : "below");
 		gui_move(gui_y(), gui_x());
 	}
 
@@ -131,19 +131,40 @@ void shiftline(char **ps, int indent)
 	}
 }
 
-void shift(unsigned int nlines, int indent)
+void shift(int indent)
 {
-	struct list *l = buffer_getindex(buffers_current(), gui_y());
+	struct list *l;
+	struct motion m;
+	struct bufferpos topos;
+	struct screeninfo si;
+	int to_x, to_y;
+	int cur;
+	int c;
 
-	if(!nlines)
-		nlines = 1;
+	cur = to_y = gui_y();
+	to_x = gui_x();
 
-	while(nlines-- && l){
+	topos.x = &to_x;
+	topos.y = &to_y;
+
+	si.top    = gui_top();
+	si.height = gui_max_y();
+
+	c = gui_getch(GETCH_COOKED);
+	if(c == '>' || c == '<')
+		c = 'l';
+	gui_ungetch(c);
+
+	if(getmotion(&m) || applymotion(&m, &topos, &si))
+		return;
+
+	l = buffer_getindex(buffers_current(), gui_y());
+	while(cur++ <= to_y && l){
 		shiftline((char **)&l->data, indent);
 		l = l->next;
 	}
 
-	gui_move(gui_y(), gui_x());
+	gui_move(cur - 1, 0);
 	buffer_modified(buffers_current()) = 1;
 }
 
@@ -333,17 +354,20 @@ void readlines(int do_indent, struct gui_read_opts *opts, char ***plines, int *p
 		}
 
 		if(global_settings.cindent){
-			int len = strlen(lines[i-1]);
-			switch(lines[i-1][len-1]){
-				case '{':
-					indent++;
-					break;
+			if(lines[i-1][strlen(lines[i-1])-1] == '{'){
+				indent++;
+			}else{
+				char *iter;
 
-				case '}':
-					/* need to unindent by one */
-					indent--;
-					shiftline(&lines[i-1], 0 /* unindent */);
-					break;
+				for(iter = lines[i-1]; *iter; iter++)
+					if(!isspace(*iter)){
+						if(*iter == '}'){
+							/* need to unindent by one */
+							indent--;
+							shiftline(&lines[i-1], 0 /* unindent */);
+						}
+						break;
+					}
 			}
 		}
 
@@ -753,6 +777,8 @@ void gui_run()
 	prevcmd = 0;
 	prevmultiple = multiple = 0;
 
+	gui_status(GUI_COL_CYAN, ":q to quit");
+
 	do{
 		int flag = 0, resetmultiple = 1;
 		int c;
@@ -1024,7 +1050,7 @@ case_i:
 			case '>':
 				flag = 1;
 			case '<':
-				shift(multiple, flag);
+				shift(flag);
 				buffer_changed = 1;
 				SET_DOT();
 				break;

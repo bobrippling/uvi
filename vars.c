@@ -32,7 +32,7 @@ static struct
 	[VARS_HIGHLIGHT]  = { "hls",        "highlight search terms",      1, 1, &global_settings.hls },
 	[VARS_AUTOINDENT] = { "ai",         "auto indent",                 1, 1, &global_settings.autoindent },
 	[VARS_FSYNC]      = { "fsync",      "call fsync() after write()",  1, 1, &global_settings.fsync },
-	[VARS_CINDENT]    = { "cindent",    "c-style indentation",         1, 1, &global_settings.cindent },
+	[VARS_CINDENT]    = { "cindent",    "C indentation (braces)",      1, 1, &global_settings.cindent },
 
 	[VARS_TABSTOP]    = { "ts",         "tab stop",                    0, 0, &global_settings.tabstop },
 	[VARS_TEXTWIDTH]  = { "tw",         "max text width",              0, 1, &global_settings.textwidth },
