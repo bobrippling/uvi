@@ -339,11 +339,16 @@ void cmd_new(int argc, char **argv, int force, struct range *rng)
 
 void cmd_where(int argc, char **argv, int force, struct range *rng)
 {
-	if(argc != 1 || force || rng->start != -1 || rng->end != -1)
+	char *line;
+	if(argc != 1 || force || rng->start != -1 || rng->end != -1){
 		gui_status(GUI_ERR, "usage: %s", *argv);
-	else
-		gui_status(GUI_NONE, "x=%d y=%d left=%d top=%d",
-				gui_x(), gui_y(), gui_left(), gui_top());
+		return;
+	}
+
+	line = buffer_getindex(buffers_current(), gui_y())->data;
+
+	gui_status(GUI_NONE, "x=%d y=%d left=%d top=%d char=%d",
+			gui_x(), gui_y(), gui_left(), gui_top(), line[gui_x()]);
 }
 
 void cmd_set(int argc, char **argv, int force, struct range *rng)
