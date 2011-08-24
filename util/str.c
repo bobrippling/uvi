@@ -208,6 +208,7 @@ int isescapeable(char c)
 		case '$':
 		case '`':
 		case '\\':
+		case '*':
 			return 1;
 	}
 	return 0;
@@ -299,7 +300,7 @@ void uniq(void *bas, size_t *pnmemb, size_t size,
 	*pnmemb = nmemb;
 }
 
-void  str_home_replace_array(int argc, char **argv)
+void str_home_replace_array(int argc, char **argv)
 {
 	int i;
 	for(i = 0; i < argc; i++)

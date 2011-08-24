@@ -145,14 +145,21 @@ int intellisense_file(char **pstr, int *psize, int *pos, char ch)
 	int arglen, offset;
 	int ret = 1;
 
-	if(strchr(*pstr, '*'))
-		return 1;
+	if((match = strchr(*pstr, '*'))){
+		if(match > *pstr ? match[-1] != '\\' : 1)
+			return 1;
+	}
 
 	if((match = strchr(*pstr, '~')) && (match > *pstr ? match[-1] != '\\' : 1)){
 		*pstr = str_home_replace(*pstr);
 		*pos += strlen(*pstr) - *pos;
 		*psize = *pos + 1;
-		/*return 0;*/
+	}
+
+	if(buffer_hasfilename(buffers_current())){
+		*pstr = chr_expand(*pstr, '%', buffer_filename(buffers_current()));
+		*pos += strlen(*pstr) - *pos;
+		*psize = *pos + 1;
 	}
 
 	arg = strrchr(*pstr, ' ');
