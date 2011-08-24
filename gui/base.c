@@ -164,7 +164,7 @@ void shift(int indent)
 		l = l->next;
 	}
 
-	gui_move(cur - 1, 0);
+	gui_move(cur - 2, 0);
 	buffer_modified(buffers_current()) = 1;
 }
 
