@@ -104,7 +104,8 @@ void shiftline(char **ps, int indent)
 {
 	char *s = *ps;
 
-	if(indent){
+	/* TODO: indent by a given amount */
+	if(indent > 0){
 		int len = strlen(s) + 1;
 		char *new = realloc(s, len + 1);
 
@@ -164,7 +165,9 @@ void shift(int indent)
 		l = l->next;
 	}
 
-	gui_move(cur - 2, 0);
+	gui_move(cur - 1, 0);
+	m.motion = MOTION_LINE_START;
+	gui_move_motion(&m);
 	buffer_modified(buffers_current()) = 1;
 }
 
