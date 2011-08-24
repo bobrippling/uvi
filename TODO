@@ -1,12 +1,11 @@
-ncurses:
-	change 'w' and 'b' to toggle between /\s/ and !/\s/ like gui textboxes
+fix 1G and 1Gdd
 
-	'u' (aka undo)
+change 'w' and 'b' to toggle between /\s/ and !/\s/ like gui textboxes
 
-	^Vx[0-9]+ = hex char insert - ^Vx1 inserts '\x01'
+'u' (aka undo)
 
-	gui_getstr(): display non printable chars correctly on deletion
-	/fix backspace on tabbed lines
+gui_getstr(): display non printable chars correctly on deletion
+/fix backspace on tabbed lines
 
 regex:
 	simple (vi(1) - see '/'): ^$.[]*
@@ -16,19 +15,12 @@ binary file handling? (i.e. '\0')
 side scrolling with tabs - fix
 
 fix i_S - currently joins with line below
-
-cat <<! | uvi <<tim
-hi
-there
-!
-2dd
-tim
+fix i_c$
 
 store list of words after each buffer insertion, rather than generate
 	buffer_getwords() - ->dirty etc etc
 
 'nu'
-'cindent' (aka just handle {} nesting)
 'scs' aka smartcase search
 
 fix 'ai' for ^[O
@@ -41,20 +33,16 @@ buffer_write(): write to temp file, then rename into place
 on d[motion above], position cursor to top
 
 visual 'd' and 'c' commands (<, > and others too)
-
-change > from [0-9]> to [0-9]>{motion}
+$ vim +help\ Visual-mode
+^ check keys
 
 intellisense file:
 	first match: -x $PATH
 
-fix :<range>! filtering - a new line appears from nowhere
-
-uvi - :set ts=-5 // check
-
-$ vim +help\ Visual-mode
-^ check keys
+fix :<range>! filtering - a new line appears from nowhere/lines[n] <=> lines[0]
 
 :cd and :pwd - change buffer list to accomodate
+either:
 	- copy vim
 	- store absolute paths for all
 	- store open directory fds, and use openat()
@@ -63,8 +51,8 @@ $ vim +help\ Visual-mode
 
 :tabnew :tn
 
-:e %\t
+fix macros:
+	map I i#include "
+	map i i#include <
 
-# ???
-map I i#include "
-map i i#include <
+[vdc]i[[{etc]
