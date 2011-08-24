@@ -666,10 +666,12 @@ void parsecmd(char *s, int *pargc, char ***pargv, int *pforce)
 		argv[0] = "!";
 	}
 
-	if(s[1] == '!'){
-		*pforce = 1;
-		s[1] = ' ';
-	}
+	for(iter = s + 1; *iter && *iter != ' '; iter++)
+		if(*iter == '!'){
+			*pforce = 1;
+			*iter = ' ';
+			break;
+		}
 
 	for(iter = strtok(s, " !"); iter; iter = strtok(NULL, " "))
 		argv[n++] = iter;
