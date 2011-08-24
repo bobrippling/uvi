@@ -1,0 +1,9 @@
+#!/bin/sh
+
+[ -n "$XTERM" ] && t="$XTERM"
+[ -z "$t" ] && t="${TERM%%-*}"
+
+# show error
+which $t > /dev/null || t=xterm
+
+exec $t -e "uvi $@"
