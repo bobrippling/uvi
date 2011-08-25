@@ -39,79 +39,55 @@ buffer_t *buffers_current()
 struct old_buffer *new_old_buf(const char *fname)
 {
 	struct old_buffer *b;
-	b         = umalloc(sizeof *b);
+	b = umalloc(sizeof *b);
+	memset(b, 0, sizeof *b);
 	b->fname  = ustrdup(fname);
-	b->last_y = 0;
 	return b;
 }
 
-void buffers_init(int argc, const char **argv, int ro)
+static buffer_t *buffers_readfile(FILE *f, const char *filename)
 {
-	int i;
+	buffer_t *b;
+	int nread;
 
-	count = argc;
-	arg_ro = ro;
+	nread = buffer_read(&b, f);
 
-	fnames = umalloc((count + 1) * sizeof *fnames);
+	if(nread == -1){
+		gui_status(GUI_ERR, "read \"%s\": %s",
+				filename,
+				errno ? strerror(errno) : "unknown error - binary file?");
 
-	for(i = 0; i < count; i++)
-		fnames[i] = new_old_buf(argv[i]);
+	}else{
+		buffer_readonly(b) = access(filename, W_OK);
 
-	fnames[count] = NULL;
+		if(nread == 0)
+			gui_status(GUI_NONE, "%s: empty file%s", filename, buffer_readonly(b) ? " [read only]" : "");
+		else
+			gui_status(GUI_NONE, "%s%s: %dC, %dL%s%s",
+					filename,
+					buffer_readonly(b) ? " [read only]" : "",
+					buffer_nchars(b),
+					buffer_nlines(b),
+					buffer_eol(b)  ? "" : " [noeol]",
+					buffer_crlf(b) ? " [crlf]" : ""
+					);
+	}
 
-	current = count > 0 ? 0 : -1;
-
-	if(buffers_next(0))
-		current_buf = buffer_new_empty();
+	return b;
 }
 
-static buffer_t *buffers_readfile(const char *filename)
+static buffer_t *buffers_readfname(const char *filename)
 {
 	buffer_t *b = NULL;
 
 	if(filename){
 		FILE *f;
-		int read_stdin;
 
-		if(strcmp(filename, "-")){
-			f = fopen(filename, "r");
-			read_stdin = 0;
-		}else{
-			f = stdin;
-			read_stdin = 1;
-		}
+		f = fopen(filename, "r");
 
 		if(f){
-			int nread = buffer_read(&b, f);
-
-			if(nread == -1){
-				gui_status(GUI_ERR, "read \"%s\": %s",
-						filename,
-						errno ? strerror(errno) : "unknown error - binary file?");
-
-			}else{
-				if(read_stdin)
-					buffer_readonly(b) = 0;
-				else
-					buffer_readonly(b) = access(filename, W_OK);
-
-				if(nread == 0)
-					gui_status(GUI_NONE, "%s: empty file%s", filename, buffer_readonly(b) ? " [read only]" : "");
-				else
-					gui_status(GUI_NONE, "%s%s: %dC, %dL%s%s",
-							filename,
-							buffer_readonly(b) ? " [read only]" : "",
-							buffer_nchars(b),
-							buffer_nlines(b),
-							buffer_eol(b)  ? "" : " [noeol]",
-							buffer_crlf(b) ? " [crlf]" : ""
-							);
-			}
-
+			b = buffers_readfile(f, filename);
 			fclose(f);
-			if(read_stdin)
-				input_reopen();
-
 		}else{
 			if(errno == ENOENT)
 				goto newfile;
@@ -128,10 +104,44 @@ newfile:
 
 	if(!b)
 		b = buffer_new_empty();
-	if(filename && strcmp(filename, "-"))
+	if(filename)
 		buffer_setfilename(b, filename);
 
 	return b;
+}
+
+void buffers_init(int argc, const char **argv, int ro)
+{
+	int i;
+	int read_stdin = 0;
+
+	if(argc > 0 && !strcmp(argv[0], "-")){
+		argc--;
+		argv++;
+		read_stdin = 1;
+	}
+
+	count  = argc;
+	arg_ro = ro;
+
+	fnames = umalloc((count + 1) * sizeof *fnames);
+
+	for(i = 0; i < count; i++)
+		fnames[i] = new_old_buf(argv[i]);
+
+	fnames[count] = NULL;
+
+	current = count > 0 ? 0 : -1;
+
+	if(read_stdin){
+		current_buf = buffers_readfile(stdin, "-");
+		input_reopen();
+		current = -1;
+	}else if(count > 0){
+		current_buf = buffers_readfname(*argv);
+	}else{
+		current_buf = buffer_new_empty();
+	}
 }
 
 int buffers_next(int n)
@@ -157,7 +167,7 @@ int buffers_goto(int n)
 
 	current = n;
 	buffer_free(current_buf);
-	current_buf = buffers_readfile(fnames[current]->fname);
+	current_buf = buffers_readfname(fnames[current]->fname);
 
 	if(arg_ro)
 		buffer_readonly(buffers_current()) = 1;
@@ -192,7 +202,7 @@ void buffers_load(const char *fname)
 		fnames[count] = NULL;
 		buffers_goto(i);
 	}else{
-		current_buf = buffers_readfile(NULL);
+		current_buf = buffers_readfname(NULL);
 		current     = -1;
 		gui_move(0, 0);
 	}
