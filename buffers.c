@@ -112,7 +112,7 @@ newfile:
 
 void buffers_init(int argc, const char **argv, int ro)
 {
-	int i;
+	int i, bufidx;
 	int read_stdin = 0;
 
 	if(argc > 0 && !strcmp(argv[0], "-")){
@@ -125,11 +125,21 @@ void buffers_init(int argc, const char **argv, int ro)
 	arg_ro = ro;
 
 	fnames = umalloc((count + 1) * sizeof *fnames);
+	bufidx = 0;
 
-	for(i = 0; i < count; i++)
-		fnames[i] = new_old_buf(argv[i]);
+	for(i = 0; i < count; i++){
+		int j, found = 0;
+		for(j = 0; j < i; j++)
+			if(!strcmp(argv[i], argv[j])){
+				found = 1;
+				break;
+			}
+	
+		if(!found)
+			fnames[bufidx++] = new_old_buf(argv[i]);
+	}
 
-	fnames[count] = NULL;
+	fnames[count = bufidx] = NULL;
 
 	current = count > 0 ? 0 : -1;
 
@@ -138,7 +148,7 @@ void buffers_init(int argc, const char **argv, int ro)
 		input_reopen();
 		current = -1;
 	}else if(count > 0){
-		current_buf = buffers_readfname(*argv);
+		buffers_goto(0);
 	}else{
 		current_buf = buffer_new_empty();
 	}
@@ -166,14 +176,27 @@ int buffers_goto(int n)
 	buffers_save_pos();
 
 	current = n;
-	buffer_free(current_buf);
+	if(current_buf)
+		buffer_free(current_buf);
 	current_buf = buffers_readfname(fnames[current]->fname);
 
 	if(arg_ro)
 		buffer_readonly(buffers_current()) = 1;
 
+	fnames[n]->read = 1;
+
 	gui_move(fnames[n]->last_y, 0);
 	gui_scroll(CURSOR_MIDDLE);
+	return 0;
+}
+
+int buffers_unread()
+{
+	int i;
+
+	for(i = 0; i < count; i++)
+		if(!fnames[i]->read)
+			return 1;
 	return 0;
 }
 

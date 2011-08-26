@@ -102,6 +102,23 @@ void cmd_r(int argc, char **argv, int force, struct range *rng)
 
 }
 
+void cmd_q(int argc, char **argv, int force, struct range *rng)
+{
+	if(argc != 1 || rng->start != -1 || rng->end != -1){
+		gui_status(GUI_ERR, "usage: q[!]");
+		return;
+	}
+
+	MODIFIED_CHECK();
+
+	if(!force && buffers_unread()){
+		gui_status(GUI_ERR, "unread buffers");
+		return;
+	}
+
+	global_running = 0;
+}
+
 void cmd_w(int argc, char **argv, int force, struct range *rng)
 {
 	struct list *list_to_write = NULL;
@@ -217,7 +234,10 @@ after:
 			buffers_load(argv[1]);
 			break;
 		case QUIT:
-			global_running = 0;
+		{
+			char *av[] = { "q", NULL };
+			cmd_q(1, av, force, rng);
+		}
 		case NONE:
 			break;
 	}
@@ -225,19 +245,6 @@ after:
 fin:
 	if(list_to_write)
 		list_free(list_to_write, free);
-}
-
-
-void cmd_q(int argc, char **argv, int force, struct range *rng)
-{
-	if(argc != 1 || rng->start != -1 || rng->end != -1){
-		gui_status(GUI_ERR, "usage: q[!]");
-		return;
-	}
-
-	MODIFIED_CHECK();
-
-	global_running = 0;
 }
 
 void cmd_bang(int argc, char **argv, int force, struct range *rng)
@@ -533,7 +540,8 @@ void cmd_ls(int argc, char **argv, int force, struct range *rng)
 
 	gui_status_add_start();
 	for(i = 0, iter = buffers_array(); *iter; iter++, i++)
-		gui_status_add(i == cur ? GUI_COL_BLUE : GUI_NONE, "%d: %s", i, (*iter)->fname);
+		gui_status_add(i == cur ? GUI_COL_BLUE : GUI_NONE, "%c %d: %s",
+				(*iter)->read ? ' ' : '*', i, (*iter)->fname);
 	gui_status_wait(-1, -1, NULL);
 }
 

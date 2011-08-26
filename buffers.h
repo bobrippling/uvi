@@ -5,6 +5,7 @@ struct old_buffer
 {
 	const char *fname;
 	int last_y;
+	int read;
 };
 
 
@@ -26,5 +27,7 @@ int          buffers_goto(int n);
  */
 
 void         buffers_load(const char *);
+
+int          buffers_unread();
 
 #endif
