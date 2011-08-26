@@ -3,7 +3,7 @@
 
 struct old_buffer
 {
-	const char *fname;
+	char *fname;
 	int last_y;
 	int read;
 };
@@ -20,6 +20,7 @@ int          buffers_count();
 
 int          buffers_next(int n);
 int          buffers_goto(int n);
+int          buffers_del( int n);
 
 /*
  * load the filename (or return error)

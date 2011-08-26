@@ -545,23 +545,40 @@ void cmd_ls(int argc, char **argv, int force, struct range *rng)
 	gui_status_wait(-1, -1, NULL);
 }
 
-void cmd_b(int argc, char **argv, int force, struct range *rng)
+void buffer_cmd(int argc, char **argv, int force, struct range *rng, int (*f)(int), int use_cur)
 {
-	int n;
+	int n = -1;
 
-	if(argc != 2 || rng->start != -1 || rng->end != -1){
+	if(rng->start != -1 || rng->end != -1){
 usage:
 		gui_status(GUI_ERR, "usage: %s idx", *argv);
 		return;
 	}
 
+	if(argc != 2){
+		if(use_cur && argc == 1)
+			n = buffers_idx();
+		else
+			goto usage;
+	}
+
 	MODIFIED_CHECK();
 
-	if(sscanf(argv[1], "%d", &n) != 1)
+	if(n == -1 && sscanf(argv[1], "%d", &n) != 1)
 		goto usage;
 
-	if(buffers_goto(n))
+	if(f(n))
 		gui_status(GUI_ERR, "index %d out of range", n);
+}
+
+void cmd_b(int argc, char **argv, int force, struct range *rng)
+{
+	buffer_cmd(argc, argv, force, rng, buffers_goto, 0);
+}
+
+void cmd_bd(int argc, char **argv, int force, struct range *rng)
+{
+	buffer_cmd(argc, argv, force, rng, buffers_del, 1);
 }
 
 void cmd_pwd(int argc, char **argv, int force, struct range *rng)
@@ -745,6 +762,7 @@ void command_run(char *in)
 		{ "N", cmd_n },
 		CMD(ls),
 		CMD(b),
+		CMD(bd),
 
 		CMD(cd),
 		CMD(pwd),

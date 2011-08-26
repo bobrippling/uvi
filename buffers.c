@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <stdarg.h>
+#include <stdlib.h>
 
 #include "range.h"
 #include "buffer.h"
@@ -134,7 +135,7 @@ void buffers_init(int argc, const char **argv, int ro)
 				found = 1;
 				break;
 			}
-	
+
 		if(!found)
 			fnames[bufidx++] = new_old_buf(argv[i]);
 	}
@@ -187,6 +188,25 @@ int buffers_goto(int n)
 
 	gui_move(fnames[n]->last_y, 0);
 	gui_scroll(CURSOR_MIDDLE);
+	return 0;
+}
+
+int buffers_del(int n)
+{
+	int i;
+
+	if(n < 0 || n >= count)
+		return 1;
+
+	free(fnames[n]->fname);
+	free(fnames[n]);
+
+	for(i = n; i < count; i++)
+		fnames[i] = fnames[i + 1];
+
+	count--;
+	current = -1;
+
 	return 0;
 }
 

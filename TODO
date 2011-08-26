@@ -56,4 +56,7 @@ fix macros:
 	map i i#include <
 
 [vdc]i[[{etc]
+
 $x
+
+fix :so'ing maps
