@@ -776,11 +776,14 @@ void gui_run()
 	int multiple, prevmultiple;
 
 	buffer_changed = 0;
-	view_changed = 1;
+	view_changed = 0;
 	prevcmd = 0;
 	prevmultiple = multiple = 0;
 
 	gui_status(GUI_COL_CYAN, ":q to quit");
+	gui_draw();
+	gui_peekch();
+	gui_status(GUI_NONE, "");
 
 	do{
 		int flag = 0, resetmultiple = 1;
