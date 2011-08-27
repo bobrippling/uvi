@@ -681,22 +681,28 @@ static void put(unsigned int ntimes, int rev)
 
 static void join(unsigned int ntimes)
 {
-	struct list *jointhese, *l, *cur = buffer_getindex(buffers_current(), gui_y());
+	struct list *jointhese, *l, *cur;
 	struct range r;
 	char *alloced;
-	int len = 0;
+	int len;
 
-	if(gui_y() + ntimes >= (unsigned)buffer_nlines(buffers_current())){
-		gui_status(GUI_ERR, "can't join %d line%s", ntimes,
-				ntimes > 1 ? "s" : "");
-		return;
+	{
+		unsigned int nl = buffer_nlines(buffers_current());
+		if(nl <= 1 || gui_y() + ntimes >= nl){
+			gui_status(GUI_ERR, "can't join %d line%s", ntimes,
+					ntimes == 1 ? "" : "s");
+			return;
+		}
 	}
+	
+	cur = buffer_getindex(buffers_current(), gui_y());
 
 	r.start = gui_y() + 1; /* extract the next line(s) */
 	r.end   = r.start + ntimes;
 
 	jointhese = buffer_extract_range(buffers_current(), &r);
 
+	len = 0;
 	for(l = jointhese; l; l = l->next)
 		len += strlen(l->data);
 
