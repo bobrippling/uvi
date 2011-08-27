@@ -694,7 +694,7 @@ static void join(unsigned int ntimes)
 			return;
 		}
 	}
-	
+
 	cur = buffer_getindex(buffers_current(), gui_y());
 
 	r.start = gui_y() + 1; /* extract the next line(s) */
@@ -788,7 +788,7 @@ void gui_run()
 
 	gui_status(GUI_COL_CYAN, ":q to quit");
 	gui_draw();
-	gui_peekch();
+	gui_peekch(GETCH_MEDIUM_RARE); /* get back (and redraw) on sigwinch */
 	gui_status(GUI_NONE, "");
 
 	do{

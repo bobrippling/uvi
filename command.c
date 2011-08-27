@@ -189,7 +189,7 @@ usage:
 		buffer_modified(buffers_current()) = 1;
 	}
 
-	if(!buffer_hasfilename(buffers_current())){
+	if(buffer_modified(buffers_current()) && !buffer_hasfilename(buffers_current())){
 		gui_status(GUI_ERR, "buffer has no filename");
 		goto fin;
 	}
