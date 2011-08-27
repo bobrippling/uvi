@@ -1152,8 +1152,8 @@ case_i:
 						break;
 					default:
 						gui_status(GUI_ERR, "Invalid ! suffix");
-						break;
 				}
+				break;
 			}
 
 			default:
