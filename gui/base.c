@@ -694,7 +694,7 @@ static void join(unsigned int ntimes)
 			return;
 		}
 	}
-	
+
 	cur = buffer_getindex(buffers_current(), gui_y());
 
 	r.start = gui_y() + 1; /* extract the next line(s) */
@@ -782,14 +782,9 @@ void gui_run()
 	int multiple, prevmultiple;
 
 	buffer_changed = 0;
-	view_changed = 0;
+	view_changed = 1;
 	prevcmd = 0;
 	prevmultiple = multiple = 0;
-
-	gui_status(GUI_COL_CYAN, ":q to quit");
-	gui_draw();
-	gui_peekch();
-	gui_status(GUI_NONE, "");
 
 	do{
 		int flag = 0, resetmultiple = 1;
