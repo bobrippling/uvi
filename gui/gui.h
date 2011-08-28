@@ -41,7 +41,7 @@ enum getch_opt
 	GETCH_RAW          /* pass back all characters */
 };
 int gui_getch(enum getch_opt);
-int gui_peekch(void);
+int gui_peekch(enum getch_opt o);
 #ifdef BUFFER_H
 buffer_t *gui_readfile(const char *filename);
 #endif

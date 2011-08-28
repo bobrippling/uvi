@@ -247,7 +247,7 @@ void gui_status_wait(int y, int x, const char *s)
 	gui_status_add(GUI_NONE, "%s\r", s);
 	if(y != -1 && x != -1)
 		move(y, x);
-	gui_peekch();
+	gui_peekch(GETCH_MEDIUM_RARE);
 }
 
 void gui_show_array(enum gui_attr a, int y, int x, const char **ar)
@@ -342,9 +342,9 @@ int gui_peekunget()
 	return unget_i ? unget_buf[unget_i - 1] : 0;
 }
 
-int gui_peekch()
+int gui_peekch(enum getch_opt o)
 {
-	int c = gui_getch(GETCH_COOKED);
+	int c = gui_getch(o);
 	gui_ungetch(c);
 	return c;
 }
