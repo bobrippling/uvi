@@ -82,8 +82,10 @@ int buffer_read(buffer_t **buffer, FILE *f)
 	int eol;
 
 	l = list_from_file(f, &eol);
-	if(!l)
+	if(!l){
+		*buffer = NULL;
 		return -1;
+	}
 
 	b = buffer_new_list(l);
 
