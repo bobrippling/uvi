@@ -513,7 +513,7 @@ ins_ch:
 				start[i++] = c;
 				gui_addch(c);
 				x++;
-				if(opts->textw && i > opts->textw)
+				if(opts->textw && x > opts->textw)
 					goto fin;
 		}
 	}
