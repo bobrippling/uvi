@@ -56,9 +56,10 @@ static int  yank_char = 0;
 static int search(int next, int rev)
 {
 	struct list *l;
-	char *p;
+	const char *p;
 	int y;
 	int found = 0;
+	int offset = gui_x() + 1;
 
 	if(next){
 		if(!search_str || !*search_str){
@@ -78,19 +79,25 @@ static int search(int next, int rev)
 
 	/* TODO: allow SIGINT to stop search */
 	/* FIXME: start at curpos */
-	for(y = gui_y() + (rev ? -1 : 1),
+	for(y = gui_y(),
 			l = buffer_getindex(buffers_current(), y);
 			l;
 			l = (rev ? l->prev : l->next),
-			rev ? y-- : y++)
+			rev ? y-- : y++){
 
-		if((p = usearch(l->data, search_str))){
+		if(rev && !offset)
+			offset = strlen(l->data);
+
+		if((p = usearch((const char *)l->data, offset, search_str, rev))){
 			int x = p - (char *)l->data;
 			found = 1;
 			gui_move(y, x);
 			gui_status(GUI_NONE, "y=%d x=%d", y, x);
 			break;
+		}else{
+			offset = 0;
 		}
+	}
 
 	if(!found){
 		gui_status(GUI_ERR, "not found %s", rev ? "above" : "below");

@@ -6,4 +6,4 @@
 # show error
 which $t > /dev/null || t=xterm
 
-exec $t -e "uvi $@"
+exec $t -e uvi $@

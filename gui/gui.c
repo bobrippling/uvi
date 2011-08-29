@@ -583,7 +583,7 @@ void gui_draw()
 			l && y < LINES - 1;
 			l = l->next, y++, real_y++){
 
-		char *hls;
+		const char *hls;
 		char *p;
 		int i;
 
@@ -594,7 +594,7 @@ void gui_draw()
 			attron(A_REVERSE);
 
 		if(global_settings.hls && search_str && search_len)
-			hls = usearch(l->data, search_str);
+			hls = usearch(l->data, 0, search_str, 0);
 		else
 			hls = NULL;
 
@@ -609,7 +609,7 @@ check_search:
 				gui_attroff(GUI_SEARCH_COL);
 
 				/* //g */
-				hls = usearch(p, search_str);
+				hls = usearch(p, 0, search_str, 0);
 				if(hls)
 					goto check_search;
 			}

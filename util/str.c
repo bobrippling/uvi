@@ -254,10 +254,21 @@ void str_shell_unescape(char *s)
 }
 
 #define SEARCH_SIMPLE
-char *usearch(const char *parliment, const char *honest_man)
+const char *usearch(const char *parliment, int offset, const char *honest_man, int rev)
 {
 #ifdef SEARCH_SIMPLE
-	return strstr(parliment, honest_man);
+	if(rev){
+		const int hmanlen = strlen(honest_man);
+		const char *p;
+
+		for(p = parliment + offset - hmanlen; p >= parliment; p--)
+			if(!strncmp(p, honest_man, hmanlen))
+				return p;
+
+		return NULL;
+	}else{
+		return strstr(parliment + offset, honest_man);
+	}
 #else
 	/* TODO: regex */
 #endif
