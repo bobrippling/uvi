@@ -539,9 +539,16 @@ void cmd_ls(int argc, char **argv, int force, struct range *rng)
 	}
 
 	gui_status_add_start();
+	gui_status_add(GUI_NONE, "?  #  pos filename");
 	for(i = 0, iter = buffers_array(); *iter; iter++, i++)
-		gui_status_add(i == cur ? GUI_COL_BLUE : GUI_NONE, "%c %d: %s",
-				(*iter)->read ? ' ' : '*', i, (*iter)->fname);
+		gui_status_add(
+				i == cur ? GUI_COL_BLUE : GUI_NONE,
+				"%c % 2d % 3d %s",
+				(*iter)->read ? ' ' : '*',
+				i,
+				(*iter)->last_y,
+				(*iter)->fname);
+			
 	gui_status_wait(-1, -1, NULL);
 }
 
