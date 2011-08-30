@@ -60,3 +60,17 @@ fix macros:
 $x
 
 fix :so'ing maps
+	- don't allow duplicates
+
+fix :\t
+
+fix /a\n reverse search
+
+fprintf(stderr...) on intellisense_file
+
+check logic for :bd - on buffer 0, :bd 1, buffer 0 not highlighted
+
+fix n_50% (motion)
+
+echo hi | uvi - yo
+-> stdin should be an unnamed buffer in buffers.c
