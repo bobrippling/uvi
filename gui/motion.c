@@ -396,7 +396,23 @@ int applymotion2(struct motion *motion, struct bufferpos *pos,
 		}
 
 		case MOTION_PAREN_MATCH:
-			percent(pos);
+			if(motion->ntimes){
+				/* go a percentage way through the file */
+				int y, nl;
+
+				nl = buffer_nlines(buffers_current());
+				y  = (float)nl * (float)motion->ntimes / 100.0f;
+
+				if(y >= nl)
+					y = nl - 1;
+
+				motion->ntimes = 0;
+
+				*pos->y = y;
+				*pos->x = 0; /* FIXME? use /^/ */
+			}else{
+				percent(pos);
+			}
 			return 0;
 
 		case MOTION_ABSOLUTE_UP:
