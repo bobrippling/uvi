@@ -205,7 +205,10 @@ int buffers_del(int n)
 		fnames[i] = fnames[i + 1];
 
 	count--;
-	current = -1;
+	if(current == n)
+		current = -1;
+	else if(current > n)
+		current--;
 
 	return 0;
 }

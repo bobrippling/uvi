@@ -563,10 +563,15 @@ usage:
 	}
 
 	if(argc != 2){
-		if(use_cur && argc == 1)
+		if(use_cur && argc == 1){
 			n = buffers_idx();
-		else
+			if(n == -1){
+				gui_status(GUI_ERR, "no buffer selected");
+				return;
+			}
+		}else{
 			goto usage;
+		}
 	}
 
 	MODIFIED_CHECK();
