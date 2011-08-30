@@ -23,6 +23,7 @@
 #include "../buffers.h"
 #include "visual.h"
 #include "../yank.h"
+#include "../util/search.h"
 
 #define GUI_TAB_INDENT(x) \
 	(global_settings.tabstop - (x) % global_settings.tabstop)
@@ -558,11 +559,14 @@ void gui_draw()
 	const int vis = visual_get() != VISUAL_NONE;
 
 	extern char *search_str;
-	int search_len;
+
+	struct usearch us;
+	int hls_ing, free_regex;
 
 	struct list *l;
 	int y;
 	int real_y;
+
 
 	real_y = pos_top;
 
@@ -574,10 +578,12 @@ void gui_draw()
 			attron(A_REVERSE);
 	}
 
-	if(search_str)
-		search_len = strlen(search_str);
-	else
-		search_len = 0;
+	free_regex = 0;
+	if((hls_ing = global_settings.hls && search_str)){
+		if(usearch_init(&us, search_str))
+			hls_ing = 0;
+		free_regex = 1;
+	}
 
 	for(l = buffer_getindex(buffers_current(), pos_top), y = 0;
 			l && y < LINES - 1;
@@ -593,8 +599,8 @@ void gui_draw()
 		if(vis && real_y == visual_start->start)
 			attron(A_REVERSE);
 
-		if(global_settings.hls && search_str && search_len)
-			hls = usearch(l->data, 0, search_str, 0);
+		if(hls_ing)
+			hls = usearch(&us, l->data, 0, 0);
 		else
 			hls = NULL;
 
@@ -603,15 +609,17 @@ void gui_draw()
 				p++){
 
 check_search:
-			if(p == hls){
-				gui_attron(GUI_SEARCH_COL);
-			}else if(p == hls + search_len){
-				gui_attroff(GUI_SEARCH_COL);
+			if(hls_ing){
+				if(p == hls){
+					gui_attron(GUI_SEARCH_COL);
+				}else if(p == hls + usearch_matchlen(&us)){
+					gui_attroff(GUI_SEARCH_COL);
 
-				/* //g */
-				hls = usearch(p, 0, search_str, 0);
-				if(hls)
-					goto check_search;
+					/* //g */
+					hls = usearch(&us, p, 0, 0);
+					if(hls)
+						goto check_search;
+				}
 			}
 
 			switch(*p){
@@ -637,6 +645,9 @@ check_search:
 		if(vis && real_y == visual_end->start)
 			attroff(A_REVERSE);
 	}
+
+	if(free_regex)
+		usearch_free(&us);
 
 	attroff(A_REVERSE);
 

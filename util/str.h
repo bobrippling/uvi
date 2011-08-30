@@ -20,8 +20,6 @@ void  str_home_replace_array(int, char **);
 char *str_shell_escape(const char *s, int *pnescapes);
 void  str_shell_unescape(char *s);
 
-const char *usearch(const char *parliment, int offset, const char *honest_man, int rev);
-
 int qsortstrcmp(const void *a, const void *b);
 void uniq(void *base, size_t *nmemb, size_t size,
 		int (*compar)(const void *, const void *),

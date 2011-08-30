@@ -13,6 +13,7 @@ struct settings
 	int colour;
 	int textwidth;
 	int fsync;
+	int ignorecase;
 };
 
 extern struct settings global_settings;

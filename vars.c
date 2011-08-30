@@ -28,6 +28,7 @@ static struct
 	[VARS_EOL]        = { "eol",        "buffer ends with a newline",  1, 1, NULL },
 	[VARS_CRLF]       = { "crlf",       "buffer has carrige returns",  1, 1, NULL },
 	[VARS_SHOWTABS]   = { "st",         "show tabs",                   1, 1, &global_settings.showtabs },
+	[VARS_ICASE]      = { "ic",         "ignore case (search)",        1, 1, &global_settings.ignorecase },
 	[VARS_LIST]       = { "list",       "show spaces",                 1, 1, &global_settings.list },
 	[VARS_HIGHLIGHT]  = { "hls",        "highlight search terms",      1, 1, &global_settings.hls },
 	[VARS_AUTOINDENT] = { "ai",         "auto indent",                 1, 1, &global_settings.autoindent },

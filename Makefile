@@ -1,7 +1,7 @@
 include config.mk
 
 OBJ = main.o buffer.o buffers.o range.o command.o vars.o \
-	util/list.o util/alloc.o util/io.o util/pipe.o util/str.o util/term.o \
+	util/list.o util/alloc.o util/io.o util/pipe.o util/str.o util/term.o util/search.o \
 	gui/gui.o gui/motion.o gui/marks.o gui/base.o gui/intellisense.o gui/map.o gui/macro.o gui/visual.o \
 	global.o rc.o preserve.o yank.o
 
@@ -32,7 +32,7 @@ uninstall:
  util/alloc.h
 ./command.o: command.c range.h buffer.h command.h util/list.h vars.h \
  util/alloc.h util/pipe.h global.h gui/motion.h gui/intellisense.h \
- gui/gui.h util/io.h yank.h buffers.h util/str.h
+ gui/gui.h util/io.h yank.h buffers.h util/str.h rc.h
 ./global.o: global.c range.h buffer.h global.h
 ./main.o: main.c main.h range.h buffer.h global.h gui/motion.h \
  gui/intellisense.h gui/gui.h rc.h command.h util/io.h preserve.h \
@@ -51,17 +51,19 @@ util/io.o: util/io.c util/alloc.h util/../range.h util/../buffer.h util/io.h \
 util/list.o: util/list.c util/../range.h util/list.h util/alloc.h
 util/pipe.o: util/pipe.c util/../range.h util/list.h util/io.h util/pipe.h \
  util/alloc.h
+util/search.o: util/search.c util/search.h util/alloc.h util/../global.h
 util/str.o: util/str.c util/../range.h util/list.h util/str.h util/alloc.h
 util/term.o: util/term.c
 gui/base.o: gui/base.c gui/../range.h gui/../buffer.h gui/../command.h \
  gui/../util/list.h gui/../global.h gui/motion.h gui/../util/alloc.h \
  gui/intellisense.h gui/gui.h gui/macro.h gui/marks.h gui/../main.h \
- gui/../util/str.h gui/../yank.h gui/map.h gui/../buffers.h gui/visual.h
+ gui/../util/str.h gui/../yank.h gui/map.h gui/../buffers.h gui/visual.h \
+ gui/../util/search.h
 gui/gui.o: gui/gui.c gui/../range.h gui/../util/list.h gui/../buffer.h \
  gui/motion.h gui/intellisense.h gui/gui.h gui/../global.h \
  gui/../util/alloc.h gui/../util/str.h gui/../util/term.h \
  gui/../util/io.h gui/macro.h gui/marks.h gui/../buffers.h gui/visual.h \
- gui/../yank.h
+ gui/../yank.h gui/../util/search.h
 gui/intellisense.o: gui/intellisense.c gui/intellisense.h gui/../range.h \
  gui/../buffer.h gui/../global.h gui/../util/str.h gui/../util/list.h \
  gui/../util/alloc.h gui/motion.h gui/gui.h gui/../buffers.h

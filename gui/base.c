@@ -26,6 +26,7 @@
 #include "map.h"
 #include "../buffers.h"
 #include "visual.h"
+#include "../util/search.h"
 
 #define REPEAT_FUNC(nam) static void nam(unsigned int)
 
@@ -60,6 +61,7 @@ static int search(int next, int rev)
 	int y;
 	int found = 0;
 	int offset = gui_x() + rev ? 1 : -1;
+	struct usearch us;
 
 	if(next){
 		if(!search_str || !*search_str){
@@ -75,7 +77,16 @@ static int search(int next, int rev)
 			return 1;
 	}
 
+	if(usearch_init(&us, search_str)){
+		gui_status(GUI_ERR, "regex error %s", usearch_err(&us));
+		found = 0;
+		goto fin;
+	}
+
 	mark_jump();
+
+	if(offset < 0)
+		offset = 0;
 
 	/* TODO: allow SIGINT to stop search */
 	/* FIXME: start at curpos */
@@ -88,7 +99,7 @@ static int search(int next, int rev)
 		if(rev && !offset)
 			offset = strlen(l->data);
 
-		if((p = usearch((const char *)l->data, offset, search_str, rev))){
+		if((p = usearch(&us, (const char *)l->data, offset, rev))){
 			int x = p - (char *)l->data;
 			found = 1;
 			gui_move(y, x);
@@ -103,6 +114,9 @@ static int search(int next, int rev)
 		gui_status(GUI_ERR, "not found %s", rev ? "above" : "below");
 		gui_move(gui_y(), gui_x());
 	}
+
+fin:
+	usearch_free(&us);
 
 	return !found;
 }

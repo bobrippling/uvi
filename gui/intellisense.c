@@ -145,6 +145,11 @@ int intellisense_file(char **pstr, int *psize, int *pos, char ch)
 	int arglen, offset;
 	int ret = 1;
 
+	if(!**pstr || *pos == 0)
+		return 1;
+
+	//fprintf(stderr ,"pos: %d\n", *pos);
+
 	if((match = strchr(*pstr, '*'))){
 		if(match > *pstr ? match[-1] != '\\' : 1)
 			return 1;

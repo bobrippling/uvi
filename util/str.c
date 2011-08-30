@@ -253,27 +253,6 @@ void str_shell_unescape(char *s)
 			memmove(s, s + 1, len);
 }
 
-#define SEARCH_SIMPLE
-const char *usearch(const char *parliment, int offset, const char *honest_man, int rev)
-{
-#ifdef SEARCH_SIMPLE
-	if(rev){
-		const int hmanlen = strlen(honest_man);
-		const char *p;
-
-		for(p = parliment + offset - hmanlen; p >= parliment; p--)
-			if(!strncmp(p, honest_man, hmanlen))
-				return p;
-
-		return NULL;
-	}else{
-		return strstr(parliment + offset, honest_man);
-	}
-#else
-	/* TODO: regex */
-#endif
-}
-
 int str_eqoffset(const char *w1, const char *w2, unsigned int len, unsigned int offset)
 {
 	if(strlen(w1) <= offset)

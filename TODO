@@ -7,8 +7,10 @@ change 'w' and 'b' to toggle between /\s/ and !/\s/ like gui textboxes
 gui_getstr(): display non printable chars correctly on deletion
 /fix backspace on tabbed lines
 
-regex:
+manual regex:
 	simple (vi(1) - see '/'): ^$.[]*
+
+fix searching offsets
 
 binary file handling? (i.e. '\0')
 
@@ -74,3 +76,5 @@ fix n_50% (motion)
 
 echo hi | uvi - yo
 -> stdin should be an unnamed buffer in buffers.c
+
+fix [0-9]>
