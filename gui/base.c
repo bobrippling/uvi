@@ -59,7 +59,7 @@ static int search(int next, int rev)
 	const char *p;
 	int y;
 	int found = 0;
-	int offset = gui_x() + 1;
+	int offset = gui_x() + rev ? 1 : -1;
 
 	if(next){
 		if(!search_str || !*search_str){
