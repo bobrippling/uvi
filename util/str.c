@@ -121,9 +121,20 @@ void str_escape(char *arg)
 	char *s;
 
 	for(s = arg; *s; s++)
-		if(*s == '\\' && s[1] == 'n'){
-			*s = '\n';
-			memmove(s+1, s+2, strlen(s+1));
+		if(*s == '\\'){
+			int ch = '\0';
+
+#define ESCH(a, b) case a: ch = b; break
+			switch(s[1]){
+				ESCH('n', '\n');
+				ESCH('e', '\x1b');
+			}
+#undef ESCH
+
+			if(ch){
+				*s = ch;
+				memmove(s + 1, s + 2, strlen(s + 1));
+			}
 		}
 }
 
