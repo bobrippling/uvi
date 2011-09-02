@@ -241,14 +241,31 @@ void gui_status_add(enum gui_attr a, const char *s, ...)
 	va_end(l);
 }
 
+void gui_status_add_start()
+{
+	scrl(1);
+}
+
+
 void gui_status_wait(int y, int x, const char *s)
 {
+	int mv;
+
 	if(!s)
 		s = "any key to continue...";
-	gui_status_add(GUI_NONE, "%s\r", s);
-	if(y != -1 && x != -1)
+	gui_status_add(GUI_NONE, "%s", s);
+
+	if((mv = y != -1 && x != -1)){
 		move(y, x);
+	}else{
+		getyx(stdscr, y, x);
+		mv = 0;
+		move(y, 0);
+	}
+
 	gui_peekch(GETCH_MEDIUM_RARE);
+	if(!mv)
+		gui_clrtoeol();
 }
 
 void gui_show_array(enum gui_attr a, int y, int x, const char **ar)

@@ -548,7 +548,7 @@ void cmd_ls(int argc, char **argv, int force, struct range *rng)
 				i,
 				(*iter)->last_y,
 				(*iter)->fname);
-			
+
 	gui_status_wait(-1, -1, NULL);
 }
 
@@ -640,9 +640,10 @@ void cmd_help(int argc, char **argv, int force, struct range *rng)
 		return;
 	}
 
+	gui_status_add_start();
 	for(type = 0; type != VARS_UNKNOWN; type++)
 		vars_help(type);
-	gui_status_wait(-1, -1,  NULL);
+	gui_status_wait(-1, -1, NULL);
 }
 
 #ifdef BLOAT
