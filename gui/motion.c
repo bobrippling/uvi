@@ -53,7 +53,7 @@ static struct builtin_motion
 	[MOTION_FUNC_PREV]       = { 0, 1, 1, 1 },
 	[MOTION_FUNC_NEXT]       = { 0, 1, 1, 1 },
 
-	[MOTION_PAREN_MATCH]     = { 0, 0, 0, 1 },
+	[MOTION_PAREN_MATCH]     = { 0, 0, 0, 0 },
 
 	[MOTION_ABSOLUTE_LEFT]   = { 0, 0, 0, 0 },
 	[MOTION_ABSOLUTE_RIGHT]  = { 0, 0, 0, 0 },
@@ -183,9 +183,6 @@ int getmotion(struct motion *m)
 int applymotion(struct motion *motion, struct bufferpos *pos,
 		struct screeninfo *si)
 {
-	if(motion->ntimes == 0)
-		motion->ntimes = 1;
-
 	do
 		if(applymotion2(motion, pos, si))
 			return 1;
