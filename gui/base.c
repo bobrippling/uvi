@@ -56,11 +56,12 @@ static int  yank_char = 0;
 
 static int search(int next, int rev)
 {
+	const char *(*usearch_func)(struct usearch *, const char *, int);
 	struct list *l;
 	const char *p;
 	int y;
-	int found = 0;
-	int offset = gui_x() + rev ? 1 : -1;
+	int found;
+	int offset, setoffset;
 	struct usearch us;
 
 	if(next){
@@ -77,37 +78,40 @@ static int search(int next, int rev)
 			return 1;
 	}
 
+	found = 0;
 	if(usearch_init(&us, search_str)){
 		gui_status(GUI_ERR, "regex error %s", usearch_err(&us));
-		found = 0;
 		goto fin;
 	}
 
 	mark_jump();
 
-	if(offset < 0)
-		offset = 0;
+	/* TODO: allow SIGINT to stop search? */
+	usearch_func = rev ? usearch_rev : usearch;
 
-	/* TODO: allow SIGINT to stop search */
-	/* FIXME: start at curpos */
-	for(y = gui_y(),
+	offset = gui_x() + (rev ? -1 : 1);
+	if(offset < 0) offset = 0;
+	setoffset = 0;
+
+	y = gui_y();
+	for(
 			l = buffer_getindex(buffers_current(), y);
 			l;
-			l = (rev ? l->prev : l->next),
-			rev ? y-- : y++){
+			rev ? (y--, l = l->prev) : (y++, l = l->next)
+			){
 
-		if(rev && !offset)
-			offset = strlen(l->data);
+		if(setoffset)
+			offset = rev ? strlen(l->data) : 0;
 
-		if((p = usearch(&us, (const char *)l->data, offset, rev))){
+		if((p = usearch_func(&us, (const char *)l->data, offset))){
 			int x = p - (char *)l->data;
 			found = 1;
 			gui_move(y, x);
 			gui_status(GUI_NONE, "y=%d x=%d", y, x);
 			break;
-		}else{
-			offset = 0;
 		}
+
+		setoffset = 1;
 	}
 
 	if(!found){

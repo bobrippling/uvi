@@ -617,7 +617,7 @@ void gui_draw()
 			attron(A_REVERSE);
 
 		if(hls_ing)
-			hls = usearch(&us, l->data, 0, 0);
+			hls = usearch(&us, l->data, 0);
 		else
 			hls = NULL;
 
@@ -633,7 +633,7 @@ check_search:
 					gui_attroff(GUI_SEARCH_COL);
 
 					/* //g */
-					hls = usearch(&us, p, 0, 0);
+					hls = usearch(&us, p, 0);
 					if(hls)
 						goto check_search;
 				}
