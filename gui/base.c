@@ -129,35 +129,42 @@ void shiftline(char **ps, int indent)
 {
 	char *s = *ps;
 
-	/* TODO: indent by a given amount */
+	if(line_isspace(s)){
+		*s = '\0';
+		return;
+	}
+
 	if(indent > 0){
-		int len = strlen(s) + 1;
-		char *new = realloc(s, len + 1);
+		int len = strlen(s) + indent;
 
-		if(!new)
-			die("realloc()");
+		s = urealloc(s, len + 1);
 
-		s = new;
-
-		memmove(new+1, new, len);
-		*new = '\t';
+		memmove(s + indent, s, len - indent + 1);
+		memset(s, '\t', indent);
 
 		*ps = s;
 	}else{
-		switch(*s){
-			case ' ':
-				if(s[1] == ' ')
-					memmove(s, s+2, strlen(s+1));
-				break;
+		while(indent++ < 0)
+			switch(*s){
+				case ' ':
+					if(s[1] == ' ')
+						memmove(s, s+2, strlen(s+1));
+					else
+						goto fin;
+					break;
 
-			case '\t':
-				memmove(s, s+1, strlen(s));
-				break;
-		}
+				case '\t':
+					memmove(s, s+1, strlen(s));
+					break;
+
+				default:
+					goto fin;
+			}
 	}
+fin:;
 }
 
-void shift(int indent)
+void shift(int repeat)
 {
 	struct list *l;
 	struct motion m;
@@ -166,6 +173,8 @@ void shift(int indent)
 	int to_x, to_y;
 	int cur;
 	int c;
+
+	memset(&m, 0, sizeof m);
 
 	cur = to_y = gui_y();
 	to_x = gui_x();
@@ -178,15 +187,21 @@ void shift(int indent)
 
 	c = gui_getch(GETCH_COOKED);
 	if(c == '>' || c == '<')
-		c = 'l';
+		c = MOTION_FORWARD_LETTER;
 	gui_ungetch(c);
 
 	if(getmotion(&m) || applymotion(&m, &topos, &si))
 		return;
 
-	l = buffer_getindex(buffers_current(), gui_y());
+	if(to_y < cur){
+		int x = to_y;
+		to_y = cur;
+		cur = x;
+	}
+
+	l = buffer_getindex(buffers_current(), cur);
 	while(cur++ <= to_y && l){
-		shiftline((char **)&l->data, indent);
+		shiftline((char **)&l->data, repeat);
 		l = l->next;
 	}
 
@@ -392,7 +407,7 @@ void readlines(int do_indent, struct gui_read_opts *opts, char ***plines, int *p
 						if(*iter == '}'){
 							/* need to unindent by one */
 							indent--;
-							shiftline(&lines[i-1], 0 /* unindent */);
+							shiftline(&lines[i-1], -1);
 						}
 						break;
 					}
@@ -1079,12 +1094,17 @@ case_i:
 				break;
 			}
 
+#define DO_INDENT(sign) \
+				if(!multiple) multiple = 1; \
+				shift(sign multiple); \
+				buffer_changed = 1; \
+				SET_DOT()
+
 			case '>':
-				flag = 1;
+				DO_INDENT(+);
+				break;
 			case '<':
-				shift(flag);
-				buffer_changed = 1;
-				SET_DOT();
+				DO_INDENT(-);
 				break;
 
 			case '~':
@@ -1115,6 +1135,7 @@ case_i:
 
 			case CTRL_AND('['):
 				visual_set(VISUAL_NONE);
+				view_changed = 1;
 				break;
 
 			case '\\':

@@ -237,6 +237,7 @@ after:
 		{
 			char *av[] = { "q", NULL };
 			cmd_q(1, av, force, rng);
+			break;
 		}
 		case NONE:
 			break;
