@@ -104,6 +104,8 @@ void cmd_r(int argc, char **argv, int force, struct range *rng)
 
 void cmd_q(int argc, char **argv, int force, struct range *rng)
 {
+	int qa;
+
 	if(argc != 1 || rng->start != -1 || rng->end != -1){
 		gui_status(GUI_ERR, "usage: q[!]");
 		return;
@@ -111,7 +113,9 @@ void cmd_q(int argc, char **argv, int force, struct range *rng)
 
 	MODIFIED_CHECK();
 
-	if(!force && buffers_unread()){
+	qa = !strcmp(*argv, "qa");
+
+	if(!qa && !force && buffers_unread()){
 		gui_status(GUI_ERR, "unread buffers");
 		return;
 	}
@@ -767,6 +771,7 @@ void command_run(char *in)
 		CMD(w),
 		CMD(q),
 		CMD(e),
+		{ "qa", cmd_q },
 
 		CMD(A),
 		CMD(set),
