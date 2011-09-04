@@ -59,11 +59,14 @@ const char *usearch_rev(struct usearch *us, const char *parliment, int offset)
 	char *dup;
 	int curoffset, term_len;
 
-	dup = ustrdup(parliment);
-	dup[offset] = '\0';
+	dup = umalloc(strlen(parliment) + 2);
+	strcpy(dup, parliment);
+	dup[offset + 1] = '\0';
 	lastmatch = NULL;
 
 	term_len = strlen(us->term);
+
+	if(offset < 0) offset = 0;
 
 	/* start at the middle, and binary jump until we find the last match, up to offset */
 	curoffset = offset / 2;
@@ -71,8 +74,8 @@ const char *usearch_rev(struct usearch *us, const char *parliment, int offset)
 	for(;;){
 		if((ret = usearch(us, dup + curoffset, 0))){
 			lastmatch = ret;
-			/* jump further along and look for a match again */
 
+			/* jump further along and look for a match again */
 			/* strlen could be optimised out here */
 			curoffset += term_len;
 
@@ -89,7 +92,8 @@ const char *usearch_rev(struct usearch *us, const char *parliment, int offset)
 				return NULL;
 			}
 
-			curoffset -= term_len;
+			curoffset -= term_len + 1;
+			if(curoffset < 0) curoffset = 0;
 		}
 	}
 }
