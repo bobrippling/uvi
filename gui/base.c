@@ -78,6 +78,9 @@ static int search(int next, int rev)
 			return 1;
 	}
 
+	if(!*search_str)
+		return 1;
+
 	found = 0;
 	if(usearch_init(&us, search_str)){
 		gui_status(GUI_ERR, "regex error %s", usearch_err(&us));

@@ -596,7 +596,7 @@ void gui_draw()
 	}
 
 	free_regex = 0;
-	if((hls_ing = global_settings.hls && search_str)){
+	if((hls_ing = global_settings.hls && search_str && *search_str)){
 		if(usearch_init(&us, search_str))
 			hls_ing = 0;
 		free_regex = 1;
