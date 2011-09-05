@@ -14,12 +14,6 @@
 #include "../util/str.h"
 
 
-struct map
-{
-	char c;
-	char *cmd;
-};
-
 static struct list *maps = NULL;
 
 void map_add(char c, const char *cmd)
@@ -67,4 +61,9 @@ void map_free(void *p)
 void map_term()
 {
 	list_free(maps, map_free);
+}
+
+struct list *map_getall()
+{
+	return maps;
 }

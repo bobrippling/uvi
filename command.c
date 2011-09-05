@@ -28,6 +28,7 @@
 #include "buffers.h"
 #include "util/str.h"
 #include "rc.h"
+#include "gui/map.h"
 
 #define LEN(x) ((signed)(sizeof(x) / sizeof(x[0])))
 
@@ -464,6 +465,23 @@ void cmd_yanks(int argc, char **argv, int force, struct range *rng)
 		gui_status(GUI_ERR, "no yanks");
 }
 
+void cmd_maps(int argc, char **argv, int force, struct range *rng)
+{
+	struct list *map;
+
+	if(argc != 1 || force || rng->start != -1 || rng->end != -1){
+		gui_status(GUI_ERR, "usage: %s", *argv);
+		return;
+	}
+
+	gui_status_add_start();
+	for(map = map_getall(); map; map = map->next){
+		struct map *m = map->data;
+		gui_status_add(GUI_NONE, "'%c' => \"%s\"", m->c, m->cmd);
+	}
+	gui_status_wait(-1, -1, NULL);
+}
+
 void cmd_A(int argc, char **argv, int force, struct range *rng)
 {
 	char *bfname, *fname;
@@ -776,6 +794,7 @@ void command_run(char *in)
 		CMD(A),
 		CMD(set),
 		CMD(yanks),
+		CMD(maps),
 
 		CMD(n),
 		{ "N", cmd_n },

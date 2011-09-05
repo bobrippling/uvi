@@ -54,8 +54,8 @@ int rc_source(const char *fname)
 
 	while(fgets(buf, sizeof buf, f)){
 #define MAKE_NUL(c) \
-			if((p = strchr(buf, c))) \
-				*p = '\0';
+			if((p = strchr(buf, c)) && (p > buf ? p[-1] != '\\' : 1)) \
+				*p = '\0'
 
 #define PRE "%s:%d: "
 #define ARGS fname, lineno
@@ -67,7 +67,19 @@ int rc_source(const char *fname)
 		int bool = 1;
 
 		MAKE_NUL('\n');
-		MAKE_NUL('#');
+
+		p = buf;
+recheck:
+		if((p = strchr(p, '#')) && (p > buf ? p[-1] != '\\' : 1)){
+			*p = '\0';
+		}else if(p){
+			/*
+			 * buf = "map \# yo yo"
+			 * p = "# yo yo"
+			 */
+			memmove(p - 1, p, strlen(p) + 1);
+			goto recheck;
+		}
 
 		if(!*buf)
 			continue;
