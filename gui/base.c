@@ -731,7 +731,7 @@ static void join(unsigned int ntimes)
 
 	{
 		unsigned int nl = buffer_nlines(buffers_current());
-		if(nl <= 1 || gui_y() + ntimes >= nl){
+		if(nl <= 1 || gui_y() + ntimes >= nl - 1){
 			gui_status(GUI_ERR, "can't join %d line%s", ntimes,
 					ntimes == 1 ? "" : "s");
 			return;
