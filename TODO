@@ -85,3 +85,13 @@ fix regex matching - don't highlight by doing
 for i = 0 ; i < len(str); i++
 	if match then hl 1 char, then inc a char
 instead, get all matches at once
+
+scroll on :ls being > LINES
+
+grep [iI]nvalid *
+
+:xa
+
+for [ and ], check for /^[^\s].*{$/ global_option
+
+'scrolloff' applies horizontally
