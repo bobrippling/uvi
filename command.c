@@ -105,7 +105,7 @@ void cmd_r(int argc, char **argv, int force, struct range *rng)
 
 void cmd_q(int argc, char **argv, int force, struct range *rng)
 {
-	int qa;
+	int qa, xa;
 
 	if(argc != 1 || rng->start != -1 || rng->end != -1){
 		gui_status(GUI_ERR, "usage: q[!]");
@@ -114,11 +114,17 @@ void cmd_q(int argc, char **argv, int force, struct range *rng)
 
 	MODIFIED_CHECK();
 
-	qa = !strcmp(*argv, "qa");
+	qa = !strcmp(*argv, "qa") || (xa = !strcmp(*argv, "xa"));
 
 	if(!qa && !force && buffers_unread()){
 		gui_status(GUI_ERR, "unread buffers");
 		return;
+	}
+	if(xa){
+		/* save current buffer */
+		void cmd_w(int argc, char **argv, int force, struct range *rng);
+		char *av[] = { "x", NULL };
+		cmd_w(1, av, 1, rng);
 	}
 
 	global_running = 0;
@@ -790,6 +796,7 @@ void command_run(char *in)
 		CMD(q),
 		CMD(e),
 		{ "qa", cmd_q },
+		{ "xa", cmd_q },
 
 		CMD(A),
 		CMD(set),
