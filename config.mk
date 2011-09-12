@@ -1,7 +1,7 @@
 WARN_EXTRA = -Wno-unused-parameter -Wno-char-subscripts
 PREFIX     = /usr
 
-# if on a mac, add -DUVI_ALLOCA
+# if on a FreeBSD derived system (inc. Mac OS), add -DUVI_ALLOCA
 MACROS     = -D_POSIX_SOURCE -D_GNU_SOURCE
 
 CC      = cc

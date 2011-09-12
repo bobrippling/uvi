@@ -37,6 +37,8 @@ typedef struct
 } syntax;
 #endif
 
+#define gui_scrolled() gui_status(GUI_NONE, "")
+
 static void gui_position_cursor(const char *);
 static void gui_coord_to_scr(int *py, int *px, const char *line);
 static void gui_attron( enum gui_attr);
@@ -822,8 +824,10 @@ void gui_inc(int n)
 		if(pos_y >= nl)
 			pos_y = nl - 1;
 
-		if(pos_y > pos_top + LINES - 2 - global_settings.scrolloff)
+		if(pos_y > pos_top + LINES - 2 - global_settings.scrolloff){
 			pos_top = pos_y - LINES + 2 + global_settings.scrolloff;
+			gui_scrolled();
+		}
 	}
 }
 
@@ -834,10 +838,12 @@ void gui_dec(int n)
 		if(pos_y < 0)
 			pos_y = 0;
 
-		if(pos_y - pos_top < global_settings.scrolloff)
+		if(pos_y - pos_top < global_settings.scrolloff){
 			pos_top = pos_y - global_settings.scrolloff;
 			if(pos_top < 0)
 				pos_top = 0;
+			gui_scrolled();
+		}
 	}
 }
 
@@ -867,6 +873,7 @@ int gui_scroll(enum scroll s)
 				pos_top += global_settings.scrolloff;
 				if(pos_y < pos_top + global_settings.scrolloff)
 					pos_y = pos_top + global_settings.scrolloff;
+				gui_scrolled();
 				check = 1;
 				ret = 1;
 			}
@@ -875,6 +882,7 @@ int gui_scroll(enum scroll s)
 		case SINGLE_UP:
 			if(pos_top){
 				pos_top -= global_settings.scrolloff;
+				gui_scrolled();
 				check = 1;
 				ret = 1;
 			}
@@ -882,24 +890,28 @@ int gui_scroll(enum scroll s)
 
 		case PAGE_UP:
 			pos_top -= LINES;
+			gui_scrolled();
 			check = 1;
 			ret = 1;
 			break;
 
 		case PAGE_DOWN:
 			pos_top += LINES;
+			gui_scrolled();
 			check = 1;
 			ret = 1;
 			break;
 
 		case HALF_UP:
 			pos_top -= LINES / 2;
+			gui_scrolled();
 			check = 1;
 			ret = 1;
 			break;
 
 		case HALF_DOWN:
 			pos_top += LINES / 2;
+			gui_scrolled();
 			check = 1;
 			ret = 1;
 			break;
@@ -908,19 +920,24 @@ int gui_scroll(enum scroll s)
 			pos_top = pos_y - global_settings.scrolloff;
 			if(pos_top < 0)
 				pos_top = 0;
+			gui_scrolled();
 			break;
 
 		case CURSOR_BOTTOM:
 			pos_top = pos_y - LINES + 2 + global_settings.scrolloff;
+			gui_scrolled();
 			break;
 
 		case CURSOR_MIDDLE:
 			pos_top = pos_y - LINES / 2;
+			gui_scrolled();
 			break;
 	}
 
-	if(pos_top < 0)
+	if(pos_top < 0){
 		pos_top = 0;
+		gui_scrolled();
+	}
 
 	if(check){
 		const int lim = pos_top + LINES - 1 - global_settings.scrolloff;
