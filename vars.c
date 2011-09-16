@@ -34,6 +34,7 @@ static struct
 	[VARS_AUTOINDENT]      = { "ai",         "auto indent",                 1, 1, &global_settings.autoindent },
 	[VARS_FSYNC]           = { "fsync",      "call fsync() after write()",  1, 1, &global_settings.fsync },
 	[VARS_CINDENT]         = { "cindent",    "C indentation (braces)",      1, 1, &global_settings.cindent },
+	[VARS_FUNC_MOTION_VI]  = {  "vifunc",    "/^{/ vs /{$/ for [] motions",  1, 1, &global_settings.func_motion_vi },
 
 	[VARS_TAB_CONTEXT]     = { "tctx",       "tab completion context",      0, 0, &global_settings.tabctx },
 	[VARS_TABSTOP]         = { "ts",         "tab stop",                    0, 0, &global_settings.tabstop },

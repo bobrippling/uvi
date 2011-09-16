@@ -68,8 +68,6 @@ instead, get all matches at once
 scroll on :ls being > LINES
 (scroll on :anything?)
 
-for [ and ], check for /^[^\s].*{$/ global_option
-
 'scrolloff' applies horizontally
 
 fix detach (i.e. wyrd << e + sigwinch) bug

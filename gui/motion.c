@@ -378,8 +378,15 @@ int applymotion2(struct motion *motion, struct bufferpos *pos,
 			struct list *l = buffer_getindex(buffers_current(), y);
 
 			while(l){
-				if(*(char *)l->data == '{')
-					break;
+			if(global_settings.func_motion_vi){
+					if(*(char *)l->data == '{')
+						break;
+				}else{
+					/* /^[^\s].*{$/ */
+					int len = strlen(l->data);
+					if(!isspace(*(char *)l->data) && ((char *)l->data)[len-1] == '{')
+						break;
+				}
 				NEXT();
 			}
 
@@ -388,7 +395,11 @@ int applymotion2(struct motion *motion, struct bufferpos *pos,
 			else
 				*pos->y = rev ? 0 : buffer_nlines(buffers_current());
 
-			*pos->x = 0;
+			if(global_settings.func_motion_vi)
+				*pos->x = 0;
+			else
+				*pos->x = l ? strlen(l->data) - 1 : 0;
+
 			return 0;
 		}
 

@@ -18,6 +18,7 @@ enum vartype
 	VARS_TEXTWIDTH,
 	VARS_FSYNC,
 	VARS_TAB_CONTEXT,
+	VARS_FUNC_MOTION_VI,
 	VARS_UNKNOWN
 } vars_gettype(const char *);
 
