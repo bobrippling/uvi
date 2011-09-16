@@ -784,6 +784,8 @@ static void colon(const char *initial)
 		gui_status(GUI_NONE, "");
 	}
 
+	visual_set(VISUAL_NONE);
+
 	free(in);
 }
 

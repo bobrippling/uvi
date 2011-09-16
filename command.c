@@ -272,10 +272,8 @@ void cmd_bang(int argc, char **argv, int force, struct range *rng)
 			return;
 		}
 
-		if(--rng->start < 0)
-			rng->start = 0;
-		if(rng->end == -1)
-			rng->end = rng->start;
+		if(--rng->start < 0) rng->start = 0;
+		if(--rng->end   < 0) rng->end   = 0;
 
 		to_pipe = buffer_extract_range(buffers_current(), rng);
 
@@ -288,10 +286,10 @@ void cmd_bang(int argc, char **argv, int force, struct range *rng)
 
 					inshere = buffer_getindex(buffers_current(), rng->start);
 
-					if(!inshere)
-						inshere = buffer_gettail(buffers_current());
-
-					buffer_insertlistafter(buffers_current(), inshere, l);
+					if(inshere)
+						buffer_insertlistbefore(buffers_current(), inshere, l);
+					else
+						buffer_appendlist(buffers_current(), l);
 
 					list_free_nodata(to_pipe);
 					to_pipe = NULL;
@@ -301,6 +299,7 @@ void cmd_bang(int argc, char **argv, int force, struct range *rng)
 
 				buffer_modified(buffers_current()) = 1;
 			}else{
+				/* FIXME? assign to_pipe to "reg */
 				list_free(l, free);
 				gui_status(GUI_ERR, "%s: no output", cmd);
 			}
