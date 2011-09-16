@@ -1,5 +1,3 @@
-fix 1G and 1Gdd
-
 change 'w' and 'b' to toggle between /\s/ and !/\s/ like gui textboxes
 
 'u' (aka undo)
@@ -9,8 +7,6 @@ gui_getstr(): display non printable chars correctly on deletion
 
 manual regex:
 	simple (vi(1) - see '/'): ^$.[]*
-
-fix searching offsets
 
 binary file handling? (i.e. '\0')
 
@@ -41,8 +37,6 @@ $ vim +help\ Visual-mode
 intellisense file:
 	first match: -x $PATH
 
-fix :<range>! filtering - a new line appears from nowhere/lines[n] <=> lines[0]
-
 :cd and :pwd - change buffer list to accomodate
 either:
 	- copy vim
@@ -51,7 +45,7 @@ either:
 
 [cd]w deletes all whitespace
 
-:tabnew :tn
+:tabnew :tn (like :n, but keeps buffer in memory)
 
 fix macros:
 	map I i#include "
@@ -66,31 +60,13 @@ fix :so'ing maps
 
 fix :\t
 
-fix /a\n reverse search
-
-fprintf(stderr...) on intellisense_file
-
-check logic for :bd - on buffer 0, :bd 1, buffer 0 not highlighted
-
-fix n_50% (motion)
-
-echo hi | uvi - yo
--> stdin should be an unnamed buffer in buffers.c
-
-fix [0-9]>
-
-rc.c: fix: map I i#include "
-
 fix regex matching - don't highlight by doing
 for i = 0 ; i < len(str); i++
 	if match then hl 1 char, then inc a char
 instead, get all matches at once
 
 scroll on :ls being > LINES
-
-grep [iI]nvalid *
-
-:xa
+(scroll on :anything?)
 
 for [ and ], check for /^[^\s].*{$/ global_option
 
