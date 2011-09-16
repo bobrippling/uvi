@@ -566,6 +566,7 @@ static void motion_cmd(struct motion *motion,
 		if(islinemotion(motion)){
 			/* delete lines between gui_y() and y, inclusive */
 			f_line(&from);
+			gui_move_sol(from.start);
 		}else{
 			char *data = buffer_getindex(buffers_current(), gui_y())->data;
 			int startx = gui_x();

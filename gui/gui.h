@@ -111,6 +111,7 @@ int  gui_scroll(enum scroll);
 void gui_inc(int n);
 void gui_dec(int n);
 void gui_move(int y, int x);
+void gui_move_sol(int y);
 void gui_inc_cursor(void);
 #ifdef MOTION_H
 void gui_move_motion(struct motion *);

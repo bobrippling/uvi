@@ -74,7 +74,6 @@ static void intellisense_complete_to(char **pstr, int *psize, int *pos,
 		int nescapes;
 
 		copy = ALLOCA(nextra + 1);
-		/*fprintf(stderr, "strncpy(copy=%p, word + offset_into_word = \"%s\", nextra=%d);\n", copy,word+offset_into_word,nextra);*/
 		strncpy(copy, word + offset_into_word, nextra);
 		copy[nextra] = '\0';
 

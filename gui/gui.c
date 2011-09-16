@@ -816,6 +816,15 @@ void gui_move(int y, int x)
 	gui_position_cursor(line);
 }
 
+void gui_move_sol(int y)
+{
+	struct motion m;
+	memset(&m, 0, sizeof m);
+	gui_move(y, 0);
+	m.motion = MOTION_LINE_START;
+	gui_move_motion(&m);
+}
+
 void gui_inc(int n)
 {
 	int nl = buffer_nlines(buffers_current());
