@@ -685,6 +685,15 @@ void cmd_help(int argc, char **argv, int force, struct range *rng)
 	gui_status_add_start();
 	for(type = 0; type != VARS_UNKNOWN; type++)
 		vars_help(type);
+
+	gui_status_add(GUI_NONE, "");
+	gui_status_add(GUI_NONE, "useful commands (see uvi(1) for all)");
+	gui_status_add(GUI_NONE, ":mak");
+	gui_status_add(GUI_NONE, ":set");
+	gui_status_add(GUI_NONE, ":marks");
+	gui_status_add(GUI_NONE, ":yanks");
+	gui_status_add(GUI_NONE, ":{ls,[nN],b,bd}");
+
 	gui_status_wait(-1, -1, NULL);
 }
 
