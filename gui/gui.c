@@ -37,7 +37,7 @@ typedef struct
 } syntax;
 #endif
 
-#define gui_scrolled() gui_status(GUI_NONE, "")
+#define gui_scrolled() do{if(gui_scrollclear) gui_status(GUI_NONE, "");}while(0)
 
 static void gui_position_cursor(const char *);
 static void gui_coord_to_scr(int *py, int *px, const char *line);
@@ -50,6 +50,8 @@ static char *unget_buf;
 
 static int pos_y = 0, pos_x = 0;
 static int pos_top = 0, pos_left = 0;
+
+int gui_scrollclear = 0;
 
 static int macro_record_char = 0;
 static char *macro_str = NULL;

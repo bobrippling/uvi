@@ -818,6 +818,7 @@ static int is_edit_char(int c)
 
 void gui_run()
 {
+	extern int gui_scrollclear;
 	struct motion motion;
 	int buffer_changed;
 	int view_changed;
@@ -828,6 +829,7 @@ void gui_run()
 	view_changed = 1;
 	prevcmd = 0;
 	prevmultiple = multiple = 0;
+	gui_scrollclear = 1; /* already show "opened xyz.txt" ..., ok to clear */
 
 	do{
 		int flag = 0, resetmultiple = 1;
