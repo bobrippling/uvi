@@ -182,7 +182,7 @@ struct list *list_extract_range(struct list **l, int count)
 {
 	if(!(*l)->prev){
 		/* we can adjust where l points -> trivial */
-		struct list *top = *l, *bot = (*l)->next;
+		struct list *top = *l, *bot = *l;
 
 		if(!bot){
 			/*
@@ -389,7 +389,7 @@ struct list *list_from_fd(int fd, int *haseol)
 	if(mem == MAP_FAILED){
 		if(errno == EINVAL){
 			/* fallback to fread - probably stdin */
-			char buffer[1024];
+			char buffer[2048];
 			struct list *l;
 			struct list *i;
 			FILE *f;
