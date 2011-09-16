@@ -21,7 +21,7 @@ int iswordchar(int c)
 
 int isfnamechar(int c)
 {
-	return !isspace(c); /* TODO: ignore trailing punctuation */
+	return !isspace(c) && !ispunct(c); /* TODO: ignore trailing punctuation */
 }
 
 char *chars_at(const char *line, int x, int (*cmp)(int))

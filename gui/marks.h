@@ -4,6 +4,8 @@
 void mark_set(int, int, int);
 int  mark_get(int, int *, int *);
 int  mark_is_set(int);
+int  mark_count(void);
+int  mark_find(int y, int x);
 
 void mark_jump(void);
 void mark_edit(void);

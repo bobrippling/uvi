@@ -566,6 +566,7 @@ static void motion_cmd(struct motion *motion,
 		if(islinemotion(motion)){
 			/* delete lines between gui_y() and y, inclusive */
 			f_line(&from);
+			gui_move_sol(from.start);
 		}else{
 			char *data = buffer_getindex(buffers_current(), gui_y())->data;
 			int startx = gui_x();
@@ -784,6 +785,8 @@ static void colon(const char *initial)
 		gui_status(GUI_NONE, "");
 	}
 
+	visual_set(VISUAL_NONE);
+
 	free(in);
 }
 
@@ -818,6 +821,7 @@ static int is_edit_char(int c)
 
 void gui_run()
 {
+	extern int gui_scrollclear;
 	struct motion motion;
 	int buffer_changed;
 	int view_changed;
@@ -828,6 +832,7 @@ void gui_run()
 	view_changed = 1;
 	prevcmd = 0;
 	prevmultiple = multiple = 0;
+	gui_scrollclear = 1; /* already show "opened xyz.txt" ..., ok to clear */
 
 	do{
 		int flag = 0, resetmultiple = 1;

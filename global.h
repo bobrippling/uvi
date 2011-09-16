@@ -14,6 +14,8 @@ struct settings
 	int textwidth;
 	int fsync;
 	int ignorecase;
+	int tabctx;
+	int func_motion_vi;
 };
 
 extern struct settings global_settings;

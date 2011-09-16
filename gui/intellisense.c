@@ -74,7 +74,6 @@ static void intellisense_complete_to(char **pstr, int *psize, int *pos,
 		int nescapes;
 
 		copy = ALLOCA(nextra + 1);
-		/*fprintf(stderr, "strncpy(copy=%p, word + offset_into_word = \"%s\", nextra=%d);\n", copy,word+offset_into_word,nextra);*/
 		strncpy(copy, word + offset_into_word, nextra);
 		copy[nextra] = '\0';
 
@@ -132,10 +131,9 @@ int intellisense_insert(char **pstr, int *psize, int *pos, char ch)
 	return ret;
 }
 
-#define FILE_SUFFIX_LEN 5
 int file_uniq(const void *a, const void *b, void *extra)
 {
-	return str_eqoffset(*(const char **)a, *(const char **)b, FILE_SUFFIX_LEN, *(int *)extra);
+	return str_eqoffset(*(const char **)a, *(const char **)b, global_settings.tabctx, *(int *)extra);
 }
 
 int intellisense_file(char **pstr, int *psize, int *pos, char ch)
@@ -147,8 +145,6 @@ int intellisense_file(char **pstr, int *psize, int *pos, char ch)
 
 	if(!**pstr || *pos == 0)
 		return 1;
-
-	//fprintf(stderr ,"pos: %d\n", *pos);
 
 	if((match = strchr(*pstr, '*'))){
 		if(match > *pstr ? match[-1] != '\\' : 1)
@@ -244,18 +240,18 @@ int intellisense_file(char **pstr, int *psize, int *pos, char ch)
 				uniq(exp.we_wordv, &exp.we_wordc, sizeof exp.we_wordv[0],
 						qsortstrcmp, file_uniq, &offset, WORDEXP_FREE);
 
-				p = fnames = ALLOCA(exp.we_wordc * (2 + FILE_SUFFIX_LEN) + 3);
+				p = fnames = ALLOCA(exp.we_wordc * (2 + global_settings.tabctx) + 3);
 				/*
 				 * e.g. config.\t   (-e config.mk && -e config.h)
 				 * becomes
 				 * config.{mk,h}
-				 *         ^- up to FILE_SUFFIX_LEN chars
+				 *         ^- up to global_settings.tabctx chars
 				 */
 				*p++ = '{';
 				for(i = 0; i < exp.we_wordc; i++){
 					int j;
 
-					for(j = offset; j-offset < FILE_SUFFIX_LEN && exp.we_wordv[i][j]; j++)
+					for(j = offset; j-offset < global_settings.tabctx && exp.we_wordv[i][j]; j++)
 						*p++ = exp.we_wordv[i][j];
 					*p++ = ',';
 					*p = '\0';
