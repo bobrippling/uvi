@@ -14,6 +14,7 @@ struct settings
 	int textwidth;
 	int fsync;
 	int ignorecase;
+	int tabctx;
 };
 
 extern struct settings global_settings;

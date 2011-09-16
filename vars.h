@@ -17,6 +17,7 @@ enum vartype
 	VARS_SCROLLOFF,
 	VARS_TEXTWIDTH,
 	VARS_FSYNC,
+	VARS_TAB_CONTEXT,
 	VARS_UNKNOWN
 } vars_gettype(const char *);
 

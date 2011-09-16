@@ -95,3 +95,5 @@ grep [iI]nvalid *
 for [ and ], check for /^[^\s].*{$/ global_option
 
 'scrolloff' applies horizontally
+
+fix detach (i.e. wyrd << e + sigwinch) bug
