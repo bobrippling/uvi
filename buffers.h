@@ -28,6 +28,7 @@ int          buffers_del( int n);
  */
 
 void         buffers_load(const char *);
+int          buffers_add( const char *);
 
 int          buffers_unread();
 

@@ -37,6 +37,11 @@ buffer_t *buffers_current()
 	return current_buf;
 }
 
+int buffers_count()
+{
+	return count;
+}
+
 struct old_buffer *new_old_buf(const char *fname)
 {
 	struct old_buffer *b;
@@ -223,31 +228,43 @@ int buffers_unread()
 	return 0;
 }
 
-void buffers_load(const char *fname)
+int buffers_find(const char *fname)
 {
 	struct old_buffer **iter;
-	int found = 0, i;
+	int i;
+	for(i = 0, iter = fnames; *iter; iter++, i++)
+		if(!strcmp((*iter)->fname, fname))
+			return i;
+	return -1;
+}
 
-	if(fname)
-		for(i = 0, iter = fnames; *iter; iter++, i++)
-			if(!strcmp((*iter)->fname, fname)){
-				found = 1;
-				break;
-			}
+int buffers_add(const char *fname)
+{
+	int i;
+
+	if((i = buffers_find(fname)) != -1)
+		return i;
+
+	i = count++;
+	fnames        = urealloc(fnames, (count + 1) * sizeof *fnames);
+	fnames[i]     = new_old_buf(fname);
+	fnames[count] = NULL;
+
+	return i;
+}
+
+void buffers_load(const char *fname)
+{
+	int i;
 
 	buffers_save_pos();
 
-	if(found){
+	if((i = buffers_find(fname)) != -1){
 		buffers_goto(i);
 	}else if(fname){
-		i = count++;
-		fnames        = urealloc(fnames, (count + 1) * sizeof *fnames);
-
-		fnames[i]     = new_old_buf(fname);
-
-		fnames[count] = NULL;
-		buffers_goto(i);
+		buffers_goto(buffers_add(fname));
 	}else{
+		/* :new */
 		current_buf = buffers_readfname(NULL);
 		current     = -1;
 		gui_move(0, 0);

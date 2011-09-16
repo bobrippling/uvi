@@ -32,7 +32,8 @@ uninstall:
  util/alloc.h
 ./command.o: command.c range.h buffer.h command.h util/list.h vars.h \
  util/alloc.h util/pipe.h global.h gui/motion.h gui/intellisense.h \
- gui/gui.h util/io.h yank.h buffers.h util/str.h rc.h
+ gui/gui.h util/io.h yank.h buffers.h util/str.h rc.h gui/map.h config.h \
+ gui/marks.h bloat/command.c bloat/command.h
 ./global.o: global.c range.h buffer.h global.h
 ./main.o: main.c main.h range.h buffer.h global.h gui/motion.h \
  gui/intellisense.h gui/gui.h rc.h command.h util/io.h preserve.h \

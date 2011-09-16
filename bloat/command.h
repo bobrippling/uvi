@@ -1,1 +1,1 @@
-CMD(mak),
+CMD(mak, 0),

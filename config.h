@@ -1,6 +1,7 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+#if 0
 #define COMMENT_COLOUR COLOR_BLUE
 #define COMMENT_ATTRIB A_BOLD
 
@@ -22,7 +23,9 @@ static const char *keywords[] = {
 	"TODO",
 	"FIXME"
 };
+#endif
 
-#undef BLOAT
+/* include :mak */
+#define BLOAT
 
 #endif

@@ -29,14 +29,22 @@
 #include "util/str.h"
 #include "rc.h"
 #include "gui/map.h"
+#include "config.h"
+#include "gui/marks.h"
 
 #define LEN(x) ((signed)(sizeof(x) / sizeof(x[0])))
 
 #define MODIFIED_CHECK() \
-	do if(!force && buffer_modified(buffers_current())){ \
+	if(!force && buffer_modified(buffers_current())){ \
 		gui_status(GUI_ERR, "buffer modified since last write"); \
 		return; \
-	} while(0)
+	}
+
+#define EMPTY_USAGE() \
+	if(argc != 1 || force || rng->start != -1 || rng->end != -1){ \
+		gui_status(GUI_ERR, "usage: %s", *argv); \
+		return; \
+	}
 
 
 char *argv_to_str(int argc, char **argv)
@@ -358,10 +366,7 @@ void cmd_new(int argc, char **argv, int force, struct range *rng)
 void cmd_where(int argc, char **argv, int force, struct range *rng)
 {
 	char *line;
-	if(argc != 1 || force || rng->start != -1 || rng->end != -1){
-		gui_status(GUI_ERR, "usage: %s", *argv);
-		return;
-	}
+	EMPTY_USAGE();
 
 	line = buffer_getindex(buffers_current(), gui_y())->data;
 
@@ -444,10 +449,7 @@ void cmd_yanks(int argc, char **argv, int force, struct range *rng)
 	int one = 0;
 	int i;
 
-	if(argc != 1 || force || rng->start != -1 || rng->end != -1){
-		gui_status(GUI_ERR, "usage: %s", *argv);
-		return;
-	}
+	EMPTY_USAGE();
 
 	for(i = 'a' - 1; i <= 'z'; i++){
 		struct yank *y = yank_get(i);
@@ -470,14 +472,36 @@ void cmd_yanks(int argc, char **argv, int force, struct range *rng)
 		gui_status(GUI_ERR, "no yanks");
 }
 
+void cmd_marks(int argc, char **argv, int force, struct range *rng)
+{
+	int i, y, x;
+
+	EMPTY_USAGE();
+
+	gui_status_add_start();
+
+#define MARK_SHOW_1(i) \
+		if(!mark_get(i, &y, &x)) \
+			gui_status_add(GUI_NONE, "'%c' => (%d, %d)", i, x, y) \
+
+#define MARK_SHOW(START, END) \
+	for(i = START; i <= END; i++){ \
+		MARK_SHOW_1(i); \
+	}
+
+	MARK_SHOW('a', 'z')
+	MARK_SHOW('0', '9')
+	MARK_SHOW_1('\'');
+	MARK_SHOW_1('.');
+
+	gui_status_wait(-1, -1, NULL);
+}
+
 void cmd_maps(int argc, char **argv, int force, struct range *rng)
 {
 	struct list *map;
 
-	if(argc != 1 || force || rng->start != -1 || rng->end != -1){
-		gui_status(GUI_ERR, "usage: %s", *argv);
-		return;
-	}
+	EMPTY_USAGE();
 
 	gui_status_add_start();
 	for(map = map_getall(); map; map = map->next){
@@ -492,7 +516,6 @@ void cmd_A(int argc, char **argv, int force, struct range *rng)
 	char *bfname, *fname;
 	char *ext;
 	int len;
-
 
 	if(argc != 1 || rng->start != -1 || rng->end != -1){
 		gui_status(GUI_ERR, "usage: %s[!]", *argv);
@@ -561,10 +584,7 @@ void cmd_ls(int argc, char **argv, int force, struct range *rng)
 	struct old_buffer **iter;
 	int i;
 
-	if(argc != 1 || rng->start != -1 || rng->end != -1 || force){
-		gui_status(GUI_ERR, "usage: %s", *argv);
-		return;
-	}
+	EMPTY_USAGE();
 
 	gui_status_add_start();
 	gui_status_add(GUI_NONE, "?  #  pos filename");
@@ -624,10 +644,7 @@ void cmd_bd(int argc, char **argv, int force, struct range *rng)
 void cmd_pwd(int argc, char **argv, int force, struct range *rng)
 {
 	char wd[256];
-	if(argc != 1 || force || rng->start != -1 || rng->end != -1){
-		gui_status(GUI_ERR, "usage: %s", *argv);
-		return;
-	}
+	EMPTY_USAGE();
 
 	if(getcwd(wd, sizeof wd) == NULL)
 		gui_status(GUI_ERR, "getcwd(): %s", strerror(errno));
@@ -663,10 +680,7 @@ void cmd_help(int argc, char **argv, int force, struct range *rng)
 {
 	enum vartype type;
 
-	if(argc != 1 || force || rng->start != -1 || rng->end != -1){
-		gui_status(GUI_ERR, "usage: %s", *argv);
-		return;
-	}
+	EMPTY_USAGE();
 
 	gui_status_add_start();
 	for(type = 0; type != VARS_UNKNOWN; type++)
@@ -802,6 +816,7 @@ void command_run(char *in)
 		CMD(set,   0),
 		CMD(yanks, 0),
 		CMD(maps,  0),
+		CMD(marks, 0),
 
 		CMD(n, 0),
 		{ "N", cmd_n, 0 },
