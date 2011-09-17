@@ -666,10 +666,10 @@ check_search:
 		if(vis && real_y == visual_end->start)
 			attroff(A_REVERSE);
 
-		if(i >= pos_left + COLS){
+		if(*p && i >= COLS){
 			gui_attron(GUI_CLIP_COL);
 			attron(A_BOLD);
-			mvaddch(y, i - 1, '>');
+			mvaddch(y, i - pos_left - 1, '>');
 			gui_attroff(GUI_CLIP_COL);
 			attroff(A_BOLD);
 		}
