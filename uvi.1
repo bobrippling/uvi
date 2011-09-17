@@ -1,21 +1,93 @@
-.TH UVI 1 UVI\-0.9
-.SH NAME
+.IX Title UVI
+.TH UVI 0.9
+.nh
+.SH "uvi"
+.IX Header "uvi"
 uvi \- vi like text editor
-.SH SYNOPSIS
-.B uvi
-.RB FILEs...
-.SH DESCRIPTION
-uvi description goes here - TODO
-.SH OPTIONS
-.TP
-.B \-R
+.SH "SYNOPSIS"
+.IX Header "SYNOPSIS"
+uvi [\-R] FILEs...
+.SH "DESCRIPTION"
+.IX Header "DESCRIPTION"
+.SS "Normal Modes Keys"
+.IX Subsection "Normal Modes Keys"
+See vi(1)
+.SS "Insert Mode Keys"
+.IX Subsection "Insert Mode Keys"
+^v: literal character
+.SS "Command Mode Keys"
+.IX Subsection "Command Mode Keys"
+^r: insert contents of register r
+.PP
+^v: literal character
+.SS "Command Mode Commands"
+.IX Subsection "Command Mode Commands"
+\fB:!\fR               Run an external command
+.PP
+\fB:[range]!\fR        Filter range lines through an external command
+.PP
+\fB:?\fR               Show cursor position and character
+.PP
+\fB:[range]w [arg]\fR  Write (a range) to the file
+.PP
+\fB:we[!] arg\fR       Write buffer, and edit arg
+.PP
+\fB:wq[!]\fR           Write buffer and quit
+.PP
+\fB:x\fR               Write buffer if changed, and quit
+.PP
+\fB:new\fR             New, empty buffer
+.PP
+\fB:r[!]\fR            Read (from command) into buffer
+.PP
+\fB:q[!]\fR            Quit (unconditionally)
+.PP
+\fB:e[!] [arg]\fR      Edit (unconditionally) a file if given, else the current file
+.PP
+\fB:qa\fR              Quit, ignoring unread buffers
+.PP
+\fB:xa\fR              Write current if changed, and quite, ignoring unread buffers
+.PP
+\fB:A\fR               Switch from *.c[pp] to *.h and vice versa
+.PP
+\fB:set [x[!?]]\fR     Show/set/query variable[s]
+.PP
+\fB:yanks\fR           Show yanks (yanked using y<motion>)
+.PP
+\fB:maps\fR            Show maps (created using map, in .uvirc)
+.PP
+\fB:marks\fR           Show marks (m[c])
+.PP
+\fB:ls\fR              Show buffers (simply a list of filenames)
+.PP
+\fB:n[!]\fR            Next buffer (ignoring current buffer write state)
+.PP
+\fB:N[!]\fR            Previous buffer (ignoring current buffer write state)
+.PP
+\fB:b #\fR             Go to buffer
+.PP
+\fB:bd [#]\fR          Delete buffer (current if unspecified)
+.PP
+\fB:cd\fR              \fIchdir()\fR
+.PP
+\fB:pwd\fR             Show $PWD
+.PP
+\fB:so file\fR         Source uvirc file
+.PP
+\fB:help\fR            duh
+.SH "OPTIONS"
+.IX Header "OPTIONS"
+\fB\-R\fR
 Make all opened buffers readonly
-.TP
-.B +cmd
+.PP
+\fB+cmd\fR
 Execute cmd (place characters in read buffer) at startup
-.SH NOTES
-Still buggy, see TODO
-.SH SEE ALSO
-.BR vi (1)
-.SH BUGS
-Yes. See TODO
+.SH "NOTES"
+.IX Header "NOTES"
+Still buggy, see \s-1TODO\s0
+.SH "SEE ALSO"
+.IX Header "SEE ALSO"
+vi (1)
+.SH "BUGS"
+.IX Header "BUGS"
+Yes. See \s-1TODO\s0
