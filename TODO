@@ -71,3 +71,5 @@ scroll on :ls being > LINES
 fix detach (i.e. wyrd << e + sigwinch) bug
 
 fix 2tx - it only goes to the first, obviously
+
+ihi^V^J\e
