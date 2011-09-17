@@ -49,27 +49,48 @@ void cmd_mak(int argc, char **argv, int force, struct range *rng)
 		char buf[256];
 		int l, c;
 		if(read_make(iter->data, buf, sizeof buf, &l, &c)){
+			char *fname;
 			int i;
 
-			l--;
-			c--;
+			if(l > 0) l--;
+			if(c > 0) c--;
 
 			i = mark_find(l, c);
 			if('0' <= i && i <= markch)
 				continue; /* duplicate */
 
 			i = buffers_count();
-			buffers_add(buf);
+
+			if(!strncmp(buf, "In file included from ", 22))
+				fname = buf + 22;
+			else
+				fname = buf;
+			buffers_add(fname);
+
 			if(i != buffers_count())
-				added_bufs = 1;
+				added_bufs++;
 			mark_set(markch++, l, c);
 			if(markch > '9')
 				break;
 		}
 	}
 
-	gui_status(GUI_NONE, ret ? "make failed" : "make finished, %d marks ('0 to '%c)%s",
-			markch - '0', markch - 1, added_bufs ? " (added buffers)":"");
+	if(ret){
+		gui_status(GUI_NONE, "make failed");
+	}else{
+		char buf[256];
+
+		if(markch > '0'){
+			snprintf(buf, sizeof buf, " ('0 to '%c)", markch - 1);
+			if(added_bufs)
+				snprintf(buf + strlen(buf), sizeof buf - strlen(buf), " (added %d buffer%s)",
+					added_bufs, added_bufs == 1 ? "":"s");
+		}else{
+			*buf = '\0';
+		}
+
+		gui_status(GUI_NONE, "make finished, %d marks%s", markch - '0', buf);
+	}
 
 	list_free(mak, free);
 	free(cmd);
