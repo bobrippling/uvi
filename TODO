@@ -68,6 +68,6 @@ instead, get all matches at once
 scroll on :ls being > LINES
 (scroll on :anything?)
 
-'scrolloff' applies horizontally
-
 fix detach (i.e. wyrd << e + sigwinch) bug
+
+fix 2tx - it only goes to the first, obviously

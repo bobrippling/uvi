@@ -665,6 +665,14 @@ check_search:
 
 		if(vis && real_y == visual_end->start)
 			attroff(A_REVERSE);
+
+		if(i >= pos_left + COLS){
+			gui_attron(GUI_CLIP_COL);
+			attron(A_BOLD);
+			mvaddch(y, i - 1, '>');
+			gui_attroff(GUI_CLIP_COL);
+			attroff(A_BOLD);
+		}
 	}
 
 	if(free_regex)
@@ -801,10 +809,13 @@ void gui_move(int y, int x)
 	else if(x > len)
 		x = len;
 
-	if(x >= pos_left + COLS)
-		pos_left = x - COLS + 1;
-	else if(x < pos_left)
-		pos_left = x;
+	if(x >= pos_left + COLS - global_settings.scrolloff)
+		pos_left = x - COLS + 1 + global_settings.scrolloff;
+	else if(x < pos_left + global_settings.scrolloff)
+		pos_left = x - global_settings.scrolloff;
+
+	if(pos_left < 0)
+		pos_left = 0;
 
 	if(y > pos_y)
 		gui_inc(y - pos_y);
