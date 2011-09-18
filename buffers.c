@@ -176,6 +176,8 @@ void buffers_save_pos()
 
 int buffers_goto(int n)
 {
+	extern int gui_scrollclear;
+
 	if(n < 0 || n >= count)
 		return 1;
 
@@ -192,7 +194,9 @@ int buffers_goto(int n)
 	fnames[n]->read = 1;
 
 	gui_move(fnames[n]->last_y, 0);
+	gui_scrollclear = 0;
 	gui_scroll(CURSOR_MIDDLE);
+	gui_scrollclear = 1;
 	return 0;
 }
 

@@ -257,6 +257,7 @@ int intellisense_file(char **pstr, int *psize, int *pos, char ch)
 					*p = '\0';
 				}
 				p[-1] = '}';
+				/* FIXME: move cursor to correct position */
 				gui_status(GUI_NONE, ":%s%s", *pstr, fnames);
 				ret = 1; /* no redraw */
 			}
