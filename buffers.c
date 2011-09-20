@@ -151,6 +151,7 @@ void buffers_init(int argc, const char **argv, int ro)
 
 	if(read_stdin){
 		current_buf = buffers_readfile(stdin, "-");
+		buffer_modified(current_buf) = 1;
 		input_reopen();
 		current = -1;
 	}else if(count > 0){
