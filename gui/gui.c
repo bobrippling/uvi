@@ -113,6 +113,11 @@ void gui_reload()
 {
 	/* put stdin into non canonical mode */
 	term_canon(STDIN_FILENO, 0);
+	gui_refresh();
+}
+
+void gui_refresh()
+{
 	refresh();
 }
 
@@ -179,18 +184,12 @@ static void gui_status_trim(const char *fmt, va_list l)
 
 void gui_statusl(enum gui_attr a, const char *s, va_list l)
 {
-	int y, x;
-
-	getyx(stdscr, y, x);
-
 	move(LINES - 1, 0);
 	gui_clrtoeol();
 
 	gui_attron(a);
 	gui_status_trim(s, l);
 	gui_attroff(a);
-
-	move(y, x);
 }
 
 void gui_status(enum gui_attr a, const char *s, ...)
@@ -251,25 +250,15 @@ void gui_status_add_start()
 }
 
 
-void gui_status_wait(int y, int x, const char *s)
+void gui_status_wait()
 {
-	int mv;
-
-	if(!s)
-		s = "any key to continue...";
-	gui_status_add(GUI_NONE, "%s", s);
-
-	if((mv = y != -1 && x != -1)){
-		move(y, x);
-	}else{
-		getyx(stdscr, y, x);
-		mv = 0;
-		move(y, 0);
-	}
-
+	int y, x;
+	gui_status_add(GUI_NONE, "any key to continue...");
+	getyx(stdscr, y, x);
+	move(y, 0);
+	(void)x;
 	gui_peekch(GETCH_MEDIUM_RARE);
-	if(!mv)
-		gui_clrtoeol();
+	gui_clrtoeol();
 }
 
 void gui_show_array(enum gui_attr a, int y, int x, const char **ar)

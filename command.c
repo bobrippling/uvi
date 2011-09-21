@@ -227,6 +227,9 @@ usage:
 		}
 	}
 
+	gui_status(GUI_NONE, "\"%s\" ...", buffer_filename(buffers_current()));
+	gui_refresh();
+
 	if(list_to_write){
 		nw = buffer_write_list(buffers_current(), list_to_write);
 		nl = list_count(list_to_write);
@@ -441,7 +444,7 @@ void cmd_set(int argc, char **argv, int force, struct range *rng)
 		}
 
 	if(wait)
-		gui_status_wait(-1, -1, NULL);
+		gui_status_wait();
 }
 
 void cmd_yanks(int argc, char **argv, int force, struct range *rng)
@@ -467,7 +470,7 @@ void cmd_yanks(int argc, char **argv, int force, struct range *rng)
 	}
 
 	if(one)
-		gui_status_wait(-1, -1, NULL);
+		gui_status_wait();
 	else
 		gui_status(GUI_ERR, "no yanks");
 }
@@ -494,7 +497,7 @@ void cmd_marks(int argc, char **argv, int force, struct range *rng)
 	MARK_SHOW_1('\'');
 	MARK_SHOW_1('.');
 
-	gui_status_wait(-1, -1, NULL);
+	gui_status_wait();
 }
 
 void cmd_maps(int argc, char **argv, int force, struct range *rng)
@@ -508,7 +511,7 @@ void cmd_maps(int argc, char **argv, int force, struct range *rng)
 		struct map *m = map->data;
 		gui_status_add(GUI_NONE, "'%c' => \"%s\"", m->c, m->cmd);
 	}
-	gui_status_wait(-1, -1, NULL);
+	gui_status_wait();
 }
 
 void cmd_A(int argc, char **argv, int force, struct range *rng)
@@ -597,7 +600,7 @@ void cmd_ls(int argc, char **argv, int force, struct range *rng)
 				(*iter)->last_y,
 				(*iter)->fname);
 
-	gui_status_wait(-1, -1, NULL);
+	gui_status_wait();
 }
 
 void buffer_cmd(int argc, char **argv, int force, struct range *rng, int (*f)(int), int use_cur)
@@ -694,7 +697,7 @@ void cmd_help(int argc, char **argv, int force, struct range *rng)
 	gui_status_add(GUI_NONE, ":yanks");
 	gui_status_add(GUI_NONE, ":{ls,[nN],b,bd}");
 
-	gui_status_wait(-1, -1, NULL);
+	gui_status_wait();
 }
 
 #ifdef BLOAT
