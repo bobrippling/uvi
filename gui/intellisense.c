@@ -138,10 +138,13 @@ int file_uniq(const void *a, const void *b, void *extra)
 
 int intellisense_file(char **pstr, int *psize, int *pos, char ch)
 {
+	extern int gui_statusrestore;
 	char *match, *arg;
 	wordexp_t exp;
 	int arglen, offset;
 	int ret = 1;
+
+	gui_statusrestore = 1;
 
 	if(!**pstr || *pos == 0)
 		return 1;
@@ -258,12 +261,15 @@ int intellisense_file(char **pstr, int *psize, int *pos, char ch)
 				}
 				p[-1] = '}';
 				/* FIXME: move cursor to correct position */
+
 				gui_status(GUI_NONE, ":%s%s", *pstr, fnames);
 				ret = 1; /* no redraw */
 			}
 			break;
 		}
 	}
+
+	gui_statusrestore = 0;
 
 	wordfree(&exp);
 	return ret;

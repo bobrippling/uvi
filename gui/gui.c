@@ -51,7 +51,7 @@ static char *unget_buf;
 static int pos_y = 0, pos_x = 0;
 static int pos_top = 0, pos_left = 0;
 
-int gui_scrollclear = 0;
+int gui_scrollclear = 0, gui_statusrestore = 0;
 
 static int macro_record_char = 0;
 static char *macro_str = NULL;
@@ -184,12 +184,20 @@ static void gui_status_trim(const char *fmt, va_list l)
 
 void gui_statusl(enum gui_attr a, const char *s, va_list l)
 {
+	int y, x;
+
+	if(gui_statusrestore)
+		getyx(stdscr, y, x);
+
 	move(LINES - 1, 0);
 	gui_clrtoeol();
 
 	gui_attron(a);
 	gui_status_trim(s, l);
 	gui_attroff(a);
+
+	if(gui_statusrestore)
+		move(y, x);
 }
 
 void gui_status(enum gui_attr a, const char *s, ...)
