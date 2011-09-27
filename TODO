@@ -77,3 +77,7 @@ ihi^V^J\e
 store last motion for '.' command
 
 fix :e abc\t cursor positioning
+
+fix ma cursor pos
+
+on 'p' goto the last inserted line, if inserting lines
