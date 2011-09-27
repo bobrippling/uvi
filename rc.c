@@ -17,12 +17,16 @@
 static const char *rc_file(void)
 {
 	static char fname[256];
-	char *home = getenv("HOME");
 
-	if(!home)
-		return NULL;
+	if(!*fname){
+		const char *home = getenv("HOME");
 
-	snprintf(fname, sizeof fname, "%s/.uvirc", home);
+		if(!home)
+			home = "";
+
+		snprintf(fname, sizeof fname, "%s/.uvirc", home);
+	}
+
 	return fname;
 }
 

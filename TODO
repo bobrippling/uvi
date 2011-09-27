@@ -75,3 +75,5 @@ fix 2tx - it only goes to the first, obviously
 ihi^V^J\e
 
 store last motion for '.' command
+
+fix :e abc\t cursor positioning
