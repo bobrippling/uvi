@@ -124,8 +124,12 @@ int intellisense_insert(char **pstr, int *psize, int *pos, char ch)
 	free(w);
 	for(iter = words; *iter; iter++)
 		free(*iter);
-	if(!*words)
+	if(!*words){
+		extern int gui_statusrestore;
+		gui_statusrestore = 1;
 		gui_status(GUI_ERR, "no completions");
+		gui_statusrestore = 0;
+	}
 	free(words);
 
 	return ret;
