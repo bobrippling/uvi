@@ -36,7 +36,7 @@
 
 #define MODIFIED_CHECK() \
 	if(!force && buffer_modified(buffers_current())){ \
-		gui_status(GUI_ERR, "buffer modified since last write"); \
+		gui_status(GUI_ERR, "buffer modified%s", buffer_hasfilename(buffers_current()) ? " since last write" : ""); \
 		return; \
 	}
 
