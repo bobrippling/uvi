@@ -140,6 +140,7 @@ void cmd_q(int argc, char **argv, int force, struct range *rng)
 
 void cmd_w(int argc, char **argv, int force, struct range *rng)
 {
+	extern int gui_statusrestore;
 	struct list *list_to_write = NULL;
 	enum { QUIT, EDIT, NONE } after = NONE;
 	int nw, nl;
@@ -227,7 +228,9 @@ usage:
 		}
 	}
 
+	gui_statusrestore = 0;
 	gui_status(GUI_NONE, "\"%s\" ...", buffer_filename(buffers_current()));
+	gui_statusrestore = 1;
 	gui_refresh();
 
 	if(list_to_write){

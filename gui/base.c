@@ -700,7 +700,7 @@ static void put(unsigned int ntimes, int rev)
 		else
 			INS(buffer_insertlistafter);
 
-		gui_move(gui_y() + 1 - rev, gui_x());
+		gui_move(gui_y() + (rev ? 0 : list_count(ynk->v)), gui_x());
 
 	}else{
 		struct list *l = buffer_getindex(buffers_current(), gui_y());

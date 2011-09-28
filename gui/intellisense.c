@@ -125,10 +125,7 @@ int intellisense_insert(char **pstr, int *psize, int *pos, char ch)
 	for(iter = words; *iter; iter++)
 		free(*iter);
 	if(!*words){
-		extern int gui_statusrestore;
-		gui_statusrestore = 1;
 		gui_status(GUI_ERR, "no completions");
-		gui_statusrestore = 0;
 	}
 	free(words);
 
@@ -142,13 +139,10 @@ int file_uniq(const void *a, const void *b, void *extra)
 
 int intellisense_file(char **pstr, int *psize, int *pos, char ch)
 {
-	extern int gui_statusrestore;
 	char *match, *arg;
 	wordexp_t exp;
 	int arglen, offset;
 	int ret = 1;
-
-	gui_statusrestore = 1;
 
 	if(!**pstr || *pos == 0)
 		return 1;
@@ -272,8 +266,6 @@ int intellisense_file(char **pstr, int *psize, int *pos, char ch)
 			break;
 		}
 	}
-
-	gui_statusrestore = 0;
 
 	wordfree(&exp);
 	return ret;

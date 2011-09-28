@@ -51,7 +51,7 @@ static char *unget_buf;
 static int pos_y = 0, pos_x = 0;
 static int pos_top = 0, pos_left = 0;
 
-int gui_scrollclear = 0, gui_statusrestore = 0;
+int gui_scrollclear = 0, gui_statusrestore = 1;
 
 static int macro_record_char = 0;
 static char *macro_str = NULL;
