@@ -82,6 +82,4 @@ in getmotion(), if visual, return the visual range as the motion
 
 ihe\eAll\t should complete to hello
 
-clear status line on exit
-
 'et' 'trim'

@@ -1215,6 +1215,8 @@ case_i:
 		if(resetmultiple)
 			multiple = 0;
 	}while(global_running);
+
+	gui_status(GUI_NONE, ""); /* if we're on a non-alternate screen terminal */
 #undef INC_MULTIPLE
 #undef SET_DOT
 }
