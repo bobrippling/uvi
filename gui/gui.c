@@ -169,17 +169,15 @@ static void gui_status_trim(const char *fmt, va_list l)
 	char buffer[256];
 	int len;
 
-	vsnprintf(buffer, sizeof buffer, fmt, l);
-
-	if((len = strlen(buffer) - 1) >= COLS){
-		int i = COLS-4;
-		if(i < 0)
-			i = 0;
-		strcpy(buffer + i, "...");
-		/* FIXME? new line + confirm */
-	}
+	len = vsnprintf(buffer, sizeof buffer, fmt, l);
 
 	addstr(buffer);
+
+	if(len >= COLS){
+		addstr("\nany key to continue...");
+		gui_getch(GETCH_COOKED);
+		gui_status(GUI_NONE, "");
+	}
 }
 
 void gui_statusl(enum gui_attr a, const char *s, va_list l)
