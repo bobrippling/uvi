@@ -613,6 +613,8 @@ static void delete_range(char *data, int startx, int x)
 	yank_set_str(yank_char, dup);
 
 	/* remove the chars between startx and x, inclusive */
+	if(len == 0)
+		x++; /* fix for 'x' at eol */
 	memmove(data + startx, data + x, strlen(data + x) + 1);
 	buffer_modified(buffers_current()) = 1;
 }

@@ -53,12 +53,8 @@ fix macros:
 
 [vdc]i[[{etc]
 
-$x
-
 fix :so'ing maps
 	- don't allow duplicates
-
-fix :\t
 
 fix regex matching - don't highlight by doing
 for i = 0 ; i < len(str); i++
@@ -70,15 +66,11 @@ scroll on :ls being > LINES
 
 fix detach (i.e. wyrd << e + sigwinch) bug
 
-fix 2tx - it only goes to the first, obviously
-
 ihi^V^J\e
 
 store last motion for '.' command
 
 fix :e abc\t cursor positioning
-
-in getmotion(), if visual, return the visual range as the motion
 
 ihe\eAll\t should complete to hello
 
