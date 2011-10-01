@@ -2,7 +2,8 @@ include config.mk
 
 OBJ = main.o buffer.o buffers.o range.o command.o vars.o \
 	util/list.o util/alloc.o util/io.o util/pipe.o util/str.o util/term.o util/search.o \
-	gui/gui.o gui/motion.o gui/marks.o gui/base.o gui/intellisense.o gui/map.o gui/macro.o gui/visual.o \
+	gui/gui.o gui/motion.o gui/marks.o gui/base.o gui/intellisense.o \
+	gui/map.o gui/macro.o gui/visual.o gui/syntax.o \
 	global.o rc.o preserve.o yank.o
 
 

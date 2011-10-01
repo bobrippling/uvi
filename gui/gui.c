@@ -24,6 +24,7 @@
 #include "visual.h"
 #include "../yank.h"
 #include "../util/search.h"
+#include "syntax.h"
 
 #define GUI_TAB_INDENT(x) \
 	(global_settings.tabstop - (x) % global_settings.tabstop)
@@ -601,6 +602,8 @@ void gui_draw()
 		free_regex = 1;
 	}
 
+	gui_syntax_reset();
+
 	for(l = buffer_getindex(buffers_current(), pos_top), y = 0;
 			l && y < LINES - 1;
 			l = l->next, y++, real_y++){
@@ -652,8 +655,10 @@ check_search:
 					i++;
 			}
 
+			gui_syntax(*p, 1);
 			if(i > pos_left) /* here so we get tabs right */
 				gui_addch(*p);
+			gui_syntax(*p, 0);
 		}
 
 		gui_attroff(GUI_SEARCH_COL);
