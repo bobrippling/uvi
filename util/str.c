@@ -211,6 +211,23 @@ int str_numeric(const char *s)
 	return 1;
 }
 
+void str_trim(char *const start)
+{
+	char *last, *s;
+
+	for(s = start; isspace(*s); s++);
+
+	memmove(start, s, strlen(s) + 1);
+
+	last = NULL;
+	for(s = start; *s; s++)
+		if(isspace(*s))
+			last = s;
+
+	if(last)
+		*last = '\0';
+}
+
 int isescapeable(char c)
 {
 	switch(c){

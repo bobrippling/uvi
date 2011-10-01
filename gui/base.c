@@ -718,7 +718,7 @@ static void join(unsigned int ntimes)
 	struct list *jointhese, *l, *cur;
 	struct range r;
 	char *alloced;
-	int len;
+	int len, initial_len;
 
 	{
 		unsigned int nl = buffer_nlines(buffers_current());
@@ -737,20 +737,24 @@ static void join(unsigned int ntimes)
 	jointhese = buffer_extract_range(buffers_current(), &r);
 
 	len = 0;
-	for(l = jointhese; l; l = l->next)
+	for(l = jointhese; l; l = l->next){
+		str_trim(l->data);
 		len += strlen(l->data);
+	}
 
-	alloced = realloc(cur->data, strlen(cur->data) + len + 1);
+	alloced = realloc(cur->data, (initial_len = strlen(cur->data)) + len + 1);
 	if(!alloced)
 		die("realloc()");
 
 	cur->data = alloced;
-	for(l = jointhese; l; l = l->next)
-		/* TODO: add a space between these? */
+	for(l = jointhese; l; l = l->next){
+		strcat(cur->data, " ");
 		strcat(cur->data, l->data);
+	}
 
 	list_free(jointhese, free);
 
+	gui_move(gui_y(), initial_len);
 	buffer_modified(buffers_current()) = 1;
 }
 

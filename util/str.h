@@ -13,6 +13,7 @@ char *chr_expand(char *arg, char c, const char *rep);
 char *str_expand(char *str, const char *grow_from, const char *grow_to);
 int   str_numeric(const char *);
 int   str_eqoffset(const char *w1, const char *w2, unsigned int len, unsigned int offset);
+void  str_trim(char *const);
 
 char *str_home_replace(char *);
 void  str_home_replace_array(int, char **);
