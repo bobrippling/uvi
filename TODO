@@ -79,3 +79,13 @@ store last motion for '.' command
 fix :e abc\t cursor positioning
 
 in getmotion(), if visual, return the visual range as the motion
+
+ihe\eAll\t should complete to hello
+
+clear status line on exit
+
+uvi tim.m<<!
+:A
+!
+
+'et' 'trim'

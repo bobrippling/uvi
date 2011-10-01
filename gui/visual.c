@@ -52,6 +52,11 @@ const struct range *visual_get_end()
 	return &visual_cursor;
 }
 
+int visual_cursor_is_end()
+{
+	return visual_get_end() == &visual_cursor;
+}
+
 void visual_swap()
 {
 	struct range *move_to;

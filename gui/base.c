@@ -175,7 +175,6 @@ void shift(int repeat)
 	struct screeninfo si;
 	int to_x, to_y;
 	int cur;
-	int c;
 
 	memset(&m, 0, sizeof m);
 
@@ -188,12 +187,8 @@ void shift(int repeat)
 	si.top    = gui_top();
 	si.height = gui_max_y();
 
-	c = gui_getch(GETCH_COOKED);
-	if(c == '>' || c == '<')
-		c = MOTION_FORWARD_LETTER;
-	gui_ungetch(c);
 
-	if(getmotion(&m) || applymotion(&m, &topos, &si))
+	if(getmotion(&m, 1, 0, "><", MOTION_FORWARD_LETTER) || applymotion(&m, &topos, &si))
 		return;
 
 	if(to_y < cur){
@@ -639,17 +634,10 @@ static void yank_range(char *data, int startx, int x)
 
 static void change(struct motion *motion, int ins)
 {
-	int c = gui_getch(GETCH_COOKED);
 	int x, y, dollar = 0;
 
-	if(c == 'd' || c == 'c'){
-		/* allow dd or cc (or dc or cd... but yeah) */
-		motion->motion = MOTION_WHOLE_LINE;
-	}else{
-		gui_ungetch(c);
-		if(getmotion(motion))
-			return;
-	}
+	if(getmotion(motion, 1, 0, "dc", MOTION_WHOLE_LINE))
+		return;
 
 	if(ins){
 		struct bufferpos pos;
@@ -883,7 +871,7 @@ switch_start:
 switch_switch:
 		switch(c){
 			/*
-			 * TODO: different switch when in visual mode
+			 * TODO: different switch when in visual mode?
 			 * struct cmd
 			 * {
 			 *   char ch;
@@ -997,14 +985,8 @@ switch_switch:
 				break;
 
 			case 'y':
-				c = gui_getch(GETCH_COOKED);
-				if(c == 'y'){
-					SET_MOTION(MOTION_WHOLE_LINE);
-				}else{
-					gui_ungetch(c);
-					if(getmotion(&motion))
-						break;
-				}
+				if(getmotion(&motion, 1, multiple, "y", MOTION_WHOLE_LINE))
+					break;
 				motion_cmd(&motion, yank_line, yank_range);
 				SET_DOT();
 				break;
@@ -1219,8 +1201,7 @@ case_i:
 					INC_MULTIPLE();
 				}else{
 					gui_ungetch(c);
-					motion.ntimes = multiple;
-					if(!getmotion(&motion)){
+					if(!getmotion(&motion, 0, multiple, "", 0)){
 						if(isbigmotion(&motion) && motion.motion != MOTION_MARK)
 							mark_jump();
 						gui_move_motion(&motion);

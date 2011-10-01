@@ -57,7 +57,8 @@ struct bufferpos
 	int *x, *y;
 };
 
-int getmotion(struct motion *);
+int getmotion(struct motion *m, int allow_visual, int multiple,
+		const char *ifthese, enum motiontype tothis);
 
 struct screeninfo
 {

@@ -15,5 +15,6 @@ const struct range *visual_get_start();
 const struct range *visual_get_end();
 
 void visual_status();
+int visual_cursor_is_end();
 
 #endif

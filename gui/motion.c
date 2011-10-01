@@ -16,6 +16,7 @@
 #include "../global.h"
 #include "../util/str.h"
 #include "../buffers.h"
+#include "visual.h"
 
 #define iswordpart(c) (isalnum(c) || (c) == '_')
 
@@ -94,9 +95,34 @@ static int applymotion2(
 		struct screeninfo *si);
 
 
-int getmotion(struct motion *m)
+int getmotion(struct motion *m, int allow_visual, int multiple, const char *ifthese, enum motiontype tothis)
 {
+	int c;
+
+	if(multiple)
+		m->ntimes = multiple;
+	else
+		m->ntimes = 1;
+
 	/* m->ntimes is already initialised */
+	if(allow_visual && visual_get() != VISUAL_NONE){
+		/* instead of reading a motion, return the current */
+		m->motion = MOTION_ABSOLUTE_DOWN;
+
+		if(visual_cursor_is_end())
+			visual_swap();
+
+		m->ntimes = visual_get_end()->start + 1; /* y value, not x */
+
+		visual_set(VISUAL_NONE);
+
+		return 0;
+	}
+
+	c = gui_getch(GETCH_COOKED);
+	if(strchr(ifthese, c))
+		c = tothis;
+	gui_ungetch(c);
 
 	do{
 		switch((m->motion = gui_getch(GETCH_COOKED))){
@@ -425,7 +451,7 @@ int applymotion2(struct motion *motion, struct bufferpos *pos,
 
 		case MOTION_ABSOLUTE_UP:
 			if(motion->ntimes)
-				goto MOTION_GOTO;
+				goto motion_goto;
 			*pos->y = 0;
 			*pos->x = 0;
 			return 0;
@@ -434,7 +460,7 @@ int applymotion2(struct motion *motion, struct bufferpos *pos,
 		{
 			int last;
 			if(motion->ntimes > 1)
-				goto MOTION_GOTO;
+				goto motion_goto;
 
 			last = buffer_nlines(buffers_current()) - 1;
 			if(last < 0)
@@ -446,7 +472,7 @@ int applymotion2(struct motion *motion, struct bufferpos *pos,
 	}
 
 	return 1;
-MOTION_GOTO:
+motion_goto:
 	{
 		int y = motion->ntimes - 1;
 		if(y < 0)
