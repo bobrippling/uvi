@@ -550,12 +550,10 @@ void cmd_A(int argc, char **argv, int force, struct range *rng)
 	if(!strcmp(ext, "c") || !strcmp(ext, "cpp")){
 		fname = ustrprintf("%s.h",  bfname);
 	}else if(!strcmp(ext, "h")){
-		char *try;
-
 		fname = ustrprintf("%s.c",  bfname);
 
 		if(access(fname, F_OK)){
-			try = ustrprintf("%s.cpp",  bfname);
+			char *try = ustrprintf("%s.cpp",  bfname);
 			if(!access(try, F_OK)){
 				free(fname);
 				fname = try;
@@ -563,6 +561,9 @@ void cmd_A(int argc, char **argv, int force, struct range *rng)
 				free(try);
 			}
 		}
+	}else{
+		gui_status(GUI_ERR, "unknown file extension \"%s\"", ext);
+		return;
 	}
 
 	buffers_load(fname);

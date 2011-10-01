@@ -84,8 +84,4 @@ ihe\eAll\t should complete to hello
 
 clear status line on exit
 
-uvi tim.m<<!
-:A
-!
-
 'et' 'trim'
