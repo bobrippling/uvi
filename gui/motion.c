@@ -141,6 +141,9 @@ int getmotion(struct motion *m, int allow_visual, int multiple, const char *ifth
 			case MOTION_ABSOLUTE_RIGHT:
 			case MOTION_ABSOLUTE_UP:
 			case MOTION_ABSOLUTE_DOWN:
+			/* not user-enterable, but gui_ungetch'd as a "yy" command */
+			case MOTION_WHOLE_LINE:
+			case MOTION_NOMOVE:
 				return 0;
 
 			case MOTION_PAREN_MATCH:
@@ -197,13 +200,13 @@ int getmotion(struct motion *m, int allow_visual, int multiple, const char *ifth
 				}
 				/* unreachable */
 			}
-
-			default:
-				if('0' <= m->motion && m->motion <= '9' && m->ntimes < INT_MAX/10)
-					m->ntimes = m->ntimes * 10 + m->motion - '0';
-				else
-					return 1;
 		}
+
+		if('0' <= m->motion && m->motion <= '9' && m->ntimes < INT_MAX/10)
+			m->ntimes = m->ntimes * 10 + m->motion - '0';
+		else
+			return 1;
+
 	}while(1);
 }
 
