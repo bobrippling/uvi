@@ -99,11 +99,6 @@ int getmotion(struct motion *m, int allow_visual, int multiple, const char *ifth
 {
 	int c;
 
-	if(multiple)
-		m->ntimes = multiple;
-	else
-		m->ntimes = 1;
-
 	/* m->ntimes is already initialised */
 	if(allow_visual && visual_get() != VISUAL_NONE){
 		/* instead of reading a motion, return the current */
@@ -124,6 +119,8 @@ int getmotion(struct motion *m, int allow_visual, int multiple, const char *ifth
 		c = tothis;
 	gui_ungetch(c);
 
+	m->ntimes = multiple ? multiple : 1;
+
 	do{
 		switch((m->motion = gui_getch(GETCH_COOKED))){
 			case MOTION_FORWARD_LETTER:
@@ -140,11 +137,15 @@ int getmotion(struct motion *m, int allow_visual, int multiple, const char *ifth
 			case MOTION_PARA_NEXT:
 			case MOTION_FUNC_PREV:
 			case MOTION_FUNC_NEXT:
-			case MOTION_PAREN_MATCH:
 			case MOTION_ABSOLUTE_LEFT:
 			case MOTION_ABSOLUTE_RIGHT:
 			case MOTION_ABSOLUTE_UP:
 			case MOTION_ABSOLUTE_DOWN:
+				return 0;
+
+			case MOTION_PAREN_MATCH:
+				if(!multiple)
+					m->ntimes = 0; /* bracket match, as opposed to [0-9]% */
 				return 0;
 
 			case MOTION_FIND_PREV:
