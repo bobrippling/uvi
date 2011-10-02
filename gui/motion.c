@@ -233,8 +233,16 @@ int applymotion2(struct motion *motion, struct bufferpos *pos,
 	 *
 	 * and by char i mean iswordpart()
 	 */
-	char *const charstart = buffer_getindex(buffers_current(), *pos->y)->data;
-	char *      charpos   = charstart + *pos->x;
+	struct list *l;
+	char *charstart;
+	char *charpos;
+
+	l = buffer_getindex(buffers_current(), *pos->y);
+	if(!l)
+		return 1;
+
+	charstart = l->data;
+	charpos   = charstart + *pos->x;
 
 	switch(motion->motion){
 		case MOTION_UP:
@@ -408,7 +416,7 @@ int applymotion2(struct motion *motion, struct bufferpos *pos,
 			struct list *l = buffer_getindex(buffers_current(), y);
 
 			while(l){
-			if(global_settings.func_motion_vi){
+				if(global_settings.func_motion_vi){
 					if(*(char *)l->data == '{')
 						break;
 				}else{
