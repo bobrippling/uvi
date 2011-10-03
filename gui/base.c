@@ -907,6 +907,7 @@ switch_switch:
 					break;
 				motion_cmd(&motion, yank_line, yank_range);
 				SET_DOT();
+				view_changed = 1;
 				break;
 
 			case 'A':
