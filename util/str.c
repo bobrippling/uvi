@@ -217,12 +217,15 @@ void str_trim(char *const start)
 
 	for(s = start; isspace(*s); s++);
 
-	memmove(start, s, strlen(s) + 1);
+	if(s > start)
+		memmove(start, s, strlen(s) + 1);
 
 	last = NULL;
 	for(s = start; *s; s++)
-		if(isspace(*s))
+		if(!last && isspace(*s))
 			last = s;
+		else if(!isspace(*s))
+			last = NULL;
 
 	if(last)
 		*last = '\0';

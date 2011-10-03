@@ -17,6 +17,10 @@
 #include "pipe.h"
 #include "alloc.h"
 
+/* range_through_pipe */
+#include "../buffer.h"
+#include "../buffers.h"
+
 static int parent_write(int, struct list *);
 
 #define WRITE_FD 1
@@ -160,6 +164,49 @@ static int parent_write(int fd, struct list *l)
 		}
 
 	close(fd);
+
+	return ret;
+}
+
+int range_through_pipe(struct range *rng, const char *cmd)
+{
+	struct list *l, *to_pipe;
+	int eno, ret = 0;
+
+	to_pipe = buffer_extract_range(buffers_current(), rng);
+
+	l = pipe_readwrite(cmd, to_pipe ? to_pipe : buffer_gethead(buffers_current()));
+
+	if(l){
+		if(l->data){
+			if(to_pipe){
+				struct list *inshere;
+
+				inshere = buffer_getindex(buffers_current(), rng->start);
+
+				if(inshere)
+					buffer_insertlistbefore(buffers_current(), inshere, l);
+				else
+					buffer_appendlist(buffers_current(), l);
+
+				list_free_nodata(to_pipe);
+				to_pipe = NULL;
+			}else{
+				buffer_replace(buffers_current(), l);
+			}
+
+			buffer_modified(buffers_current()) = 1;
+		}else{
+			/* FIXME? assign to_pipe to "reg? restore into buffer? */
+			list_free(l, free);
+			ret = 1;
+		}
+	}
+
+	eno = errno;
+	if(to_pipe)
+		list_free(to_pipe, free);
+	errno = eno;
 
 	return ret;
 }

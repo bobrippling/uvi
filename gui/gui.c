@@ -880,7 +880,7 @@ void gui_move_motion(struct motion *m)
 	si.top    = pos_top;
 	si.height = LINES;
 
-	if(!applymotion(m, &bp, &si))
+	if(!motion_apply(m, &bp, &si))
 		gui_move(y, x);
 }
 

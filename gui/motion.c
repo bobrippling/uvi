@@ -75,9 +75,9 @@ static struct builtin_motion
 
 static int last_find_c = 0, last_find_til = 0, last_find_rev = 0;
 
-int isbigmotion( struct motion *m) { return builtin_motions[m->motion].is_big; }
-int islinemotion(struct motion *m) { return builtin_motions[m->motion].is_line; }
-int istilmotion( struct motion *m)
+int motion_is_big( struct motion *m) { return builtin_motions[m->motion].is_big; }
+int motion_is_line(struct motion *m) { return builtin_motions[m->motion].is_line; }
+int motion_is_til( struct motion *m)
 {
 	return m->motion == MOTION_FIND_NEXT ?
 		last_find_til :
@@ -89,13 +89,49 @@ static char bracketdir(char);
 static char bracketrev(char);
 static void percent(struct bufferpos *);
 
-static int applymotion2(
+static int motion_apply2(
 		struct motion *motion,
 		struct bufferpos *pos,
 		struct screeninfo *si);
 
 
-int getmotion(struct motion *m, int allow_visual, int multiple, const char *ifthese, enum motiontype tothis)
+int motion_wrap(int *x1, int *y1, int *x2, int *y2, const char *ifthese, enum motiontype tothis)
+{
+	struct motion m;
+	struct bufferpos topos;
+	struct screeninfo si;
+
+	memset(&m, 0, sizeof m);
+
+	if(visual_get() != VISUAL_NONE && visual_cursor_is_end())
+		visual_swap();
+
+	*y1 = *y2 = gui_y();
+	*x1 = *x2 = gui_x();
+
+	topos.x = x2;
+	topos.y = y2;
+
+	si.top    = gui_top();
+	si.height = gui_max_y();
+
+	if(motion_get(&m, 1, 0, ifthese, tothis) || motion_apply(&m, &topos, &si))
+		return 1;
+
+#define ORDER(a, b) \
+	if(a > b){ \
+		int x = a;   \
+		a = b;       \
+		b = x;       \
+	}
+
+	ORDER(*y1, *y2);
+	ORDER(*x1, *x2);
+
+	return 0;
+}
+
+int motion_get(struct motion *m, int allow_visual, int multiple, const char *ifthese, enum motiontype tothis)
 {
 	int c;
 
@@ -210,11 +246,11 @@ int getmotion(struct motion *m, int allow_visual, int multiple, const char *ifth
 	}while(1);
 }
 
-int applymotion(struct motion *motion, struct bufferpos *pos,
+int motion_apply(struct motion *motion, struct bufferpos *pos,
 		struct screeninfo *si)
 {
 	do
-		if(applymotion2(motion, pos, si))
+		if(motion_apply2(motion, pos, si))
 			return 1;
 		else if(!builtin_motions[motion->motion].is_ntimes)
 			return 0;
@@ -223,7 +259,7 @@ int applymotion(struct motion *motion, struct bufferpos *pos,
 	return 0;
 }
 
-int applymotion2(struct motion *motion, struct bufferpos *pos,
+int motion_apply2(struct motion *motion, struct bufferpos *pos,
 		struct screeninfo *si)
 {
 	/*

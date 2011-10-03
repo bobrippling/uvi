@@ -75,3 +75,8 @@ fix :e abc\t cursor positioning
 ihe\eAll\t should complete to hello
 
 'et' 'trim'
+
+buffer lines = struct {
+	struct list *raw;
+	struct list *vis; /* visual display, i.e. ctrl chars -> "^x", tabs -> "   " */
+}

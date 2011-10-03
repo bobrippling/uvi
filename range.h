@@ -1,5 +1,5 @@
-#ifndef PARSE_H
-#define PARSE_H
+#ifndef RANGE_H
+#define RANGE_H
 
 struct range
 {

@@ -277,55 +277,21 @@ void cmd_bang(int argc, char **argv, int force, struct range *rng)
 {
 	if(rng->start != -1){
 		/* rw!cmd command */
-		struct list *l, *to_pipe;
 		char *free_me = argv_to_str(argc, argv);
 		char *cmd = strchr(free_me, '!') + 1;
 
 		if(argc <= 1){
-			gui_status(GUI_ERR, "usage: range!cmd");
+			gui_status(GUI_ERR, "usage: [range]!cmd");
 			return;
 		}
 
 		if(--rng->start < 0) rng->start = 0;
 		if(--rng->end   < 0) rng->end   = 0;
 
-		to_pipe = buffer_extract_range(buffers_current(), rng);
-
-		l = pipe_readwrite(cmd, to_pipe ? to_pipe : buffer_gethead(buffers_current()));
-
-		if(l){
-			if(l->data){
-				if(to_pipe){
-					struct list *inshere;
-
-					inshere = buffer_getindex(buffers_current(), rng->start);
-
-					if(inshere)
-						buffer_insertlistbefore(buffers_current(), inshere, l);
-					else
-						buffer_appendlist(buffers_current(), l);
-
-					list_free_nodata(to_pipe);
-					to_pipe = NULL;
-				}else{
-					buffer_replace(buffers_current(), l);
-				}
-
-				buffer_modified(buffers_current()) = 1;
-			}else{
-				/* FIXME? assign to_pipe to "reg */
-				list_free(l, free);
-				gui_status(GUI_ERR, "%s: no output", cmd);
-			}
-		}else{
-			gui_status(GUI_ERR, "pipe_readwrite() error: %s", strerror(errno));
-		}
-
-		buffer_modified(buffers_current()) = 1;
+		if(!range_through_pipe(rng, cmd))
+			buffer_modified(buffers_current()) = 1;
 
 		free(free_me);
-		if(to_pipe)
-			list_free(to_pipe, free);
 	}else{
 		if(argc == 1){
 			const char *shell = getenv("SHELL");

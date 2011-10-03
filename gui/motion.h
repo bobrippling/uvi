@@ -58,7 +58,7 @@ struct bufferpos
 	int *x, *y;
 };
 
-int getmotion(struct motion *m, int allow_visual, int multiple,
+int motion_get(struct motion *m, int allow_visual, int multiple,
 		const char *ifthese, enum motiontype tothis);
 
 struct screeninfo
@@ -71,11 +71,13 @@ struct screeninfo
  * (with current pos)
  * before calling this function
  */
-int applymotion(struct motion *, struct bufferpos *, struct screeninfo *);
+int motion_apply(struct motion *, struct bufferpos *, struct screeninfo *);
 
-int islinemotion(struct motion *m);
-int istilmotion( struct motion *m);
-int isbigmotion( struct motion *m);
+int motion_is_line(struct motion *m);
+int motion_is_til( struct motion *m);
+int motion_is_big( struct motion *m);
+
+int motion_wrap(int *x, int *y, int *x2, int *y2, const char *ifthese, enum motiontype tothis);
 
 const char *motion_str(struct motion *);
 

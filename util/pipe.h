@@ -4,5 +4,6 @@
 struct list *pipe_read(const char *);
 int          pipe_write(const char *, struct list *, int close_out);
 struct list *pipe_readwrite(const char *, struct list *);
+int          range_through_pipe(struct range *rng, const char *cmd);
 
 #endif

@@ -27,6 +27,7 @@
 #include "../buffers.h"
 #include "visual.h"
 #include "../util/search.h"
+#include "extra.h"
 
 #define REPEAT_FUNC(nam) static void nam(unsigned int)
 
@@ -37,13 +38,11 @@ static void insert(int append, int indent);
 static void put(unsigned int ntimes, int rev);
 static void change(struct motion *motion, int flag);
 REPEAT_FUNC(join);
-REPEAT_FUNC(tilde);
 REPEAT_FUNC(replace);
 
 /* extra */
 static void colon(const char *);
 static int  search(int, int);
-REPEAT_FUNC(showgirl);
 
 static int is_edit_char(int);
 
@@ -170,106 +169,19 @@ fin:;
 void shift(int repeat)
 {
 	struct list *l;
-	struct motion m;
-	struct bufferpos topos;
-	struct screeninfo si;
-	int to_x, to_y;
-	int cur;
+	int x1, y1, x2, y2;
 
-	memset(&m, 0, sizeof m);
-
-	cur = to_y = gui_y();
-	to_x = gui_x();
-
-	topos.x = &to_x;
-	topos.y = &to_y;
-
-	si.top    = gui_top();
-	si.height = gui_max_y();
-
-
-	if(getmotion(&m, 1, 0, "><", MOTION_FORWARD_LETTER) || applymotion(&m, &topos, &si))
+	if(motion_wrap(&x1, &y1, &x2, &y2, "><", MOTION_FORWARD_LETTER))
 		return;
 
-	if(to_y < cur){
-		int x = to_y;
-		to_y = cur;
-		cur = x;
-	}
-
-	l = buffer_getindex(buffers_current(), cur);
-	while(cur++ <= to_y && l){
+	l = buffer_getindex(buffers_current(), y1);
+	while(y1++ <= y2 && l){
 		shiftline((char **)&l->data, repeat);
 		l = l->next;
 	}
 
-	gui_move(cur - 1, 0);
-	m.motion = MOTION_LINE_START;
-	gui_move_motion(&m);
+	gui_move_sol(y1 - 1);
 	buffer_modified(buffers_current()) = 1;
-}
-
-void tilde(unsigned int rep)
-{
-	char *data = (char *)buffer_getindex(buffers_current(), gui_y())->data;
-	char *pos = data + gui_x();
-
-	if(!rep)
-		rep = 1;
-
-	gui_move(gui_y(), gui_x() + rep);
-
-	while(rep --> 0){
-		if(islower(*pos))
-			*pos = toupper(*pos);
-		else
-			*pos = tolower(*pos);
-
-		/* *pos ^= (1 << 5); * flip bit 100000 = 6 */
-
-		if(!*++pos)
-			break;
-	}
-
-	buffer_modified(buffers_current()) = 1;
-}
-
-void showgirl(unsigned int page)
-{
-	char *word = gui_current_word();
-	char *buf;
-	int len;
-
-	if(!word){
-		gui_status(GUI_ERR, "invalid word");
-		return;
-	}
-
-	buf = umalloc(len = strlen(word) + 16);
-
-	if(page)
-		snprintf(buf, len, "man %d %s", page, word);
-	else
-		snprintf(buf, len, "man %s", word);
-
-	shellout(buf, NULL);
-	free(buf);
-	free(word);
-}
-
-int go_file()
-{
-	char *fname = gui_current_fname();
-
-	if(fname){
-		/* TODO: query - rewrite gui_readfile() and so on, all goes through one f() */
-		buffers_load(fname);
-		free(fname);
-		return 0;
-	}else{
-		gui_status(GUI_ERR, "no file selected");
-		return 1;
-	}
 }
 
 void replace(unsigned int n)
@@ -546,7 +458,7 @@ static void motion_cmd(struct motion *motion,
 	si.top = gui_top();
 	si.height = gui_max_y();
 
-	if(!applymotion(motion, &topos, &si)){
+	if(!motion_apply(motion, &topos, &si)){
 		struct range from;
 
 		from.start = gui_y();
@@ -558,7 +470,7 @@ static void motion_cmd(struct motion *motion,
 			from.end = t;
 		}
 
-		if(islinemotion(motion)){
+		if(motion_is_line(motion)){
 			/* delete lines between gui_y() and y, inclusive */
 			f_line(&from);
 			gui_move_sol(from.start);
@@ -638,7 +550,7 @@ static void change(struct motion *motion, int ins)
 {
 	int x, y, dollar = 0;
 
-	if(getmotion(motion, 1, 0, "dc", MOTION_WHOLE_LINE))
+	if(motion_get(motion, 1, 0, "dc", MOTION_WHOLE_LINE))
 		return;
 
 	if(ins){
@@ -653,7 +565,7 @@ static void change(struct motion *motion, int ins)
 		pos.x = &x;
 		pos.y = &y;
 
-		if(!applymotion(motion, &pos, &si))
+		if(!motion_apply(motion, &pos, &si))
 			dollar = 1;
 	}
 
@@ -991,7 +903,7 @@ switch_switch:
 				break;
 
 			case 'y':
-				if(getmotion(&motion, 1, multiple, "y", MOTION_WHOLE_LINE))
+				if(motion_get(&motion, 1, multiple, "y", MOTION_WHOLE_LINE))
 					break;
 				motion_cmd(&motion, yank_line, yank_range);
 				SET_DOT();
@@ -1196,6 +1108,10 @@ case_i:
 						if(!go_file())
 							buffer_changed = 1;
 						break;
+					case 'q':
+						if(!fmt_motion())
+							buffer_changed = 1;
+						break;
 					default:
 						gui_status(GUI_ERR, "Invalid ! suffix");
 				}
@@ -1207,8 +1123,8 @@ case_i:
 					INC_MULTIPLE();
 				}else{
 					gui_ungetch(c);
-					if(!getmotion(&motion, 0, multiple, "", 0)){
-						if(isbigmotion(&motion) && motion.motion != MOTION_MARK)
+					if(!motion_get(&motion, 0, multiple, "", 0)){
+						if(motion_is_big(&motion) && motion.motion != MOTION_MARK)
 							mark_jump();
 						gui_move_motion(&motion);
 						if(visual_get() != VISUAL_NONE)

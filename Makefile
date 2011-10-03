@@ -3,7 +3,7 @@ include config.mk
 OBJ = main.o buffer.o buffers.o range.o command.o vars.o \
 	util/list.o util/alloc.o util/io.o util/pipe.o util/str.o util/term.o util/search.o \
 	gui/gui.o gui/motion.o gui/marks.o gui/base.o gui/intellisense.o \
-	gui/map.o gui/macro.o gui/visual.o gui/syntax.o \
+	gui/map.o gui/macro.o gui/visual.o gui/syntax.o gui/extra.o \
 	global.o rc.o preserve.o yank.o
 
 
@@ -60,12 +60,13 @@ gui/base.o: gui/base.c gui/../range.h gui/../buffer.h gui/../command.h \
  gui/../util/list.h gui/../global.h gui/motion.h gui/../util/alloc.h \
  gui/intellisense.h gui/gui.h gui/macro.h gui/marks.h gui/../main.h \
  gui/../util/str.h gui/../yank.h gui/map.h gui/../buffers.h gui/visual.h \
- gui/../util/search.h
+ gui/../util/search.h gui/extra.h
+gui/extra.o: gui/extra.c gui/extra.h
 gui/gui.o: gui/gui.c gui/../range.h gui/../util/list.h gui/../buffer.h \
  gui/motion.h gui/intellisense.h gui/gui.h gui/../global.h \
  gui/../util/alloc.h gui/../util/str.h gui/../util/term.h \
  gui/../util/io.h gui/macro.h gui/marks.h gui/../buffers.h gui/visual.h \
- gui/../yank.h gui/../util/search.h
+ gui/../yank.h gui/../util/search.h gui/syntax.h
 gui/intellisense.o: gui/intellisense.c gui/intellisense.h gui/../range.h \
  gui/../buffer.h gui/../global.h gui/../util/str.h gui/../util/list.h \
  gui/../util/alloc.h gui/motion.h gui/gui.h gui/../buffers.h
@@ -75,5 +76,6 @@ gui/map.o: gui/map.c gui/../range.h gui/../buffer.h gui/gui.h gui/map.h \
 gui/marks.o: gui/marks.c gui/marks.h gui/gui.h
 gui/motion.o: gui/motion.c gui/../range.h gui/../util/list.h gui/../buffer.h \
  gui/motion.h gui/intellisense.h gui/gui.h gui/marks.h gui/../global.h \
- gui/../util/str.h gui/../buffers.h
+ gui/../util/str.h gui/../buffers.h gui/visual.h
+gui/syntax.o: gui/syntax.c gui/syntax.h
 gui/visual.o: gui/visual.c gui/../range.h gui/gui.h gui/visual.h
