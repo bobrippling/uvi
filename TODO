@@ -17,22 +17,16 @@ fix i_c$
 
 store list of words after each buffer insertion, rather than generate
 	buffer_getwords() - ->dirty etc etc
+also, ihe\eAll\t should complete to hello
 
 'nu'
 'scs' aka smartcase search
 
-fix 'ai' for ^[O
-fix 'ai' for xyz\n\n\n<insert here> (fixed?)
-
-auto indent for ^[r\n
+autoindent:
+	^[O
+	auto indent for ^[r\n
 
 buffer_write(): write to temp file, then rename into place
-
-on d[motion above], position cursor to top
-
-visual 'd' and 'c' commands (<, > and others too)
-$ vim +help\ Visual-mode
-^ check keys
 
 intellisense file:
 	first match: -x $PATH
@@ -69,14 +63,21 @@ fix detach (i.e. wyrd << e + sigwinch) bug
 ihi^V^J\e
 
 store last motion for '.' command
+store last inserted text for '.' command
+store last replace (rX) for '.' command
 
 fix :e abc\t cursor positioning
 
-ihe\eAll\t should complete to hello
-
-'et' 'trim'
+'et' 'wtrim'
 
 buffer lines = struct {
 	struct list *raw;
 	struct list *vis; /* visual display, i.e. ctrl chars -> "^x", tabs -> "   " */
 }
+
+fix ggVd bug
+
+:%!x
+- adds a blank line
+
+fix shellout not scrolling ncurses view before shelling
