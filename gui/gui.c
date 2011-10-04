@@ -176,8 +176,8 @@ static void gui_status_trim(const char *fmt, va_list l)
 	addstr(buffer);
 
 	if(len >= COLS){
-		addstr("\nany key to continue...");
-		gui_getch(GETCH_COOKED);
+		addstr("\nnext key...");
+		gui_ungetch(gui_getch(GETCH_COOKED));
 		gui_status(GUI_NONE, "");
 	}
 }
