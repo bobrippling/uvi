@@ -147,9 +147,6 @@ void cmd_w(int argc, char **argv, int force, struct range *rng)
 	int x = 0;
 
 	if(rng->start != -1){
-		if(rng->end == -1)
-			rng->start = rng->end;
-
 		if(--rng->start < 0)
 			rng->start = 0;
 
@@ -540,15 +537,21 @@ void cmd_A(int argc, char **argv, int force, struct range *rng)
 
 void cmd_n(int argc, char **argv, int force, struct range *rng)
 {
-	if(argc != 1 || rng->start != -1 || rng->end != -1){
-		gui_status(GUI_ERR, "usage: %s[!]", *argv);
+	int i;
+
+	if(argc != 1 || rng->end != rng->start){
+		gui_status(GUI_ERR, "usage: [n]%s[!]", *argv);
 		return;
 	}
 
+	if(rng->start < 0) /* allow :0n to go to 0 */
+		rng->start = 1;
+	i = rng->start * (**argv == 'n' ? 1 : -1);
+
 	MODIFIED_CHECK();
 
-	if(buffers_next(**argv == 'n' ? 1 : -1))
-		gui_status(GUI_ERR, "file index out of range");
+	if(buffers_next(i))
+		gui_status(GUI_ERR, "file index %d out of range", i);
 }
 
 void cmd_ls(int argc, char **argv, int force, struct range *rng)
