@@ -551,7 +551,7 @@ void cmd_n(int argc, char **argv, int force, struct range *rng)
 	MODIFIED_CHECK();
 
 	if(buffers_next(i))
-		gui_status(GUI_ERR, "file index %d out of range", i);
+		gui_status(GUI_ERR, "file index %d out of range", buffers_idx() + i);
 }
 
 void cmd_ls(int argc, char **argv, int force, struct range *rng)
