@@ -71,7 +71,7 @@ struct screeninfo
  * (with current pos)
  * before calling this function
  */
-int motion_apply(struct motion *, struct bufferpos *, struct screeninfo *);
+int motion_apply(const struct motion *, struct bufferpos *, struct screeninfo *);
 
 int motion_is_line(struct motion *m);
 int motion_is_til( struct motion *m);

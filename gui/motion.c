@@ -90,7 +90,7 @@ static char bracketrev(char);
 static void percent(struct bufferpos *);
 
 static int motion_apply2(
-		struct motion *motion,
+		const struct motion *motion,
 		struct bufferpos *pos,
 		struct screeninfo *si);
 
@@ -119,7 +119,7 @@ int motion_wrap(int *x1, int *y1, int *x2, int *y2, const char *ifthese, enum mo
 		return 1;
 
 #define ORDER(a, b) \
-	if(a > b){ \
+	if(a > b){     \
 		int x = a;   \
 		a = b;       \
 		b = x;       \
@@ -155,7 +155,7 @@ int motion_get(struct motion *m, int allow_visual, int multiple, const char *ift
 		c = tothis;
 	gui_ungetch(c);
 
-	m->ntimes = multiple ? multiple : 1;
+	m->ntimes = multiple;
 
 	do{
 		switch((m->motion = gui_getch(GETCH_COOKED))){
@@ -246,20 +246,22 @@ int motion_get(struct motion *m, int allow_visual, int multiple, const char *ift
 	}while(1);
 }
 
-int motion_apply(struct motion *motion, struct bufferpos *pos,
+int motion_apply(const struct motion *motion, struct bufferpos *pos,
 		struct screeninfo *si)
 {
+	int n = motion->ntimes;
+
 	do
 		if(motion_apply2(motion, pos, si))
 			return 1;
 		else if(!builtin_motions[motion->motion].is_ntimes)
 			return 0;
-	while(motion->ntimes --> 1);
+	while(n --> 1);
 
 	return 0;
 }
 
-int motion_apply2(struct motion *motion, struct bufferpos *pos,
+int motion_apply2(const struct motion *motion, struct bufferpos *pos,
 		struct screeninfo *si)
 {
 	/*
@@ -487,8 +489,6 @@ int motion_apply2(struct motion *motion, struct bufferpos *pos,
 
 				if(y >= nl)
 					y = nl - 1;
-
-				motion->ntimes = 0;
 
 				*pos->y = y;
 				*pos->x = 0; /* FIXME? use /^/ */
