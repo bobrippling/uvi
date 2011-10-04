@@ -780,22 +780,22 @@ void command_run(char *in)
 	{
 		const char *nam;
 		void (*f)(int argc, char **argv, int force, struct range *rng);
-		int changes;
+		int changes, changes_with_range;
 	} funcs[] = {
-#define CMD(x, c) { #x, cmd_##x, c }
-		{ "!",  cmd_bang,  1 },
-		{ "?",  cmd_where, 0 },
+#define CMD(x, c) { #x, cmd_##x, c, 0 }
+		{ "!",  cmd_bang,  0, 1 },
+		{ "?",  cmd_where, 0, 0 },
 
-		{ "we", cmd_w, 1 },
-		{ "wq", cmd_w, 1 },
-		{ "x",  cmd_w, 1 },
+		{ "we", cmd_w, 1, 0 },
+		{ "wq", cmd_w, 1, 0 },
+		{ "x",  cmd_w, 1, 0 },
 		CMD(new, 0),
 		CMD(r,   1),
 		CMD(w,   1),
 		CMD(q,   0),
 		CMD(e,   0),
-		{ "qa", cmd_q, 0 },
-		{ "xa", cmd_q, 1 },
+		{ "qa", cmd_q, 0, 0 },
+		{ "xa", cmd_q, 1, 0 },
 
 		CMD(A,     0),
 		CMD(set,   0),
@@ -804,7 +804,7 @@ void command_run(char *in)
 		CMD(marks, 0),
 
 		CMD(n, 0),
-		{ "N", cmd_n, 0 },
+		{ "N", cmd_n, 0, 0 },
 		CMD(ls, 0),
 		CMD(b,  0),
 		CMD(bd, 0),
@@ -872,7 +872,8 @@ cont:
 	for(i = 0; i < LEN(funcs); i++)
 		if(!strcmp(argv[0], funcs[i].nam)){
 			found = 1;
-			if(funcs[i].changes && buffer_readonly(buffers_current())){
+			if((funcs[i].changes || (rng.start >= 0 && funcs[i].changes_with_range))
+				 && buffer_readonly(buffers_current())){
 				gui_status(GUI_ERR, "command modifies, and buffer is readonly");
 				break;
 			}
@@ -887,3 +888,4 @@ cont:
 	if(!found)
 		gui_status(GUI_ERR, "not an editor command: \"%s\"", s);
 }
+
