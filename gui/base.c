@@ -660,7 +660,8 @@ static void join(unsigned int ntimes)
 
 	cur->data = alloced;
 	for(l = jointhese; l; l = l->next){
-		strcat(cur->data, " ");
+		if(*(char *)cur->data)
+			strcat(cur->data, " ");
 		strcat(cur->data, l->data);
 	}
 
