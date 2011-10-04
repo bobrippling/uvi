@@ -124,6 +124,7 @@ void gui_refresh()
 
 void gui_term()
 {
+	scrl(1); // FIXME
 	endwin();
 	term_canon(STDIN_FILENO, 1);
 }
@@ -655,10 +656,12 @@ check_search:
 					i++;
 			}
 
-			gui_syntax(*p, 1);
+			if(global_settings.syn)
+				gui_syntax(*p, 1);
 			if(i > pos_left) /* here so we get tabs right */
 				gui_addch(*p);
-			gui_syntax(*p, 0);
+			if(global_settings.syn)
+				gui_syntax(*p, 0);
 		}
 
 		gui_attroff(GUI_SEARCH_COL);

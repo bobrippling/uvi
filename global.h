@@ -8,6 +8,7 @@ struct settings
 	int showtabs;
 	int list;
 	int hls;
+	int syn;
 	int autoindent;
 	int cindent;
 	int colour;
