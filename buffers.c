@@ -178,11 +178,13 @@ void buffers_save_pos()
 int buffers_goto(int n)
 {
 	extern int gui_scrollclear;
+	int loadpos;
 
 	if(n < 0 || n >= count)
 		return 1;
 
-	buffers_save_pos();
+	if((loadpos = current != n))
+		buffers_save_pos();
 
 	current = n;
 	if(current_buf)
@@ -194,10 +196,12 @@ int buffers_goto(int n)
 
 	fnames[n]->read = 1;
 
-	gui_move(fnames[n]->last_y, 0);
-	gui_scrollclear = 0;
-	gui_scroll(CURSOR_MIDDLE);
-	gui_scrollclear = 1;
+	if(loadpos){
+		gui_move(fnames[n]->last_y, 0);
+		gui_scrollclear = 0;
+		gui_scroll(CURSOR_MIDDLE);
+		gui_scrollclear = 1;
+	}
 	return 0;
 }
 
