@@ -696,8 +696,9 @@ int shellout(const char *cmd, struct list *l)
 			return -1;
 		}
 		ret = 0;
-	}else
+	}else{
 		ret = system(cmd);
+	}
 
 	if(ret == -1)
 		perror("system()");
@@ -714,40 +715,50 @@ int shellout(const char *cmd, struct list *l)
 	return ret == -1 ? -1 : WEXITSTATUS(ret);
 }
 
-void parsecmd(char *s, int *pargc, char ***pargv, int *pforce)
+void parse_cmd(char *s, int *pargc, char ***pargv, int *pforce)
 {
-	char *cpy = ustrdup(s);
-	char **argv;
-	char *iter;
-	int n = 1;
+#define argv (*pargv)
+#define argc (*pargc)
 
-	for(iter = strtok(cpy, " !"); iter; iter = strtok(NULL, " "))
-		n++;
-	free(cpy);
+	char *p, *mark;
+	int fin = 0;
 
-	if(*s == '!')
-		n++;
+	argv = NULL;
+	argc = 0;
 
-	argv = umalloc(sizeof(char *) * n);
-
-	n = 0;
 	if(*s == '!'){
-		n++;
-		argv[0] = "!";
+		/* :!... */
+		argv    = umalloc((argc = 2) * sizeof *argv);
+		argv[0] = ustrdup("!");
+		argv[1] = ustrdup(s + 1);
+		return;
 	}
 
-	for(iter = s + 1; *iter && *iter != ' '; iter++)
-		if(*iter == '!'){
-			*pforce = 1;
-			*iter = ' ';
-			break;
+	for(p = mark = s; !fin; p++)
+		switch(*p){
+			case '\\':
+				memmove(p, p + 1, strlen(p)); /* remove the escape char */
+				continue;
+			case ' ':
+			case '\t':
+			case '\0':
+				argv = urealloc(argv, ++argc * sizeof *argv);
+				argv[argc-1] = ustrdup2(mark, p);
+				mark = p + 1;
+				if(!*p)
+					fin = 1;
 		}
 
-	for(iter = strtok(s, " !"); iter; iter = strtok(NULL, " "))
-		argv[n++] = iter;
+	if(argc > 0){
+		int len = strlen(argv[0]);
+		if(argv[0][len - 1] == '!'){
+			argv[0][len - 1] = '\0';
+			*pforce = 1;
+		}
+	}
 
-	*pargv = argv;
-	*pargc = n;
+#undef argv
+#undef argc
 }
 
 void char_replace(int c, const char *rep, int argc, char **argv)
@@ -822,7 +833,7 @@ void command_run(char *in)
 #undef CMD
 	};
 
-#define HAVE_RANGE (s > in)
+#define HAVE_RANGE() (s > in)
 	struct range lim, rng;
 	char *s;
 	char **argv;
@@ -855,17 +866,17 @@ void command_run(char *in)
 		}
 
 		return;
-	}else if(HAVE_RANGE && *s == '\0'){
+	}else if(HAVE_RANGE() && *s == '\0'){
 		/* just a number, move to that line */
 		gui_move(rng.start - 1, gui_x());
 		return;
 	}
 
 cont:
-	if(!HAVE_RANGE)
+	if(!HAVE_RANGE())
 		rng.start = rng.end = -1;
 
-	parsecmd(s, &argc, &argv, &force);
+	parse_cmd(s, &argc, &argv, &force);
 	filter_cmd(argc, argv);
 
 	found = 0;
@@ -888,4 +899,3 @@ cont:
 	if(!found)
 		gui_status(GUI_ERR, "not an editor command: \"%s\"", s);
 }
-
