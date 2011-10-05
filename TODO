@@ -73,12 +73,9 @@ buffer lines = struct {
 	struct list *vis; /* visual display, i.e. ctrl chars -> "^x", tabs -> "   " */
 }
 
-fix ggVd bug
-
-:%!x
 - adds a blank line
-
-fix shellout not scrolling ncurses view before shelling
+ggVd bug
+:%!cat
 
 :s command - calls !sed
 :g - /match/[uvi_ungetch_list]

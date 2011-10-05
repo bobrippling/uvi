@@ -307,7 +307,7 @@ void readlines(int do_indent, struct gui_read_opts *opts, char ***plines, int *p
 		 * a) it's just spaces
 		 * b) it's a new line or it's an empty line insert
 		 */
-		if((i > 1 || gui_x() == 0) && line_isspace(lines[i-1])){
+		if((i > 1 || !esc) && line_isspace(lines[i-1])){
 			int idt = findindent(lines[i-1]);
 			if(idt != saveindent) /* user is tabbing in */
 				saveindent = idt;
