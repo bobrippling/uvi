@@ -287,6 +287,16 @@ void readlines(int do_indent, struct gui_read_opts *opts, char ***plines, int *p
 		while(indent --> 0)
 			gui_ungetch(global_settings.et ? ' ' : '\t');
 
+		if(global_settings.cindent && i > 0){
+			char *p = lines[i-1];;
+
+			for(; *p && isspace(*p); p++);
+
+			if(*p == '*')
+				/* c-commenting */
+				gui_queue(" *");
+		}
+
 		lines[i] = NULL;
 		esc = gui_getstr(&lines[i], opts);
 		if(++i >= nlines)
@@ -308,21 +318,20 @@ void readlines(int do_indent, struct gui_read_opts *opts, char ***plines, int *p
 		}
 
 		if(global_settings.cindent){
-			if(lines[i-1][strlen(lines[i-1])-1] == '{'){
-				indent += INDENT_ADJ;
-			}else{
-				char *iter;
+			char *iter;
 
-				for(iter = lines[i-1]; *iter; iter++)
-					if(!isspace(*iter)){
-						if(*iter == '}'){
-							/* need to unindent by one */
-							indent -= INDENT_ADJ;
-							shiftline(&lines[i-1], -1);
-						}
-						break;
+			if(lines[i-1][strlen(lines[i-1])-1] == '{')
+				indent += INDENT_ADJ;
+
+			for(iter = lines[i-1]; *iter; iter++)
+				if(!isspace(*iter)){
+					if(*iter == '}'){
+						/* need to unindent by one */
+						indent -= INDENT_ADJ;
+						shiftline(&lines[i-1], -1);
 					}
-			}
+					break;
+				}
 		}
 
 

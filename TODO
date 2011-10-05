@@ -82,14 +82,3 @@ fix shellout not scrolling ncurses view before shelling
 
 :s command - calls !sed
 :g - /match/[uvi_ungetch_list]
-
-/*
- * auto insert for
- * c-commenting
- * if 'cindent'
- */
-
-check :!sed 's/\t/  /g'
-specifically the \t - is it pre-escaped?
-
-:e something with spaces in
