@@ -20,28 +20,44 @@
 static struct
 {
 	const char *nam, *help;
+	int default_val;
 	int isbool, canzero;
 	int *val;
 } vars[] = {
-	[VARS_READONLY]        = { "ro",         "buffer is read only",         1, 1, NULL },
-	[VARS_MODIFIED]        = { "modified",   "buffer is modified",          1, 1, NULL },
-	[VARS_EOL]             = { "eol",        "buffer ends with a newline",  1, 1, NULL },
-	[VARS_CRLF]            = { "crlf",       "buffer has carrige returns",  1, 1, NULL },
-	[VARS_SHOWTABS]        = { "st",         "show tabs",                   1, 1, &global_settings.showtabs },
-	[VARS_ICASE]           = { "ic",         "ignore case (search)",        1, 1, &global_settings.ignorecase },
-	[VARS_LIST]            = { "list",       "show spaces",                 1, 1, &global_settings.list },
-	[VARS_HIGHLIGHT]       = { "hls",        "highlight search terms",      1, 1, &global_settings.hls },
-	[VARS_SYNTAX]          = { "syn",        "syntax highlighting",         1, 1, &global_settings.syn },
-	[VARS_AUTOINDENT]      = { "ai",         "auto indent",                 1, 1, &global_settings.autoindent },
-	[VARS_FSYNC]           = { "fsync",      "call fsync() after write()",  1, 1, &global_settings.fsync },
-	[VARS_CINDENT]         = { "cindent",    "C indentation (braces)",      1, 1, &global_settings.cindent },
-	[VARS_FUNC_MOTION_VI]  = {  "vifunc",    "/^{/ vs /{$/ for [] motions", 1, 1, &global_settings.func_motion_vi },
+	[VARS_READONLY]        = { "ro",         "buffer is read only",         0, 1, 1, NULL },
+	[VARS_MODIFIED]        = { "modified",   "buffer is modified",          0, 1, 1, NULL },
 
-	[VARS_TAB_CONTEXT]     = { "tctx",       "tab completion context",      0, 0, &global_settings.tabctx },
-	[VARS_TABSTOP]         = { "ts",         "tab stop",                    0, 0, &global_settings.tabstop },
-	[VARS_TEXTWIDTH]       = { "tw",         "max text width",              0, 1, &global_settings.textwidth },
-	[VARS_SCROLLOFF]       = { "scrolloff",  "context lines around cursor", 0, 1, &global_settings.scrolloff },
+	[VARS_EOL]             = { "eol",        "buffer ends with a newline",  0, 1, 1, NULL },
+	[VARS_CRLF]            = { "crlf",       "buffer has carrige returns",  0, 1, 1, NULL },
+
+	[VARS_TABSTOP]         = { "ts",         "tab stop",                    8, 0, 0, &global_settings.tabstop },
+	[VARS_SHOWTABS]        = { "st",         "show tabs",                   0, 1, 1, &global_settings.showtabs },
+	[VARS_LIST]            = { "list",       "show spaces",                 0, 1, 1, &global_settings.list },
+	[VARS_SCROLLOFF]       = { "scrolloff",  "context lines around cursor", 3, 0, 1, &global_settings.scrolloff },
+	[VARS_TEXTWIDTH]       = { "tw",         "max text width",              0, 0, 1, &global_settings.textwidth },
+	[VARS_TAB_CONTEXT]     = { "tctx",       "tab completion context",      5, 0, 0, &global_settings.tabctx },
+
+	[VARS_ICASE]           = { "ic",         "ignore case (search)",        1, 1, 1, &global_settings.ignorecase },
+
+	[VARS_HIGHLIGHT]       = { "hls",        "highlight search terms",      1, 1, 1, &global_settings.hls },
+	[VARS_SYNTAX]          = { "syn",        "syntax highlighting",         1, 1, 1, &global_settings.syn },
+
+	[VARS_AUTOINDENT]      = { "ai",         "auto indent",                 1, 1, 1, &global_settings.autoindent },
+	[VARS_CINDENT]         = { "cindent",    "C indentation (braces)",      0, 1, 1, &global_settings.cindent },
+	[VARS_FUNC_MOTION_VI]  = { "vifunc",     "/^{/ vs /{$/ for [] motions", 0, 1, 1, &global_settings.func_motion_vi },
+	[VARS_EXPANDTAB]       = { "et",         "expand tabs into spaces",     0, 1, 1, &global_settings.et },
+
+	[VARS_FSYNC]           = { "fsync",      "call fsync() after write()",  1, 1, 1, &global_settings.fsync },
+	[VARS_WTRIM]           = { "wtrim",      "trim lines when writing",     0, 1, 1, &global_settings.wtrim },
 };
+
+void vars_default()
+{
+	unsigned int i;
+	for(i = 0; i < LEN(vars); i++)
+		if(vars[i].val)
+			*vars[i].val = vars[i].default_val;
+}
 
 void vars_set(enum vartype t, buffer_t *b, int v)
 {

@@ -137,12 +137,16 @@ void shiftline(char **ps, int indent)
 	}
 
 	if(indent > 0){
-		int len = strlen(s) + indent;
+		int len;
 
+		if(global_settings.et)
+			indent *= 2;
+
+		len = strlen(s) + indent;
 		s = urealloc(s, len + 1);
 
 		memmove(s + indent, s, len - indent + 1);
-		memset(s, '\t', indent);
+		memset(s, global_settings.et ? ' ' : '\t', indent);
 
 		*ps = s;
 	}else{
@@ -171,6 +175,7 @@ void shift(int repeat)
 	struct list *l;
 	int x1, y1, x2, y2;
 
+	/* FIXME? should be MOTION_BACKWARD_LETTER if '<' ? */
 	if(motion_wrap(&x1, &y1, &x2, &y2, "><", MOTION_FORWARD_LETTER))
 		return;
 
@@ -236,27 +241,31 @@ static void showpos()
 
 static int findindent(const char *s)
 {
-	int indent = 0;
+	int tabs, spc;
+
+	tabs = spc = 0;
 
 	while(*s)
 		switch(*s++){
 			case '\t':
-				indent += global_settings.tabstop;
+				tabs++;
 				break;
 			case ' ':
-				indent++;
+				spc++;
 				break;
 			default:
 				goto lewpfin;
 		}
 
 lewpfin:
-	/* assuming tab indent */
-	return indent / global_settings.tabstop;
+	if(global_settings.et)
+		return spc + tabs * global_settings.tabstop;;
+	return tabs + spc / global_settings.tabstop;;
 }
 
 void readlines(int do_indent, struct gui_read_opts *opts, char ***plines, int *pi)
 {
+#define INDENT_ADJ global_settings.et ? global_settings.tabstop : 1
 	int nlines;
 	char **lines;
 	int indent = 0;
@@ -276,7 +285,7 @@ void readlines(int do_indent, struct gui_read_opts *opts, char ***plines, int *p
 		int saveindent = indent;
 
 		while(indent --> 0)
-			gui_ungetch('\t');
+			gui_ungetch(global_settings.et ? ' ' : '\t');
 
 		lines[i] = NULL;
 		esc = gui_getstr(&lines[i], opts);
@@ -284,31 +293,19 @@ void readlines(int do_indent, struct gui_read_opts *opts, char ***plines, int *p
 			lines = urealloc(lines, (nlines += 10) * sizeof *lines);
 
 		/* trim the line if it's just spaces */
-		if(saveindent){
-			int tabs = 0;
-			char *s;
-
-			for(s = lines[i-1]; *s; s++)
-				if(*s == '\t'){
-					tabs++;
-				}else{
-					tabs = 0;
-					break;
-				}
-
-			if(tabs && tabs == saveindent){
-				*lines[i-1] = '\0';
-				indent = saveindent;
-			}else{
-				indent = findindent(lines[i-1]);
-			}
-		}else if(global_settings.autoindent){
+		if(line_isspace(lines[i-1])){
+			int idt = findindent(lines[i-1]);
+			if(idt != saveindent) /* user is tabbing in */
+				saveindent = idt;
+			*lines[i-1] = '\0';
+			indent = saveindent;
+		}else{
 			indent = findindent(lines[i-1]);
 		}
 
 		if(global_settings.cindent){
 			if(lines[i-1][strlen(lines[i-1])-1] == '{'){
-				indent++;
+				indent += INDENT_ADJ;
 			}else{
 				char *iter;
 
@@ -316,7 +313,7 @@ void readlines(int do_indent, struct gui_read_opts *opts, char ***plines, int *p
 					if(!isspace(*iter)){
 						if(*iter == '}'){
 							/* need to unindent by one */
-							indent--;
+							indent -= INDENT_ADJ;
 							shiftline(&lines[i-1], -1);
 						}
 						break;
@@ -333,6 +330,7 @@ void readlines(int do_indent, struct gui_read_opts *opts, char ***plines, int *p
 
 	*plines = lines;
 	*pi = i;
+#undef INDENT_ADJ
 }
 
 static void insert(int append, int do_indent)
@@ -1139,8 +1137,6 @@ case_i:
 		if(resetmultiple)
 			multiple = 0;
 	}while(global_running);
-
-	gui_status(GUI_NONE, ""); /* if we're on a non-alternate screen terminal */
 #undef INC_MULTIPLE
 #undef SET_DOT
 }

@@ -43,7 +43,7 @@ void map()
 		}
 	}
 
-	if(!found)
+	if(!found && c != CTRL_AND('['))
 		gui_status(GUI_ERR, "map %c not defined", c);
 }
 

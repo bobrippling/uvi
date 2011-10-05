@@ -68,8 +68,6 @@ store last replace (rX) for '.' command
 
 fix :e abc\t cursor positioning
 
-'et' 'wtrim'
-
 buffer lines = struct {
 	struct list *raw;
 	struct list *vis; /* visual display, i.e. ctrl chars -> "^x", tabs -> "   " */
@@ -81,3 +79,17 @@ fix ggVd bug
 - adds a blank line
 
 fix shellout not scrolling ncurses view before shelling
+
+:s command - calls !sed
+:g - /match/[uvi_ungetch_list]
+
+/*
+ * auto insert for
+ * c-commenting
+ * if 'cindent'
+ */
+
+check :!sed 's/\t/  /g'
+specifically the \t - is it pre-escaped?
+
+:e something with spaces in

@@ -124,7 +124,8 @@ void gui_refresh()
 
 void gui_term()
 {
-	scrl(1); // FIXME
+	scrl(1);
+	refresh(); /* flush the scroll */
 	endwin();
 	term_canon(STDIN_FILENO, 1);
 }
@@ -381,6 +382,12 @@ static void gui_backspace(int n)
 
 int gui_getstr(char **ps, const struct gui_read_opts *opts)
 {
+#define CHECK_SIZE()                 \
+		if(i >= size){                   \
+			size += 64;                    \
+			start = urealloc(start, size); \
+		}
+
 	int size;
 	char *start;
 	int y, x, xstart;
@@ -403,10 +410,7 @@ int gui_getstr(char **ps, const struct gui_read_opts *opts)
 
 		c = gui_getch(GETCH_COOKED);
 
-		if(i >= size){
-			size += 64;
-			start = urealloc(start, size);
-		}
+		CHECK_SIZE();
 
 		switch(c){
 			case CTRL_AND('U'):
@@ -529,9 +533,17 @@ fin:
 					break;
 				}
 ins_ch:
-				start[i++] = c;
-				gui_addch(c);
-				x++;
+				if(c == '\t' && global_settings.et){
+					int j;
+					for(j = 0; j < global_settings.tabstop; j++){
+						gui_addch(start[i++] = ' ');
+						CHECK_SIZE();
+						x++;
+					}
+				}else{
+					gui_addch(start[i++] = c);
+					x++;
+				}
 				if(opts->textw && x > opts->textw)
 					goto fin;
 		}

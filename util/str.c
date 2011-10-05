@@ -213,14 +213,24 @@ int str_numeric(const char *s)
 
 void str_trim(char *const start)
 {
-	char *last, *s;
+	str_ltrim(start);
+	str_rtrim(start);
+}
+
+void str_ltrim(char *const start)
+{
+	char *s;
 
 	for(s = start; isspace(*s); s++);
 
 	if(s > start)
 		memmove(start, s, strlen(s) + 1);
+}
 
-	last = NULL;
+void str_rtrim(char *const start)
+{
+	char *s, *last = NULL;
+
 	for(s = start; *s; s++)
 		if(!last && isspace(*s))
 			last = s;

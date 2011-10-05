@@ -4,19 +4,24 @@
 struct settings
 {
 	int tabstop;
-	int scrolloff;
 	int showtabs;
 	int list;
+	int scrolloff;
+	int textwidth;
+	int tabctx;
+
+	int ignorecase;
+
 	int hls;
 	int syn;
+
 	int autoindent;
 	int cindent;
-	int colour;
-	int textwidth;
-	int fsync;
-	int ignorecase;
-	int tabctx;
 	int func_motion_vi;
+	int et;
+
+	int fsync;
+	int wtrim;
 };
 
 extern struct settings global_settings;

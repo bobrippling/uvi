@@ -23,6 +23,7 @@
 #include "util/str.h"
 #include "util/list.h"
 #include "buffers.h"
+#include "vars.h"
 
 static void usage(const char *);
 
@@ -75,12 +76,14 @@ int main(int argc, const char **argv)
 						argv_options = 0;
 						break;
 
+#if 0
 					case 'c':
 					{
 						extern struct settings global_settings;
 						global_settings.colour = 1;
 						break;
 					}
+#endif
 
 					case 'R':
 						ro = 1;
@@ -133,6 +136,7 @@ at_fnames:
 	if(wait)
 		sleep(1);
 
+	vars_default();
 	map_init();
 	gui_init();
 	gui_term();
