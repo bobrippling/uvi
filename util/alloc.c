@@ -21,6 +21,15 @@ char *ustrdup(const char *s)
 	return d;
 }
 
+char *ustrdup2(const char *start, const char *fin)
+{
+	int len = fin - start;
+	char *d = umalloc(len + 1);
+	strncpy(d, start, len);
+	d[len] = '\0';
+	return d;
+}
+
 void *urealloc(void *p, size_t s)
 {
 	void *n = realloc(p, s);
