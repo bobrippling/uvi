@@ -268,10 +268,12 @@ void buffers_load(const char *fname)
 
 	buffers_save_pos();
 
-	if((i = buffers_find(fname)) != -1){
-		buffers_goto(i);
-	}else if(fname){
-		buffers_goto(buffers_add(fname));
+	if(fname){
+		if((i = buffers_find(fname)) != -1){
+			buffers_goto(i);
+		}else{
+			buffers_goto(buffers_add(fname));
+		}
 	}else{
 		/* :new */
 		current_buf = buffers_readfname(NULL);
