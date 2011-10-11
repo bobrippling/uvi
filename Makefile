@@ -11,6 +11,12 @@ uvi: ${OBJ} config.mk
 	@echo LD $@
 	@${LD} -o $@ ${OBJ} ${LDFLAGS}
 
+uvi.static: ${OBJ} config.mk
+	@echo LD $@
+	@${LD} -o $@ ${OBJ} ${LDFLAGS} -static
+
+all: uvi uvi.static
+
 .c.o:
 	@echo CC $<
 	@${CC} ${CFLAGS} -c -o $@ $<
@@ -24,7 +30,7 @@ install: uvi
 uninstall:
 	rm -f ${PREFIX}/bin/uvi
 
-.PHONY: clean
+.PHONY: clean install uninstall uvi.static all
 
 # :r!for d in . util gui; do cc -MM $d/*.c | sed "s;^[^ \t];$d/&;"; done
 ./buffer.o: buffer.c util/alloc.h range.h buffer.h util/list.h util/io.h \
