@@ -722,6 +722,8 @@ void parse_cmd(char *s, int *pargc, char ***pargv, int *pforce)
 
 	char *p, *mark;
 	int fin = 0;
+	int initial = 0;
+	int in_quote = 0;
 
 	argv = NULL;
 	argc = 0;
@@ -734,19 +736,47 @@ void parse_cmd(char *s, int *pargc, char ***pargv, int *pforce)
 		return;
 	}
 
+	/* search for first non-alnum() char, the fist time we do the loop, for :s/...  */
+
 	for(p = mark = s; !fin; p++)
 		switch(*p){
+			case '\'':
+				in_quote = !in_quote;
+				continue;
 			case '\\':
-				memmove(p, p + 1, strlen(p)); /* remove the escape char */
+				if(!in_quote)
+					memmove(p, p + 1, strlen(p)); /* remove the escape char */
 				continue;
 			case ' ':
 			case '\t':
+				if(in_quote)
+					continue;
 			case '\0':
+sep:
+				initial = 1;
 				argv = urealloc(argv, ++argc * sizeof *argv);
 				argv[argc-1] = ustrdup2(mark, p);
-				mark = p + 1;
+
+				/* increase p until we're at the next non-space */
+				while(*p && *p == ' ')
+					p++;
+
 				if(!*p)
 					fin = 1;
+				else
+					mark = p--;
+
+				break;
+
+			default:
+				if(!initial && !isalnum(*p)){
+					/* assume the initial non-alnum char is a separator too - :s/a/b/c... */
+					if(*p == '!'){
+						*p = ' ';
+						*pforce = 1;
+					}
+					goto sep;
+				}
 		}
 
 	if(argc > 0){
@@ -892,10 +922,10 @@ cont:
 			break;
 		}
 
+	if(!found)
+		gui_status(GUI_ERR, "\":%s\": not an editor command (\"%s\")", argv[0], s);
+
 	for(i = 0; i < argc; i++)
 		free(argv[i]);
 	free(argv);
-
-	if(!found)
-		gui_status(GUI_ERR, "not an editor command: \"%s\"", s);
 }
