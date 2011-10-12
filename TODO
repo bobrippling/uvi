@@ -79,3 +79,5 @@ ggVd bug
 
 :s command - calls !sed
 :g - /match/[uvi_ungetch_list]
+
+motion join/join in visaul mode
