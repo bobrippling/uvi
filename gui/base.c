@@ -34,7 +34,7 @@
 /* text altering */
 static void open(int); /* as in, 'o' & 'O' */
 static void shift(int);
-static void insert(int append, int indent);
+static void insert(int append, int do_indent, int trim_initial);
 static void put(unsigned int ntimes, int rev);
 static void change(struct motion *motion, int flag);
 REPEAT_FUNC(join);
@@ -117,7 +117,7 @@ static int search(int next, int rev)
 	}
 
 	if(!found){
-		gui_status(GUI_ERR, "not found %s", rev ? "above" : "below");
+		gui_status(GUI_ERR, "\"%s\" not found %s", search_str, rev ? "above" : "below");
 		gui_move(gui_y(), gui_x());
 	}
 
@@ -140,7 +140,7 @@ void shiftline(char **ps, int indent)
 		int len;
 
 		if(global_settings.et)
-			indent *= 2;
+			indent *= global_settings.tabstop;
 
 		len = strlen(s) + indent;
 		s = urealloc(s, len + 1);
@@ -153,11 +153,21 @@ void shiftline(char **ps, int indent)
 		while(indent++ < 0)
 			switch(*s){
 				case ' ':
-					if(s[1] == ' ')
-						memmove(s, s+2, strlen(s+1));
+				{
+					/* ensure we can unindent by global_settings.tabstop spaces */
+					int i, spaced = 1;
+					for(i = 0; i < global_settings.tabstop; i++)
+						if(s[i] != ' '){
+							spaced = 0;
+							break;
+						}
+
+					if(spaced)
+						memmove(s, s + global_settings.tabstop, strlen(s + global_settings.tabstop) + 1);
 					else
 						goto fin;
 					break;
+				}
 
 				case '\t':
 					memmove(s, s+1, strlen(s));
@@ -263,7 +273,7 @@ lewpfin:
 	return tabs + spc / global_settings.tabstop;;
 }
 
-void readlines(int do_indent, struct gui_read_opts *opts, char ***plines, int *pi)
+void readlines(int do_indent, int can_trim_initial, struct gui_read_opts *opts, char ***plines, int *pi)
 {
 #define INDENT_ADJ global_settings.et ? global_settings.tabstop : 1
 	int nlines;
@@ -276,8 +286,20 @@ void readlines(int do_indent, struct gui_read_opts *opts, char ***plines, int *p
 
 	if(do_indent && global_settings.autoindent){
 		struct list *lprev = buffer_getindex(buffers_current(), gui_y() - 1);
-		if(lprev)
-			indent = findindent(lprev->data);
+		int first_indent;
+
+		first_indent = indent = 0;
+
+		for(; lprev; lprev = lprev->prev)
+			if(!line_isspace(lprev->data)){
+				indent = findindent(lprev->data);
+				break;
+			}else if(!first_indent){
+				first_indent = findindent(lprev->data);
+			}
+
+		if(!indent)
+			indent = first_indent;
 	}
 
 	for(;;){
@@ -302,19 +324,19 @@ void readlines(int do_indent, struct gui_read_opts *opts, char ***plines, int *p
 		if(++i >= nlines)
 			lines = urealloc(lines, (nlines += 10) * sizeof *lines);
 
-		/*
-		 * trim the line if
-		 * a) it's just spaces
-		 * b) it's a new line or it's an empty line insert
-		 */
-		if((i > 1 || !esc) && line_isspace(lines[i-1])){
-			int idt = findindent(lines[i-1]);
-			if(idt != saveindent) /* user is tabbing in */
-				saveindent = idt;
-			*lines[i-1] = '\0';
-			indent = saveindent;
-		}else{
-			indent = findindent(lines[i-1]);
+		if(do_indent){
+			/*
+			* trim the line if
+			* a) it's just spaces
+			* and
+			* b) it's a new line or it's an empty line insert
+			*/
+			if(i > 1 ? line_isspace(lines[i-1]) : can_trim_initial){
+				*lines[i-1] = '\0';
+				indent = saveindent;
+			}else{
+				indent = findindent(lines[i-1]);
+			}
 		}
 
 		if(global_settings.cindent){
@@ -339,6 +361,7 @@ void readlines(int do_indent, struct gui_read_opts *opts, char ***plines, int *p
 		if(esc)
 			/* ^[ */
 			break;
+		gui_clrtoeol();
 	}
 
 	*plines = lines;
@@ -346,7 +369,7 @@ void readlines(int do_indent, struct gui_read_opts *opts, char ***plines, int *p
 #undef INDENT_ADJ
 }
 
-static void insert(int append, int do_indent)
+static void insert(int append, int do_indent, int trim_initial)
 {
 	char **lines;
 	struct gui_read_opts opts;
@@ -360,7 +383,7 @@ static void insert(int append, int do_indent)
 		gui_inc_cursor();
 	}
 
-	readlines(do_indent, &opts, &lines, &i);
+	readlines(do_indent, trim_initial, &opts, &lines, &i);
 
 	{
 		struct list *iter = buffer_getindex(buffers_current(), gui_y());
@@ -413,7 +436,7 @@ void overwrite()
 
 	iter = buffer_getindex(buffers_current(), start_y);
 
-	readlines(0 /* indent */, &opts, &lines, &nl);
+	readlines(0 /* indent */, 0, &opts, &lines, &nl);
 
 	if(strlen(*lines) > strlen(iter->data))
 		/* need to extend iter->data */
@@ -447,7 +470,7 @@ static void open(int before)
 	}
 
 	gui_clrtoeol();
-	insert(0, 1);
+	insert(0, 1, 1);
 
 #if 0
 	if(!before)
@@ -586,7 +609,7 @@ static void change(struct motion *motion, int ins)
 		if(dollar)
 			gui_mvaddch(y, x > 0 ? x - 1 : x, '$');
 		gui_move(gui_y(), gui_x());
-		insert(0, 0);
+		insert(0, 0, 0);
 	}
 }
 
@@ -712,9 +735,9 @@ static int is_edit_char(int c)
 {
 	switch(c){
 		case 'o':
+		case 'O':
 			if(visual_get() != VISUAL_NONE)
 				break;
-		case 'O':
 		case 'X':
 		case 'x':
 		case 'C':
@@ -794,6 +817,12 @@ switch_start:
 				gui_status(GUI_ERR, "buffer is read-only");
 				continue;
 			}
+			/*
+			else if(visual_get() != VISUAL_NONE){
+				visual_set(VISUAL_NONE);
+			}
+			- this should only be done for commands that insert, such as c<motion>
+			*/
 
 			mark_edit();
 		}
@@ -853,8 +882,11 @@ switch_switch:
 			case 'O':
 				flag = 1;
 			case 'o':
-				if(!flag && visual_get() != VISUAL_NONE){
-					visual_swap();
+				if(visual_get() != VISUAL_NONE){
+					if(flag)
+						visual_join();
+					else
+						visual_swap();
 					view_changed = 1;
 				}else{
 					open(flag);
@@ -872,7 +904,7 @@ switch_switch:
 				buffer_changed = 1;
 				SET_DOT();
 				if(flag)
-					insert(0, 0);
+					insert(0, 0, 0);
 				break;
 
 			case 'C':
@@ -881,7 +913,7 @@ switch_switch:
 				SET_MOTION(MOTION_ABSOLUTE_RIGHT);
 				motion_cmd(&motion, delete_line, delete_range);
 				if(flag)
-					insert(1 /* append */, 0);
+					insert(1 /* append */, 0, 0);
 				buffer_changed = 1;
 				SET_DOT();
 				break;
@@ -929,7 +961,7 @@ switch_switch:
 				flag = 1;
 			case 'i':
 case_i:
-				insert(flag, 0);
+				insert(flag, 0, 0);
 				buffer_changed = 1;
 				SET_DOT();
 				break;

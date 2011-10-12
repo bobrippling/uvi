@@ -331,7 +331,7 @@ int motion_apply2(const struct motion *motion, struct bufferpos *pos,
 			while(*charpos && *charpos != motion->extra)
 				charpos++;
 			if(*charpos != '\0')
-				*pos->x = charpos - charstart - (motion->motion == MOTION_TIL && motion->ntimes <= 1);
+				*pos->x = charpos - charstart - (motion->motion == MOTION_TIL && motion->ntimes < 1);
 			return 0;
 
 		case MOTION_TIL_REV:

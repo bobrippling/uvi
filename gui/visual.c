@@ -74,6 +74,13 @@ void visual_swap()
 	gui_move(move_to->start, move_to->end);
 }
 
+void visual_join()
+{
+	/* move visual_cursor to visual_anchor */
+	memcpy(&visual_cursor, &visual_anchor, sizeof visual_cursor);
+	gui_move(visual_cursor.start, visual_cursor.end);
+}
+
 void visual_status()
 {
 #define VIS_INF(v) v->start + 1, v->end + 1

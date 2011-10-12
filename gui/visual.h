@@ -10,6 +10,7 @@ enum visual
 void        visual_set(enum visual);
 enum visual visual_get();
 void        visual_swap();
+void        visual_join();
 
 const struct range *visual_get_start();
 const struct range *visual_get_end();

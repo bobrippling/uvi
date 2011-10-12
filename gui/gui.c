@@ -279,6 +279,7 @@ void gui_show_array(enum gui_attr a, int y, int x, const char **ar)
 	gui_attron(a);
 	while(*ar && i < max_y){
 		move(i++, x - 1);
+		clrtoeol();
 		addch(' ');
 		addnstr(*ar++, max_x);
 		addch(' ');
