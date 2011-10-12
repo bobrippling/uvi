@@ -81,3 +81,5 @@ ggVd bug
 :g - /match/[uvi_ungetch_list]
 
 motion join/join in visaul mode
+
+x on a blank line - corrupt memory

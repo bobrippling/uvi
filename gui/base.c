@@ -331,7 +331,7 @@ void readlines(int do_indent, int can_trim_initial, struct gui_read_opts *opts, 
 			* and
 			* b) it's a new line or it's an empty line insert
 			*/
-			if(i > 1 ? line_isspace(lines[i-1]) : can_trim_initial){
+			if((i > 1 || can_trim_initial) && line_isspace(lines[i-1])){
 				*lines[i-1] = '\0';
 				indent = saveindent;
 			}else{
