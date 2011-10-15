@@ -606,6 +606,10 @@ static void change(struct motion *motion, int ins)
 	motion_cmd(motion, delete_line, delete_range);
 
 	if(ins){
+		if(visual_get() == VISUAL_BLOCK){
+			/* TODO */
+		}
+
 		if(dollar)
 			gui_mvaddch(y, x > 0 ? x - 1 : x, '$');
 		gui_move(gui_y(), gui_x());
@@ -1095,15 +1099,19 @@ case_i:
 				map();
 				break;
 
+			case CTRL_AND('v'):
 			case 'V':
-				if(visual_get() != VISUAL_LINE){
-					visual_set(VISUAL_LINE);
+			{
+				enum visual target = c == 'V' ? VISUAL_LINE : VISUAL_BLOCK;
+				if(visual_get() != target){
+					visual_set(target);
 					visual_status();
 				}else{
 					visual_set(VISUAL_NONE);
 				}
 				view_changed = 1;
 				break;
+			}
 
 			case 'Z':
 			{

@@ -587,7 +587,8 @@ void gui_redraw()
 void gui_draw()
 {
 	const struct range *visual_start, *visual_end;
-	const int vis = visual_get() != VISUAL_NONE;
+	const enum visual visual = visual_get();
+	int block_start, block_end;
 
 	extern char *search_str;
 
@@ -601,11 +602,19 @@ void gui_draw()
 
 	real_y = pos_top;
 
-	if(vis){
+	if(visual != VISUAL_NONE){
 		visual_start = visual_get_start();
 		visual_end   = visual_get_end();
 
-		if(visual_start->start < real_y && real_y < visual_end->start)
+		if(visual_start->end > visual_end->end){
+			block_start = visual_end->end;
+			block_end   = visual_start->end;
+		}else{
+			block_end   = visual_end->end;
+			block_start = visual_start->end;
+		}
+
+		if(visual == VISUAL_LINE && visual_start->start < real_y && real_y < visual_end->start)
 			attron(A_REVERSE);
 	}
 
@@ -629,13 +638,14 @@ void gui_draw()
 		move(y, 0);
 		clrtoeol();
 
-		if(vis && real_y == visual_start->start)
+		if(visual == VISUAL_LINE && real_y == visual_start->start)
 			attron(A_REVERSE);
 
 		if(hls_ing)
 			hls = usearch(&us, l->data, 0);
 		else
 			hls = NULL;
+
 
 		for(p = l->data, i = 0;
 				*p && i < pos_left + COLS;
@@ -654,6 +664,12 @@ check_search:
 						goto check_search;
 				}
 			}
+
+			if(visual == VISUAL_BLOCK &&
+					i == block_start &&
+					real_y >= visual_start->start &&
+					real_y <= visual_end->start)
+				attron(A_REVERSE);
 
 			switch(*p){
 				case '\t':
@@ -675,11 +691,14 @@ check_search:
 				gui_addch(*p);
 			if(global_settings.syn)
 				gui_syntax(*p, 0);
+
+			if(visual == VISUAL_BLOCK && i > block_end)
+				attroff(A_REVERSE);
 		}
 
 		gui_attroff(GUI_SEARCH_COL);
 
-		if(vis && real_y == visual_end->start)
+		if((visual == VISUAL_LINE && real_y == visual_end->start) || visual == VISUAL_BLOCK)
 			attroff(A_REVERSE);
 
 		if(*p && i >= COLS){

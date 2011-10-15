@@ -4,7 +4,8 @@
 enum visual
 {
 	VISUAL_NONE,
-	VISUAL_LINE
+	VISUAL_LINE,
+	VISUAL_BLOCK
 };
 
 void        visual_set(enum visual);
