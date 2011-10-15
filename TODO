@@ -83,3 +83,12 @@ ggVd bug
 motion join/join in visaul mode
 
 x on a blank line - corrupt memory
+
+fix dTX, where X doesn't exist in the line
+fix motion_t in general actually
+
+fix /* */ completion
+
+fix paren_matching - ()) - paren match on the last one moves the cursor
+
+visual_block only works visually if visual_start().x < visual_end().x

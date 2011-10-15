@@ -1,5 +1,3 @@
 *.o
 uvi
-INPUT
-INPUT_dump
-ERR
+uvi.static
