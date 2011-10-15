@@ -38,6 +38,7 @@ static struct
 	[VARS_TAB_CONTEXT]     = { "tctx",       "tab completion context",      5, 0, 0, &global_settings.tabctx },
 
 	[VARS_ICASE]           = { "ic",         "ignore case (search)",        1, 1, 1, &global_settings.ignorecase },
+	[VARS_SCASE]           = { "scs",        "smart case (search)",         1, 1, 1, &global_settings.smartcase },
 
 	[VARS_HIGHLIGHT]       = { "hls",        "highlight search terms",      1, 1, 1, &global_settings.hls },
 	[VARS_SYNTAX]          = { "syn",        "syntax highlighting",         1, 1, 1, &global_settings.syn },

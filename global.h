@@ -11,6 +11,7 @@ struct settings
 	int tabctx;
 
 	int ignorecase;
+	int smartcase;
 
 	int hls;
 	int syn;

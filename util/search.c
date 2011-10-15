@@ -1,6 +1,7 @@
 #include <regex.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 #include "search.h"
 #include "alloc.h"
@@ -9,11 +10,26 @@
 int usearch_init(struct usearch *us, const char *needle)
 {
 	regex_t *r;
+	int ic = 0;
 
 	r = umalloc(sizeof *r);
 	memset(us, 0, sizeof *us);
 
-	if((us->lastret = regcomp(r, needle, REG_EXTENDED | (global_settings.ignorecase ? REG_ICASE : 0)))){
+	if(global_settings.ignorecase){
+		ic = 1;
+	}else if(global_settings.smartcase){
+		const char *niter;
+
+		ic = 1;
+
+		for(niter = needle; *niter; niter++)
+			if(isupper(*niter)){
+				ic = 0;
+				break;
+			}
+	}
+
+	if((us->lastret = regcomp(r, needle, REG_EXTENDED | (ic ? REG_ICASE : 0)))){
 		/* r still needs to be free'd */
 		free(r);
 		return 1;
