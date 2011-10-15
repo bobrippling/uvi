@@ -87,7 +87,7 @@ int motion_is_til( struct motion *m)
 /* for percent() */
 static char bracketdir(char);
 static char bracketrev(char);
-static void percent(struct bufferpos *);
+static int  percent(struct bufferpos *);
 
 static int motion_apply2(
 		const struct motion *motion,
@@ -492,10 +492,11 @@ int motion_apply2(const struct motion *motion, struct bufferpos *pos,
 
 				*pos->y = y;
 				*pos->x = 0; /* FIXME? use /^/ */
+				return 0;
 			}else{
-				percent(pos);
+				return percent(pos);
 			}
-			return 0;
+			/* unreachable */
 
 		case MOTION_ABSOLUTE_UP:
 			if(motion->ntimes)
@@ -533,29 +534,38 @@ motion_goto:
 	return 0;
 }
 
-static void percent(struct bufferpos *lp)
+static int percent(struct bufferpos *lp)
 {
-	struct list *listpos = buffer_getindex(buffers_current(), *lp->y);
-	char *line = listpos->data;
-	char *pos = line + *lp->x, *opposite;
+	struct list *listpos;
+	char *line;
+	char *line_iter, *opposite;
 	int dir;
-	char bracket = '\0', revbracket = '\0';
-	int nest = 0;
+	char bracket, revbracket;
+	int nest;
+	int this_y = *lp->y;
 
-	while(pos >= line && !bracket)
-		if((revbracket = bracketrev(*pos))){
-			bracket = *pos;
+	nest = 0;
+	bracket = revbracket = '\0';
+
+	listpos = buffer_getindex(buffers_current(), this_y);
+	line = listpos->data;
+	line_iter = line + *lp->x;
+
+	while(line_iter >= line && !bracket)
+		if((revbracket = bracketrev(*line_iter))){
+			bracket = *line_iter;
 			break;
-		}else
-			pos--;
+		}else{
+			line_iter--;
+		}
 
 	if(!revbracket)
-		return;
+		return 1;
 
 	dir = bracketdir(revbracket);
 
 	/* looking for revbracket */
-	opposite = pos + dir;
+	opposite = line_iter + dir;
 
 	do{
 		while(opposite >= line && *opposite){
@@ -570,29 +580,32 @@ static void percent(struct bufferpos *lp)
 		if(opposite < line){
 			if(listpos->prev){
 				listpos = listpos->prev;
-				--*lp->y;
+				--this_y;
 
 				line = listpos->data;
 				opposite = line + strlen(line) - 1;
 			}else{
-				return;
+				return 1;
 			}
 		}else if(!*opposite){
 			if(listpos->next){
 				listpos = listpos->next;
-				++*lp->y;
+				++this_y;
 
 				opposite = line = listpos->data;
 			}else{
-				return;
+				return 1;
 			}
 		}else
 			break;
 	}while(1);
 
-	if(opposite)
+	if(opposite){
+		*lp->y = this_y;
 		*lp->x = opposite - line;
-#undef restorexy
+		return 0;
+	}
+	return 1;
 }
 
 static char bracketdir(char b)
@@ -609,10 +622,8 @@ static char bracketdir(char b)
 		case ']':
 		case '}':
 			return 1;
-
-		default:
-			return 0;
 	}
+	return 0;
 }
 
 static char bracketrev(char b)
