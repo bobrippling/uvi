@@ -20,6 +20,7 @@
 #include "util/alloc.h"
 #include "util/pipe.h"
 #include "global.h"
+#include "gui/visual.h"
 #include "gui/motion.h"
 #include "gui/intellisense.h"
 #include "gui/gui.h"
@@ -72,7 +73,9 @@ void cmd_r(int argc, char **argv, int force, struct range *rng)
 		char *cmd;
 
 		cmd = argv_to_str(argc - 1, argv + 1);
+		gui_term();
 		l = pipe_read(cmd);
+		gui_reload();
 
 		if(!l){
 			gui_status(GUI_ERR, "pipe error: %s", strerror(errno));
