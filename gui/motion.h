@@ -46,12 +46,16 @@ enum motiontype
 };
 
 struct motion
+#ifdef VISUAL_H
 {
 	enum motiontype motion;
+	enum visual     visual_state;
 
 	int ntimes;
 	char extra;
-};
+}
+#endif
+;
 
 struct bufferpos
 {

@@ -692,9 +692,7 @@ static void join(unsigned int ntimes)
 		len += strlen(l->data);
 	}
 
-	alloced = realloc(cur->data, (initial_len = strlen(cur->data)) + len + 1);
-	if(!alloced)
-		die("realloc()");
+	alloced = urealloc(cur->data, (initial_len = strlen(cur->data)) + len + 1);
 
 	cur->data = alloced;
 	for(l = jointhese; l; l = l->next){

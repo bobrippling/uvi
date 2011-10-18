@@ -9,6 +9,7 @@
 #include "../range.h"
 #include "../util/list.h"
 #include "../buffer.h"
+#include "visual.h"
 #include "motion.h"
 #include "intellisense.h"
 #include "gui.h"
@@ -16,7 +17,6 @@
 #include "../global.h"
 #include "../util/str.h"
 #include "../buffers.h"
-#include "visual.h"
 
 #define iswordpart(c) (isalnum(c) || (c) == '_')
 
@@ -135,8 +135,10 @@ int motion_get(struct motion *m, int allow_visual, int multiple, const char *ift
 {
 	int c;
 
+	m->visual_state = VISUAL_NONE;
+
 	/* m->ntimes is already initialised */
-	if(allow_visual && visual_get() != VISUAL_NONE){
+	if(allow_visual && (m->visual_state = visual_get()) != VISUAL_NONE){
 		/* instead of reading a motion, return the current */
 		m->motion = MOTION_ABSOLUTE_DOWN;
 
