@@ -13,6 +13,7 @@
 #include "../command.h"
 #include "../util/list.h"
 #include "../global.h"
+#include "visual.h"
 #include "motion.h"
 #include "../util/alloc.h"
 #include "intellisense.h"
@@ -25,7 +26,6 @@
 #include "../yank.h"
 #include "map.h"
 #include "../buffers.h"
-#include "visual.h"
 #include "../util/search.h"
 #include "extra.h"
 

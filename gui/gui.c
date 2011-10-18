@@ -10,6 +10,7 @@
 #include "../range.h"
 #include "../util/list.h"
 #include "../buffer.h"
+#include "visual.h"
 #include "motion.h"
 #include "intellisense.h"
 #include "gui.h"
@@ -21,7 +22,6 @@
 #include "macro.h"
 #include "marks.h"
 #include "../buffers.h"
-#include "visual.h"
 #include "../yank.h"
 #include "../util/search.h"
 #include "syntax.h"
@@ -335,6 +335,12 @@ restart:
 			goto restart;
 	}
 
+	if(c == '\t' && global_settings.et){
+		int i;
+		for(i = 1; i < global_settings.tabstop; i++)
+			gui_ungetch(' ');
+		c = ' ';
+	}
 
 skip:
 	if(macro_record_char)
@@ -375,16 +381,10 @@ void gui_clrtoeol()
 	clrtoeol();
 }
 
-static void gui_backspace(int n)
-{
-	while(n --> 0)
-		addch('\b');
-}
-
 int gui_getstr(char **ps, const struct gui_read_opts *opts)
 {
-#define CHECK_SIZE()                 \
-		if(i >= size){                   \
+#define CHECK_SIZE()                       \
+		if(last >= size){                     \
 			size += 64;                    \
 			start = urealloc(start, size); \
 		}
@@ -392,7 +392,7 @@ int gui_getstr(char **ps, const struct gui_read_opts *opts)
 	int size;
 	char *start;
 	int y, x, xstart;
-	int i;
+	int i, last;
 
 	if(*ps){
 		free(*ps);
@@ -405,7 +405,8 @@ int gui_getstr(char **ps, const struct gui_read_opts *opts)
 
 	xstart = x;
 
-	i = 0;
+	last = i = 0;
+	start[i] = '\0';
 	for(;;){
 		int c;
 
@@ -413,17 +414,47 @@ int gui_getstr(char **ps, const struct gui_read_opts *opts)
 
 		CHECK_SIZE();
 
+#define UPDATE_LINE()                  \
+			clrtoeol();                \
+			mvaddstr(y, x, start + i); \
+			move(y, x)
+
 		switch(c){
-			case CTRL_AND('U'):
+			case KEY_HOME:
+			case CTRL_AND('A'):
 				x = xstart;
 				i = 0;
 				move(y, x);
-				clrtoeol();
+				break;
+			case KEY_END:
+			case CTRL_AND('E'):
+				x = xstart + (i = last);
+				move(y, x);
+				break;
+
+			case CTRL_AND('U'):
+				x = xstart;
+				memmove(start, start + i, last - i + 1);
+				last -= i + 1;
+				i = 0;
+				UPDATE_LINE();
+				break;
+				/*
+				 * TODO FIXME HERE:
+				 * both this and delete need fixing - last isn't correct,
+				 * e.g., use KEY_RIGHT to go to the end, insert then delete.. :S
+				 */
+
+			case CTRL_AND('K'):
+				start[i] = '\0';
+				last = i;
+				UPDATE_LINE();
 				break;
 
 			case CTRL_AND('W'):
 			{
 				char *p;
+				int oldi;
 
 				if(i == 0)
 					break;
@@ -435,9 +466,10 @@ int gui_getstr(char **ps, const struct gui_read_opts *opts)
 				while(p > start && !isspace(*p))
 					p--;
 
+				oldi = i;
 				x = 1 + (i = p - start);
-				move(y, x);
-				clrtoeol();
+				last -= oldi - i;
+				UPDATE_LINE();
 				break;
 			}
 
@@ -464,43 +496,56 @@ int gui_getstr(char **ps, const struct gui_read_opts *opts)
 				break;
 			}
 
+			case KEY_DC:
+				if(i < last){
+					memmove(start + i, start + i + 1, last - i);
+					last--;
+					UPDATE_LINE();
+				}
+				break;
+
 			case CTRL_AND('?'):
 			case CTRL_AND('H'):
 			case 263:
 			case 127:
 				if(i > 0){
-					char c = start[--i];
+					char c;
+
+					i--;
+					last--;
+					c = start[i];
+					memmove(start + i, start + i + 1, last - i + 1);
 
 					if(isprint(c)){
 						x--;
-						gui_backspace(1);
 					}else if(c == '\t'){
 						if(global_settings.showtabs){
 							x -= 2;
-							gui_backspace(2);
 						}else{
 							x -= global_settings.tabstop;
-							gui_backspace(global_settings.tabstop);
 						}
 					}else{
 						x -= 2;
-						gui_backspace(2);
 					}
-
+					/* TODO: gui_backspace() - needed? */
+					UPDATE_LINE();
 					break;
 
-				}else if(!opts->bspc_cancel)
+				}else if(last > 0){
+					break; /* we can't delete, but we shouldn't discard the text */
+				}else if(!opts->bspc_cancel){
 					break;
+				}
 				/* else fall through */
 
 			case CTRL_AND('['):
-				start[i] = '\0';
+				/* check for \eh or \el in rapid successession for movement */
+				start[last] = '\0';
 				*ps = start;
 				return 1;
 
 			case '\n':
 fin:
-				start[i] = '\0';
 				if(opts->newline)
 					gui_addch('\n');
 				*ps = start;
@@ -521,9 +566,26 @@ fin:
 				goto ins_ch;
 			}
 
+			case KEY_LEFT:
+				if(i > 0){
+					i--;
+					x--;
+					move(y, x);
+				}
+				break;
+			case KEY_RIGHT:
+				if(i < last){
+					i++;
+					x++;
+					move(y, x);
+				}
+				break;
+
 			default:
 				if(opts->intellisense && c == opts->intellisense_ch && i > 0){
+					int save = start[i];
 					start[i] = '\0';
+					/* FIXME - intellisense with line editing */
 					if(!opts->intellisense(&start, &size, &i, c)){
 						/* redraw the line */
 						x = xstart + i;
@@ -531,20 +593,24 @@ fin:
 						clrtoeol();
 						addstr(start);
 					}
+					start[i] = save;
 					break;
 				}
 ins_ch:
-				if(c == '\t' && global_settings.et){
-					int j;
-					for(j = 0; j < global_settings.tabstop; j++){
-						gui_addch(start[i++] = ' ');
-						CHECK_SIZE();
-						x++;
-					}
-				}else{
-					gui_addch(start[i++] = c);
-					x++;
+				CHECK_SIZE(); /* FIXME - check */
+				memmove(start + i + 1, start + i, last - i + 1);
+				start[i] = c;
+				if(last != i){
+					/* we need to redraw a bit */
+					mvaddstr(y, x, start + i);
+					move(y, x);
 				}
+				i++;
+				last++;
+				if(last < i)
+					last = i;
+				gui_addch(c);
+				x++;
 				if(opts->textw && x > opts->textw)
 					goto fin;
 		}
