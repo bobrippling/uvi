@@ -10,7 +10,7 @@ void *umalloc(size_t s)
 {
 	void *p = malloc(s);
 	if(!p)
-		die("umalloc()");
+		die("umalloc(%ld)", s);
 	return p;
 }
 
@@ -34,7 +34,7 @@ void *urealloc(void *p, size_t s)
 {
 	void *n = realloc(p, s);
 	if(!n)
-		die("realloc()");
+		die("realloc(%p, %ld)", p, s);
 	return n;
 }
 
@@ -49,7 +49,7 @@ char *ustrprintf(const char *fmt, ...)
 	va_end(l);
 
 	if(i == -1)
-		die("vasprintf()");
+		die("vasprintf(\"%s\")", fmt);
 	return s;
 }
 
@@ -71,9 +71,7 @@ void ustrcat(char **p, int *siz_arg, ...)
 		/* not enough room */
 		int nul = !*p;
 
-		*p = realloc(*p, *siz = len + 1);
-		if(!*p)
-			die("ustrcat()");
+		*p = urealloc(*p, *siz = len + 1);
 
 		if(nul)
 			**p = '\0';

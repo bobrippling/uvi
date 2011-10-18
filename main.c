@@ -30,15 +30,22 @@ static void usage(const char *);
 
 void usage(const char *s)
 {
-	fprintf(stderr, "Usage: %s [-R] [-c] [--] [filename]\n", s);
+	fprintf(stderr, "Usage: %s [-R] [--] [filename]\n", s);
 	exit(1);
 }
 
-void die(const char *s)
+void die(const char *fmt, ...)
 {
+	va_list l;
 	gui_term();
 	preserve(buffers_current());
-	fprintf(stderr, "dying: %s\n", s);
+
+	fprintf(stderr, "uvi: dying: ");
+	va_start(l, fmt);
+	vfprintf(stderr, fmt, l);
+	va_end(l);
+	fputc('\n', stderr);
+
 	abort();
 }
 
