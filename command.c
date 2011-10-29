@@ -761,7 +761,7 @@ sep:
 				argv[argc-1] = ustrdup2(mark, p);
 
 				/* increase p until we're at the next non-space */
-				while(*p && *p == ' ')
+				while(*p && isspace(*p))
 					p++;
 
 				if(!*p)
