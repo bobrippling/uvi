@@ -20,6 +20,7 @@ struct settings
 	int cindent;
 	int func_motion_vi;
 	int et;
+	int intellisense;
 
 	int fsync;
 	int wtrim;

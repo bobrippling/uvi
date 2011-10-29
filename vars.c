@@ -47,6 +47,7 @@ static struct
 	[VARS_CINDENT]         = { "cindent",    "C indentation (braces)",      0, 1, 1, &global_settings.cindent },
 	[VARS_FUNC_MOTION_VI]  = { "vifunc",     "/^{/ vs /{$/ for [] motions", 0, 1, 1, &global_settings.func_motion_vi },
 	[VARS_EXPANDTAB]       = { "et",         "expand tabs into spaces",     0, 1, 1, &global_settings.et },
+	[VARS_INTELLI]         = { "intelli",    "intellisense switch",         1, 1, 1, &global_settings.intellisense },
 
 	[VARS_FSYNC]           = { "fsync",      "call fsync() after write()",  1, 1, 1, &global_settings.fsync },
 	[VARS_WTRIM]           = { "wtrim",      "trim lines when writing",     0, 1, 1, &global_settings.wtrim },

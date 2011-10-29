@@ -275,6 +275,10 @@ void intellisense_init_opt(void *v, enum intellisense_opt o)
 {
 	struct gui_read_opts *opts = v;
 	memset(opts, 0, sizeof *opts);
+
+	if(!global_settings.intellisense)
+		return;
+
 	switch(o){
 		case INTELLI_NONE:
 			break;
