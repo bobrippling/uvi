@@ -109,9 +109,7 @@ void cmd_r(int argc, char **argv, int force, struct range *rng)
 
 	}else{
 		gui_status(GUI_ERR, "usage: r[!] cmd/file");
-		return;
 	}
-
 }
 
 void cmd_q(int argc, char **argv, int force, struct range *rng)
@@ -425,16 +423,18 @@ void cmd_yanks(int argc, char **argv, int force, struct range *rng)
 
 	for(i = 'a' - 1; i <= 'z'; i++){
 		struct yank *y = yank_get(i);
-		char c = i == 'a'-1 ? '"': i;
+		char c = i == '`' ? '"': i;
 
-		gui_status_add_start();
 		if(y->v){
-			if(y->is_list)
-				gui_status_add(GUI_NONE, "%c: list, head: \"%s\"", c, (const char *)(((struct list *)y->v)->data));
-			else
-				gui_status_add(GUI_NONE, "%c: string:     \"%s\"", c, (const char *)y->v);
+			if(!one){
+				gui_status_add_start();
+				one = 1;
+			}
 
-			one = 1;
+			if(y->is_list)
+				gui_status_add(GUI_NONE, "%c: list, length %d, head: \"%s\"", c, list_count(y->v), (const char *)(((struct list *)y->v)->data));
+			else
+				gui_status_add(GUI_NONE, "%c: string: \"%s\"", c, (const char *)y->v);
 		}
 	}
 
