@@ -340,14 +340,16 @@ void readlines(int do_indent, int can_trim_initial, struct gui_read_opts *opts, 
 		}
 
 		if(global_settings.cindent){
-			char *iter;
+			char *s;
 
-			if(lines[i-1][strlen(lines[i-1])-1] == '{')
+			s = lines[i-1];
+
+			if(*s && s[strlen(s)-1] == '{')
 				indent += INDENT_ADJ;
 
-			for(iter = lines[i-1]; *iter; iter++)
-				if(!isspace(*iter)){
-					if(*iter == '}'){
+			for(s = lines[i-1]; *s; s++)
+				if(!isspace(*s)){
+					if(*s == '}'){
 						/* need to unindent by one */
 						indent -= INDENT_ADJ;
 						shiftline(&lines[i-1], -1);
@@ -504,41 +506,70 @@ static void motion_cmd(struct motion *motion,
 			from.end = t;
 		}
 
-		if(motion_is_line(motion)){
-			/* delete lines between gui_y() and y, inclusive */
-			f_line(&from);
-			gui_move_sol(from.start);
-		}else{
-			char *data = buffer_getindex(buffers_current(), gui_y())->data;
-			int startx = gui_x();
+		if(motion->visual_state == VISUAL_BLOCK){
+			/* f_line for each line in range */
+#define ystart  from.start
+#define yend    y
+#define xstart2 from.end
+#define xend2   x
+			struct list *lp;
+			int xstart, xend;
 
-			if(from.start < from.end){
-				/* there are also lines to remove */
-				f_line(&from);
+			if(xend2 > xstart2){
+				xstart = xstart2;
+				xend   = xend2;
 			}else{
-				/* startx should be left-most */
-				if(startx > x){
-					int t = x;
-					x = startx;
-					startx = t;
-				}
-
-				switch(motion->motion){
-					case MOTION_FIND:
-					case MOTION_TIL:
-					case MOTION_FIND_REV:
-					case MOTION_TIL_REV:
-					case MOTION_ABSOLUTE_RIGHT:
-					case MOTION_PAREN_MATCH:
-						x++;
-					default:
-						break;
-				}
-
-				f_range(data, startx, x);
+				xstart = xend2;
+				xend   = xstart2;
 			}
 
-			gui_move(gui_y(), startx);
+			/* FIXME: doesn't work for yank, needs new structure or something */
+			for(ystart = from.start, lp = buffer_getindex(buffers_current(), ystart);
+					ystart <= yend;
+					ystart++, lp = lp->next)
+				f_range(lp->data, xstart, xend);
+#undef ystart
+#undef yend
+#undef xstart2
+#undef xend2
+
+		}else{
+			if(motion_is_line(motion)){
+				/* delete lines between gui_y() and y, inclusive */
+				f_line(&from);
+				gui_move_sol(from.start);
+			}else{
+				char *data = buffer_getindex(buffers_current(), gui_y())->data;
+				int startx = gui_x();
+
+				if(from.start < from.end){
+					/* there are also lines to remove */
+					f_line(&from);
+				}else{
+					/* startx should be left-most */
+					if(startx > x){
+						int t = x;
+						x = startx;
+						startx = t;
+					}
+
+					switch(motion->motion){
+						case MOTION_FIND:
+						case MOTION_TIL:
+						case MOTION_FIND_REV:
+						case MOTION_TIL_REV:
+						case MOTION_ABSOLUTE_RIGHT:
+						case MOTION_PAREN_MATCH:
+							x++;
+						default:
+							break;
+					}
+
+					f_range(data, startx, x);
+				}
+
+				gui_move(gui_y(), startx);
+			}
 		}
 	}
 }

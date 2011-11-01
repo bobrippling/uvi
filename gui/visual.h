@@ -15,6 +15,8 @@ void        visual_join();
 
 const struct range *visual_get_start();
 const struct range *visual_get_end();
+const struct range *visual_get_col_start();
+const struct range *visual_get_col_end();
 
 void visual_status();
 int visual_cursor_is_end();

@@ -52,6 +52,17 @@ const struct range *visual_get_end()
 	return &visual_cursor;
 }
 
+const struct range *visual_get_col_start()
+{
+	visual_update(&visual_cursor);
+	return visual_cursor.end > visual_anchor.end ? &visual_anchor : &visual_cursor;
+}
+
+const struct range *visual_get_col_end()
+{
+	return visual_get_col_start() == &visual_anchor ? &visual_cursor : &visual_anchor;
+}
+
 int visual_cursor_is_end()
 {
 	return visual_get_end() == &visual_cursor;
@@ -84,17 +95,21 @@ void visual_join()
 void visual_status()
 {
 #define VIS_INF(v) v->start + 1, v->end + 1
+#define VIS_STR(x) x, x == 1 ? "" : "s"
 	const struct range *v1, *v2;
-	int diff_lines;
+	int diff_lines, diff_cols;
 
 	v1 = visual_get_start();
 	v2 = visual_get_end();
-
 	diff_lines = v2->start - v1->start + 1;
 
-	gui_status(GUI_NONE, "(%d,%d)-(%d,%d): %d line%s",
+	v1 = visual_get_col_start();
+	v2 = visual_get_col_end();
+	diff_cols  = v2->end - v1->end + 1;
+
+	gui_status(GUI_NONE, "(%d,%d)-(%d,%d): %d line%s %d column%s",
 			VIS_INF(v1),
 			VIS_INF(v2),
-			diff_lines,
-			diff_lines == 1 ? "" : "s");
+			VIS_STR(diff_lines),
+			VIS_STR(diff_cols));
 }

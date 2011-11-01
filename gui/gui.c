@@ -414,9 +414,9 @@ int gui_getstr(char **ps, const struct gui_read_opts *opts)
 
 		CHECK_SIZE();
 
-#define UPDATE_LINE()                  \
-			clrtoeol();                \
+#define UPDATE_LINE()            \
 			mvaddstr(y, x, start + i); \
+			clrtoeol();                \
 			move(y, x)
 
 		switch(c){
@@ -435,15 +435,10 @@ int gui_getstr(char **ps, const struct gui_read_opts *opts)
 			case CTRL_AND('U'):
 				x = xstart;
 				memmove(start, start + i, last - i + 1);
-				last -= i + 1;
+				last -= i;
 				i = 0;
 				UPDATE_LINE();
 				break;
-				/*
-				 * TODO FIXME HERE:
-				 * both this and delete need fixing - last isn't correct,
-				 * e.g., use KEY_RIGHT to go to the end, insert then delete.. :S
-				 */
 
 			case CTRL_AND('K'):
 				start[i] = '\0';
@@ -527,7 +522,7 @@ int gui_getstr(char **ps, const struct gui_read_opts *opts)
 					}else{
 						x -= 2;
 					}
-					/* TODO: gui_backspace() - needed? */
+
 					UPDATE_LINE();
 					break;
 
@@ -540,7 +535,6 @@ int gui_getstr(char **ps, const struct gui_read_opts *opts)
 
 			case CTRL_AND('['):
 				/* check for \eh or \el in rapid successession for movement */
-				start[last] = '\0';
 				*ps = start;
 				return 1;
 
@@ -583,28 +577,25 @@ fin:
 
 			default:
 				if(opts->intellisense && c == opts->intellisense_ch && i > 0){
-					int save = start[i];
-					start[i] = '\0';
-					/* FIXME - intellisense with line editing */
-					if(!opts->intellisense(&start, &size, &i, c)){
+					//fprintf(stderr, "calling intellisense(\"%s\")\n", start);
+					if(!opts->intellisense(&start, &size, &i, &last, c)){
 						/* redraw the line */
 						x = xstart + i;
 						move(y, xstart);
 						clrtoeol();
 						addstr(start);
 					}
-					start[i] = save;
 					break;
 				}
 ins_ch:
 				CHECK_SIZE(); /* FIXME - check */
-				memmove(start + i + 1, start + i, last - i + 1);
+
+				memmove(start + i + 1, start + i, last - i + 1); /* segfault here */
 				start[i] = c;
-				if(last != i){
-					/* we need to redraw a bit */
-					mvaddstr(y, x, start + i);
-					move(y, x);
-				}
+
+				/* we need to redraw a bit */
+				mvaddstr(y, x, start + i);
+				move(y, x);
 				i++;
 				last++;
 				if(last < i)

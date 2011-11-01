@@ -57,10 +57,11 @@ static int longest_match(char **words)
 	return minlen;
 }
 
-static void intellisense_complete_to(char **pstr, int *psize, int *pos,
+static void intellisense_complete_to(char **pstr, int *psize, int *pos, int *last,
 		const char *word, int longest_len, int offset_into_word, int escape)
 {
 	const int space_left = *psize - *pos - longest_len + offset_into_word - 1;
+	const int oldpos = *pos;
 	int nextra = longest_len - offset_into_word;
 
 	if(space_left <= 0){
@@ -68,6 +69,7 @@ static void intellisense_complete_to(char **pstr, int *psize, int *pos,
 		*pstr = urealloc(*pstr, *psize);
 	}
 
+	//fprintf(stderr, "> intellisense_complete_to, s=\"%s\" i=%d last=%d\n", *pstr, *pos, *last);
 	if(escape){
 		char *copy;
 		char *str;
@@ -79,27 +81,35 @@ static void intellisense_complete_to(char **pstr, int *psize, int *pos,
 
 		str = str_shell_escape(copy, &nescapes);
 		nextra += nescapes;
-		strncat(*pstr + *pos, str, nextra);
+		str_insert(pstr, psize, pos, str, nextra);
 		free(str);
 
 	}else{
-		strncat(*pstr + *pos, word + offset_into_word, nextra);
+		str_insert(pstr, psize, pos, word + offset_into_word, nextra);
 	}
 
-	*pos += nextra;
+	*pos  += nextra;
+	*last += *pos - oldpos;
+	//fprintf(stderr, "< intellisense_complete_to, s=\"%s\" i=%d last=%d\n", *pstr, *pos, *last);
 }
 
-int intellisense_insert(char **pstr, int *psize, int *pos, char ch)
+int intellisense_insert(char **pstr, int *psize, int *pos, int *last, char ch)
 {
 	char **words, **iter;
 	int len, wlen;
 	int ret;
 	char *w;
+	char *savepos;
+	char save;
 
 	if(ch != CTRL_AND('n'))
 		return 1;
 
+	savepos = *pstr + *pos;
+	save = *savepos;
+	*savepos = '\0';
 	w = word_at(*pstr, *pos - 1);
+	*savepos = save;
 	if(!w)
 		return 1;
 
@@ -111,7 +121,7 @@ int intellisense_insert(char **pstr, int *psize, int *pos, char ch)
 	len = longest_match(words);
 
 	if(len - wlen > 0){
-		intellisense_complete_to(pstr, psize, pos, *words, len, wlen, 0);
+		intellisense_complete_to(pstr, psize, pos, last, *words, len, wlen, 0);
 		ret = 0;
 	}else{
 		int y, x;
@@ -121,12 +131,12 @@ int intellisense_insert(char **pstr, int *psize, int *pos, char ch)
 		gui_setyx(y, x);
 	}
 
+	if(!*words)
+		gui_status(GUI_ERR, "no completions");
+
 	free(w);
 	for(iter = words; *iter; iter++)
 		free(*iter);
-	if(!*words){
-		gui_status(GUI_ERR, "no completions");
-	}
 	free(words);
 
 	return ret;
@@ -137,7 +147,7 @@ int file_uniq(const void *a, const void *b, void *extra)
 	return str_eqoffset(*(const char **)a, *(const char **)b, global_settings.tabctx, *(int *)extra);
 }
 
-int intellisense_file(char **pstr, int *psize, int *pos, char ch)
+int intellisense_file(char **pstr, int *psize, int *pos, int *last, char ch)
 {
 	char *match, *arg;
 	wordexp_t exp;
@@ -164,29 +174,39 @@ int intellisense_file(char **pstr, int *psize, int *pos, char ch)
 		*psize = *pos + 1;
 	}
 
-	arg = strrchr(*pstr, ' ');
-	if(arg){
-		for(;;){
-			while(arg > *pstr && *arg != ' ')
+	{
+		char *pstr_clipped;
+
+		pstr_clipped = ustrdup(*pstr);
+		pstr_clipped[*pos] = '\0';
+
+		arg = strrchr(pstr_clipped, ' ');
+		if(arg){
+			for(;;){
+				while(arg > pstr_clipped && *arg != ' ')
+					arg--;
+				if(arg == pstr_clipped)
+					break;
+				else if(arg[-1] != '\\')
+					break;
+				/* arg > pstr_clipped and we're at the space in "something\ else" */
 				arg--;
-			if(arg == *pstr)
-				break;
-			else if(arg[-1] != '\\')
-				break;
-			/* arg > pstr and we're at the space in "something\ else" */
-			arg--;
+			}
+			if(*arg == ' ')
+				arg++;
+		}else{
+			arg = pstr_clipped;
 		}
-		if(*arg == ' ')
-			arg++;
-	}else{
-		arg = *pstr;
+
+		arglen = strlen(arg) + 2;
+		match = ALLOCA(arglen);
+
+		str_shell_unescape(arg);
+		snprintf(match, arglen, "%s*", arg);
+
+		free(pstr_clipped);
 	}
 
-	arglen = strlen(arg) + 2;
-	match = ALLOCA(arglen);
-
-	str_shell_unescape(arg);
-	snprintf(match, arglen, "%s*", arg);
 
 	if(wordexp(match, &exp, WRDE_NOCMD))
 		return 1;
@@ -218,7 +238,7 @@ int intellisense_file(char **pstr, int *psize, int *pos, char ch)
 			else
 				strcpy(s, exp.we_wordv[0]);
 
-			intellisense_complete_to(pstr, psize, pos, s, len, offset, 1);
+			intellisense_complete_to(pstr, psize, pos, last, s, len, offset, 1);
 
 			ret = 0;
 			break;
@@ -230,7 +250,7 @@ int intellisense_file(char **pstr, int *psize, int *pos, char ch)
 
 			len = longest_match(exp.we_wordv);
 			if(len > offset){
-				intellisense_complete_to(pstr, psize, pos, exp.we_wordv[0], len, offset, 1);
+				intellisense_complete_to(pstr, psize, pos, last, exp.we_wordv[0], len, offset, 1);
 				ret = 0;
 			}else{
 				/* here's what you could'a won */

@@ -241,6 +241,29 @@ void str_rtrim(char *const start)
 		*last = '\0';
 }
 
+void str_insert(char **pstore, int *pstore_size, int *pstore_idx, const char *insertme, int insertlen)
+{
+#define store      (*pstore)
+#define store_size (*pstore_size)
+#define store_idx  (*pstore_idx)
+	int store_len = strlen(store) + 1;
+	int new_len = store_len + insertlen;
+
+	if(store_size < new_len)
+		*pstore = urealloc(*pstore, store_len);
+
+	memmove(store + store_idx + insertlen,
+					store + store_idx,
+					insertlen);
+
+	memcpy(store + store_idx, insertme, insertlen);
+	store_idx += insertlen;
+
+#undef store
+#undef store_size
+#undef store_idx
+}
+
 int isescapeable(char c)
 {
 	switch(c){

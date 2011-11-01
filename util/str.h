@@ -16,6 +16,7 @@ int   str_eqoffset(const char *w1, const char *w2, unsigned int len, unsigned in
 void  str_trim(char *const);
 void  str_ltrim(char *const);
 void  str_rtrim(char *const);
+void  str_insert(char **store, int *store_size, int *store_idx, const char *insertme, int insertlen);
 
 char *str_home_replace(char *);
 void  str_home_replace_array(int, char **);
