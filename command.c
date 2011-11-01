@@ -143,7 +143,7 @@ void cmd_w(int argc, char **argv, int force, struct range *rng)
 {
 #define FINISH() do{ after = NONE; goto after; }while(0)
 	extern int gui_statusrestore;
-	unsigned int change_mode = 0, old_mode, old_umask;
+	unsigned int change_mode = 0, old_mode;
 	struct list *list_to_write = NULL;
 	enum { QUIT, EDIT, NONE } after = NONE;
 	int nw, nl;
@@ -240,7 +240,6 @@ retry:
 
 		if(stat(fname, &st) == 0){
 			old_mode = st.st_mode;
-			old_umask = umask(0);
 
 			st.st_mode |= 0200;
 			if(chmod(fname, st.st_mode)){
@@ -289,7 +288,6 @@ after:
 	if(change_mode){
 		/* restore */
 		chmod(buffer_filename(buffers_current()), old_mode);
-		umask(old_umask);
 	}
 
 	switch(after){
