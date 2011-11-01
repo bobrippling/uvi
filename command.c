@@ -141,7 +141,9 @@ void cmd_q(int argc, char **argv, int force, struct range *rng)
 
 void cmd_w(int argc, char **argv, int force, struct range *rng)
 {
+#define FINISH() do{ after = NONE; goto after; }while(0)
 	extern int gui_statusrestore;
+	unsigned int change_mode = 0, old_mode, old_umask;
 	struct list *list_to_write = NULL;
 	enum { QUIT, EDIT, NONE } after = NONE;
 	int nw, nl;
@@ -175,7 +177,7 @@ void cmd_w(int argc, char **argv, int force, struct range *rng)
 	}else if(strcmp(argv[0], "w")){
 usage:
 		gui_status(GUI_ERR, "usage: w[qe][![!]] file|command");
-		goto fin;
+		FINISH();
 	}
 
 	if(argc > 1 && argv[1][0] == '!'){
@@ -186,7 +188,7 @@ usage:
 		shellout(bang, buffer_gethead(buffers_current()));
 
 		free(cmd);
-		goto fin;
+		FINISH();
 	}
 
 	/* past the point of ! commands */
@@ -200,7 +202,7 @@ usage:
 
 			if(stat(argv[1], &st) == 0){
 				gui_status(GUI_ERR, "not over-writing %s", argv[1]);
-				goto fin;
+				FINISH();
 			}
 		}
 		buffer_setfilename(buffers_current(), argv[1]);
@@ -209,7 +211,7 @@ usage:
 
 	if(!buffer_hasfilename(buffers_current())){
 		gui_status(GUI_ERR, "buffer has no filename");
-		goto fin;
+		FINISH();
 	}
 
 	if(x && !buffer_modified(buffers_current()))
@@ -218,11 +220,11 @@ usage:
 	if(!force){
 		if(buffer_readonly(buffers_current())){
 			gui_status(GUI_ERR, "buffer is read-only");
-			goto fin;
+			FINISH();
 		}
 		if(buffer_external_modified(buffers_current())){
 			gui_status(GUI_ERR, "buffer changed externally since last read");
-			goto fin;
+			FINISH();
 		}
 	}
 
@@ -230,6 +232,32 @@ usage:
 	gui_status(GUI_NONE, "\"%s\" ...", buffer_filename(buffers_current()));
 	gui_statusrestore = 1;
 	gui_refresh();
+
+retry:
+	if(change_mode){
+		struct stat st;
+		const char *fname = buffer_filename(buffers_current());
+
+		if(stat(fname, &st) == 0){
+			old_mode = st.st_mode;
+			old_umask = umask(0);
+
+			st.st_mode |= 0200;
+			if(chmod(fname, st.st_mode)){
+				/* try group instead */
+				st.st_mode = old_mode | 002;
+				if(chmod(fname, st.st_mode)){
+					/* try other instead */
+					st.st_mode = old_mode | 02;
+					chmod(fname, st.st_mode);
+					/* the error will show later anyway.. */
+				}
+			}
+		}else{
+			change_mode = 0;
+		}
+		/* else ignore stat error, try again and probably fail */
+	}
 
 	if(list_to_write){
 		nw = buffer_write_list(buffers_current(), list_to_write);
@@ -241,17 +269,29 @@ usage:
 	}
 
 	if(nw == -1){
+		if(force && errno == EACCES && !change_mode){
+			/* attempt with chmod */
+			change_mode = 1;
+			goto retry;
+		}
+
 		gui_status(GUI_ERR, "couldn't write \"%s\": %s", buffer_filename(buffers_current()), strerror(errno));
-		goto fin;
+		after = NONE;
+	}else{
+		buffer_modified(buffers_current()) = 0;
+		gui_status(GUI_NONE, "\"%s\" %s%dL, %dC written",
+				buffer_filename(buffers_current()),
+				list_to_write ? "[partial-range] ":"",
+				nl, nw);
 	}
 
-	buffer_modified(buffers_current()) = 0;
-	gui_status(GUI_NONE, "\"%s\" %s%dL, %dC written",
-			buffer_filename(buffers_current()),
-			list_to_write ? "[partial-range] ":"",
-			nl, nw);
-
 after:
+	if(change_mode){
+		/* restore */
+		chmod(buffer_filename(buffers_current()), old_mode);
+		umask(old_umask);
+	}
+
 	switch(after){
 		case EDIT:
 			buffers_load(argv[1]);
@@ -266,9 +306,9 @@ after:
 			break;
 	}
 
-fin:
 	if(list_to_write)
 		list_free(list_to_write, free);
+#undef FINISH
 }
 
 void cmd_bang(int argc, char **argv, int force, struct range *rng)
