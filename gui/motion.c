@@ -456,14 +456,19 @@ int motion_apply2(const struct motion *motion, struct bufferpos *pos,
 			struct list *l = buffer_getindex(buffers_current(), y);
 
 			while(l){
-				if(global_settings.func_motion_vi){
-					if(*(char *)l->data == '{')
-						break;
-				}else{
-					/* /^[^\s].*{$/ */
+				if(*(char *)l->data == '{')
+					break;
+				if(!global_settings.func_motion_vi){
+					/* /^[^\s].*{\s*$/ */
 					int len = strlen(l->data);
-					if(!isspace(*(char *)l->data) && ((char *)l->data)[len-1] == '{')
-						break;
+					if(!isspace(*(char *)l->data)){
+						int i = len - 1;
+						while(i > 0 && isspace(((char *)l->data)[i]))
+							i--;
+
+						if(i > 0 && ((char *)l->data)[i] == '{')
+							break;
+					}
 				}
 				NEXT();
 			}
