@@ -47,6 +47,8 @@
 		return; \
 	}
 
+void cmd_w(int argc, char **argv, int force, struct range *rng);
+
 
 char *argv_to_str(int argc, char **argv)
 {
@@ -131,7 +133,6 @@ void cmd_q(int argc, char **argv, int force, struct range *rng)
 	}
 	if(xa){
 		/* save current buffer */
-		void cmd_w(int argc, char **argv, int force, struct range *rng);
 		char *av[] = { "x", NULL };
 		cmd_w(1, av, 1, rng);
 	}
@@ -196,6 +197,8 @@ usage:
 		goto usage;
 
 	if(argc == 2 && after != EDIT){
+		int newbuf = 0;
+
 		/* have a filename to save to */
 		if(!force){
 			struct stat st;
@@ -205,8 +208,14 @@ usage:
 				FINISH();
 			}
 		}
+		if(!buffer_hasfilename(buffers_current()))
+			newbuf = 1;
+
 		buffer_setfilename(buffers_current(), argv[1]);
 		buffer_modified(buffers_current()) = 1;
+
+		/* new, or read from stdin, now given a name, add it to buffer list and set as current buf */
+		buffers_goto(buffers_add(buffer_filename(buffers_current())));
 	}
 
 	if(!buffer_hasfilename(buffers_current())){

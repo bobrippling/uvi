@@ -51,7 +51,7 @@ struct old_buffer *new_old_buf(const char *fname)
 	return b;
 }
 
-static buffer_t *buffers_readfile(FILE *f, const char *filename)
+static buffer_t *buffers_readfile(FILE *f, const char *filename, int noro)
 {
 	buffer_t *b;
 	int nread;
@@ -64,7 +64,8 @@ static buffer_t *buffers_readfile(FILE *f, const char *filename)
 				errno ? strerror(errno) : "unknown error - binary file?");
 
 	}else{
-		buffer_readonly(b) = access(filename, W_OK);
+		if(!noro)
+			buffer_readonly(b) = access(filename, W_OK);
 
 		if(nread == 0)
 			gui_status(GUI_NONE, "%s: empty file%s", filename, buffer_readonly(b) ? " [read only]" : "");
@@ -92,7 +93,7 @@ static buffer_t *buffers_readfname(const char *filename)
 		f = fopen(filename, "r");
 
 		if(f){
-			b = buffers_readfile(f, filename);
+			b = buffers_readfile(f, filename, 0);
 			fclose(f);
 		}else{
 			if(errno == ENOENT)
@@ -125,6 +126,7 @@ void buffers_init(int argc, const char **argv, int ro)
 		argc--;
 		argv++;
 		read_stdin = 1;
+		fputs("uvi: reading from stdin\n", stderr);
 	}
 
 	count  = argc;
@@ -150,7 +152,7 @@ void buffers_init(int argc, const char **argv, int ro)
 	current = count > 0 ? 0 : -1;
 
 	if(read_stdin){
-		current_buf = buffers_readfile(stdin, "-");
+		current_buf = buffers_readfile(stdin, "-", 1); /* force noro */
 		buffer_modified(current_buf) = 1;
 		input_reopen();
 		current = -1;
