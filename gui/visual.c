@@ -18,10 +18,13 @@ void visual_update(struct range *v)
 
 void visual_set(enum visual v)
 {
-	if((visual_state = v) != VISUAL_NONE){
+	/* if we are already in visual, don't update */
+	if(visual_state == VISUAL_NONE){
 		visual_update(&visual_cursor);
 		visual_update(&visual_anchor);
 	}
+
+	visual_state = v;
 }
 
 enum visual visual_get()

@@ -91,8 +91,6 @@ fix /* */ completion
 
 dt[something not in the line] still works
 
-while in visual_line, switch to visual_cols, points aren't remembered
-
 "#" as well as "%"
 
 echo hi | uvi - <<!
