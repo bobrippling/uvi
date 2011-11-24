@@ -92,8 +92,3 @@ fix /* */ completion
 dt[something not in the line] still works
 
 "#" as well as "%"
-
-echo hi | uvi - <<!
-:w tim
-:q
-!
