@@ -117,7 +117,7 @@ static int search(int next, int rev)
 	}
 
 	if(!found){
-		gui_status(GUI_ERR, "\"%s\" not found %s", search_str, rev ? "above" : "below");
+		gui_status(GUI_ERR, "/%s/ not found %s", search_str, rev ? "above" : "below");
 		gui_move(gui_y(), gui_x());
 	}
 

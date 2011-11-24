@@ -384,7 +384,7 @@ void gui_clrtoeol()
 int gui_getstr(char **ps, const struct gui_read_opts *opts)
 {
 #define CHECK_SIZE()                       \
-		if(last >= size){                     \
+		if(i >= size - 1){                     \
 			size += 64;                    \
 			start = urealloc(start, size); \
 		}
@@ -392,7 +392,7 @@ int gui_getstr(char **ps, const struct gui_read_opts *opts)
 	int size;
 	char *start;
 	int y, x, xstart;
-	int i, last;
+	int i;
 
 	if(*ps){
 		free(*ps);
@@ -405,7 +405,7 @@ int gui_getstr(char **ps, const struct gui_read_opts *opts)
 
 	xstart = x;
 
-	last = i = 0;
+	i = 0;
 	start[i] = '\0';
 	for(;;){
 		int c;
@@ -414,24 +414,7 @@ int gui_getstr(char **ps, const struct gui_read_opts *opts)
 
 		CHECK_SIZE();
 
-#define UPDATE_LINE()            \
-			mvaddstr(y, x, start + i); \
-			clrtoeol();                \
-			move(y, x)
-
 		switch(c){
-			case KEY_HOME:
-			case CTRL_AND('A'):
-				x = xstart;
-				i = 0;
-				move(y, x);
-				break;
-			case KEY_END:
-			case CTRL_AND('E'):
-				x = xstart + (i = last);
-				move(y, x);
-				break;
-
 			case CTRL_AND('U'):
 				x = xstart;
 				memmove(start, start + i, last - i + 1);
@@ -440,16 +423,9 @@ int gui_getstr(char **ps, const struct gui_read_opts *opts)
 				UPDATE_LINE();
 				break;
 
-			case CTRL_AND('K'):
-				start[i] = '\0';
-				last = i;
-				UPDATE_LINE();
-				break;
-
 			case CTRL_AND('W'):
 			{
 				char *p;
-				int oldi;
 
 				if(i == 0)
 					break;
@@ -461,10 +437,8 @@ int gui_getstr(char **ps, const struct gui_read_opts *opts)
 				while(p > start && !isspace(*p))
 					p--;
 
-				oldi = i;
 				x = 1 + (i = p - start);
-				last -= oldi - i;
-				UPDATE_LINE();
+				move(y, x);
 				break;
 			}
 
@@ -491,14 +465,6 @@ int gui_getstr(char **ps, const struct gui_read_opts *opts)
 				break;
 			}
 
-			case KEY_DC:
-				if(i < last){
-					memmove(start + i, start + i + 1, last - i);
-					last--;
-					UPDATE_LINE();
-				}
-				break;
-
 			case CTRL_AND('?'):
 			case CTRL_AND('H'):
 			case 263:
@@ -506,10 +472,8 @@ int gui_getstr(char **ps, const struct gui_read_opts *opts)
 				if(i > 0){
 					char c;
 
-					i--;
-					last--;
 					c = start[i];
-					memmove(start + i, start + i + 1, last - i + 1);
+					start[--i] = '\0';
 
 					if(isprint(c)){
 						x--;
@@ -523,11 +487,9 @@ int gui_getstr(char **ps, const struct gui_read_opts *opts)
 						x -= 2;
 					}
 
-					UPDATE_LINE();
-					break;
+					move(y, x);
 
-				}else if(last > 0){
-					break; /* we can't delete, but we shouldn't discard the text */
+					break;
 				}else if(!opts->bspc_cancel){
 					break;
 				}
@@ -560,25 +522,10 @@ fin:
 				goto ins_ch;
 			}
 
-			case KEY_LEFT:
-				if(i > 0){
-					i--;
-					x--;
-					move(y, x);
-				}
-				break;
-			case KEY_RIGHT:
-				if(i < last){
-					i++;
-					x++;
-					move(y, x);
-				}
-				break;
-
 			default:
 				if(opts->intellisense && c == opts->intellisense_ch && i > 0){
 					//fprintf(stderr, "calling intellisense(\"%s\")\n", start);
-					if(!opts->intellisense(&start, &size, &i, &last, c)){
+					if(!opts->intellisense(&start, &size, &i, c)){
 						/* redraw the line */
 						x = xstart + i;
 						move(y, xstart);
@@ -588,20 +535,11 @@ fin:
 					break;
 				}
 ins_ch:
-				CHECK_SIZE(); /* FIXME - check */
-
-				memmove(start + i + 1, start + i, last - i + 1); /* segfault here */
-				start[i] = c;
-
-				/* we need to redraw a bit */
-				mvaddstr(y, x, start + i);
-				move(y, x);
-				i++;
-				last++;
-				if(last < i)
-					last = i;
-				gui_addch(c);
+				start[i++] = c;
+				start[i]   = '\0';
 				x++;
+				CHECK_SIZE();
+				gui_addch(c);
 				if(opts->textw && x > opts->textw)
 					goto fin;
 		}
