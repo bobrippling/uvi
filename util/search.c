@@ -6,6 +6,7 @@
 #include "search.h"
 #include "alloc.h"
 #include "../global.h"
+#include "../util/str.h"
 
 int usearch_init(struct usearch *us, const char *needle)
 {
@@ -15,19 +16,10 @@ int usearch_init(struct usearch *us, const char *needle)
 	r = umalloc(sizeof *r);
 	memset(us, 0, sizeof *us);
 
-	if(global_settings.ignorecase){
+	if(global_settings.ignorecase)
 		ic = 1;
-	}else if(global_settings.smartcase){
-		const char *niter;
-
-		ic = 1;
-
-		for(niter = needle; *niter; niter++)
-			if(isupper(*niter)){
-				ic = 0;
-				break;
-			}
-	}
+	else if(global_settings.smartcase)
+		ic = !str_mixed_case(needle);
 
 	if((us->lastret = regcomp(r, needle, REG_EXTENDED | (ic ? REG_ICASE : 0)))){
 		/* r still needs to be free'd */

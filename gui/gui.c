@@ -417,10 +417,9 @@ int gui_getstr(char **ps, const struct gui_read_opts *opts)
 		switch(c){
 			case CTRL_AND('U'):
 				x = xstart;
-				memmove(start, start + i, last - i + 1);
-				last -= i;
 				i = 0;
-				UPDATE_LINE();
+				*start = '\0';
+				move(y, x);
 				break;
 
 			case CTRL_AND('W'):
@@ -472,8 +471,8 @@ int gui_getstr(char **ps, const struct gui_read_opts *opts)
 				if(i > 0){
 					char c;
 
-					c = start[i];
-					start[--i] = '\0';
+					c = start[--i];
+					start[i] = '\0';
 
 					if(isprint(c)){
 						x--;

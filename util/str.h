@@ -4,7 +4,9 @@
 char *word_at( const char *, int);
 char *fname_at(const char *, int);
 
+#ifdef LIST_H
 char **words_begin(struct list *, const char *);
+#endif
 
 int line_isspace(const char *s);
 
@@ -17,6 +19,8 @@ void  str_trim(char *const);
 void  str_ltrim(char *const);
 void  str_rtrim(char *const);
 void  str_insert(char **store, int *store_size, int *store_idx, const char *insertme, int insertlen);
+
+int  str_mixed_case(const char *);
 
 char *str_home_replace(char *);
 void  str_home_replace_array(int, char **);
