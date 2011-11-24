@@ -197,8 +197,6 @@ usage:
 		goto usage;
 
 	if(argc == 2 && after != EDIT){
-		int newbuf = 0;
-
 		/* have a filename to save to */
 		if(!force){
 			struct stat st;
@@ -208,8 +206,6 @@ usage:
 				FINISH();
 			}
 		}
-		if(!buffer_hasfilename(buffers_current()))
-			newbuf = 1;
 
 		buffer_setfilename(buffers_current(), argv[1]);
 		buffer_modified(buffers_current()) = 1;

@@ -21,7 +21,7 @@ int iswordchar(int c)
 
 int isfnamechar(int c)
 {
-	return !isspace(c) && !ispunct(c); /* TODO: ignore trailing punctuation */
+	return !isspace(c) && !ispunct(c) && c != '"' && c != '\''; /* TODO: ignore trailing punctuation */
 }
 
 char *chars_at(const char *line, int x, int (*cmp)(int))
@@ -211,6 +211,25 @@ int str_numeric(const char *s)
 	return 1;
 }
 
+int str_mixed_case(const char *s)
+{
+	int start_lower;
+
+	for(; *s && !isalpha(*s); s++);
+
+	if(!*s)
+		return 0;
+
+	/* s is first alpha-char */
+	start_lower = islower(*s);
+
+	for(; *s; s++)
+		if(isalpha(*s) && islower(*s) != start_lower)
+			return 1;
+
+	return 0;
+}
+
 void str_trim(char *const start)
 {
 	str_ltrim(start);
@@ -241,23 +260,22 @@ void str_rtrim(char *const start)
 		*last = '\0';
 }
 
-void str_insert(char **pstore, int *pstore_size, int *pstore_idx, const char *insertme, int insertlen)
+void str_insert(char **pstore, int *pstore_size, int *pstore_idx, const char *insertme, int insertsize)
 {
 #define store      (*pstore)
 #define store_size (*pstore_size)
 #define store_idx  (*pstore_idx)
-	int store_len = strlen(store) + 1;
-	int new_len = store_len + insertlen;
+	int new_size = strlen(store) + insertsize;
 
-	if(store_size < new_len)
-		*pstore = urealloc(*pstore, store_len);
+	if(store_size < new_size)
+		*pstore = urealloc(*pstore, store_size = new_size);
 
-	memmove(store + store_idx + insertlen,
+	memmove(store + store_idx + insertsize,
 					store + store_idx,
-					insertlen);
+					strlen(store + store_idx + insertsize));
 
-	memcpy(store + store_idx, insertme, insertlen);
-	store_idx += insertlen;
+	memcpy(store + store_idx, insertme, insertsize);
+	store_idx += insertsize;
 
 #undef store
 #undef store_size

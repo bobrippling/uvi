@@ -15,8 +15,8 @@
 #include "../range.h"
 #include "../buffer.h"
 #include "../global.h"
-#include "../util/str.h"
 #include "../util/list.h"
+#include "../util/str.h"
 #include "../util/alloc.h"
 #include "motion.h"
 #include "gui.h"
@@ -61,7 +61,6 @@ static void intellisense_complete_to(char **pstr, int *psize, int *pos,
 		const char *word, int longest_len, int offset_into_word, int escape)
 {
 	const int space_left = *psize - *pos - longest_len + offset_into_word - 1;
-	const int oldpos = *pos;
 	int nextra = longest_len - offset_into_word;
 
 	if(space_left <= 0){
