@@ -10,6 +10,8 @@ char **words_begin(struct list *, const char *);
 
 int line_isspace(const char *s);
 
+int isparen(int);
+
 void  str_escape(char *arg);
 char *chr_expand(char *arg, char c, const char *rep);
 char *str_expand(char *str, const char *grow_from, const char *grow_to);
