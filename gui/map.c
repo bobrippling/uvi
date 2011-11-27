@@ -11,7 +11,7 @@
 #include "../range.h"
 #include "../util/list.h"
 #include "../util/alloc.h"
-#include "../util/str.h"
+#include "../str/str.h"
 
 
 static struct list *maps = NULL;

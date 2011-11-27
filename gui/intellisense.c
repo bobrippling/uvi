@@ -16,7 +16,7 @@
 #include "../buffer.h"
 #include "../global.h"
 #include "../util/list.h"
-#include "../util/str.h"
+#include "../str/str.h"
 #include "../util/alloc.h"
 #include "motion.h"
 #include "gui.h"

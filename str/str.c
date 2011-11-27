@@ -7,9 +7,9 @@
 #include <pwd.h>
 
 #include "../range.h"
-#include "list.h"
+#include "../util/list.h"
 #include "str.h"
-#include "alloc.h"
+#include "../util/alloc.h"
 
 #define ispwchr(x) (isalpha(x) || (x) == '_')
 

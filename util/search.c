@@ -6,7 +6,7 @@
 #include "search.h"
 #include "alloc.h"
 #include "../global.h"
-#include "../util/str.h"
+#include "../str/str.h"
 
 int usearch_init(struct usearch *us, const char *needle)
 {

@@ -15,7 +15,7 @@
 #include "gui.h"
 #include "marks.h"
 #include "../global.h"
-#include "../util/str.h"
+#include "../str/str.h"
 #include "../buffers.h"
 
 #define iswordpart(c) (isalnum(c) || (c) == '_')

@@ -20,7 +20,7 @@
 #include "preserve.h"
 #include "gui/map.h"
 #include "util/alloc.h"
-#include "util/str.h"
+#include "str/str.h"
 #include "util/list.h"
 #include "buffers.h"
 #include "vars.h"

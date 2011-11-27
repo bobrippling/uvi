@@ -15,7 +15,7 @@
 #include "util/list.h"
 #include "util/io.h"
 #include "global.h"
-#include "util/str.h"
+#include "str/str.h"
 
 buffer_t *buffer_new_list(struct list *l)
 {

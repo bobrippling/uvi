@@ -27,7 +27,7 @@
 #include "util/io.h"
 #include "yank.h"
 #include "buffers.h"
-#include "util/str.h"
+#include "str/str.h"
 #include "rc.h"
 #include "gui/map.h"
 #include "config.h"

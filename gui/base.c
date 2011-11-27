@@ -22,7 +22,7 @@
 #include "marks.h"
 #include "../main.h"
 #include "intellisense.h"
-#include "../util/str.h"
+#include "../str/str.h"
 #include "../yank.h"
 #include "map.h"
 #include "../buffers.h"

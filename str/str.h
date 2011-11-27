@@ -1,6 +1,17 @@
 #ifndef STR_H
 #define STR_H
 
+typedef struct string string;
+
+struct string
+{
+	char *c_str;
+	int len;
+	int siz; /* alloc'd size */
+
+	int ref_count;
+};
+
 char *word_at( const char *, int);
 char *fname_at(const char *, int);
 

@@ -16,7 +16,7 @@
 #include "gui.h"
 #include "../global.h"
 #include "../util/alloc.h"
-#include "../util/str.h"
+#include "../str/str.h"
 #include "../util/term.h"
 #include "../util/io.h"
 #include "macro.h"
