@@ -19,7 +19,8 @@ static int arg_ro = 0;
 
 static struct old_buffer **fnames;
 
-static int current;
+static int last    = -1;
+static int current = -1;
 static int count;
 
 struct old_buffer **buffers_array()
@@ -40,6 +41,14 @@ buffer_t *buffers_current()
 int buffers_count()
 {
 	return count;
+}
+
+const char *buffers_alternate(void)
+{
+	if(last == -1)
+		return NULL;
+
+	return fnames[last]->fname;
 }
 
 struct old_buffer *new_old_buf(const char *fname)
@@ -188,6 +197,7 @@ int buffers_goto(int n)
 	if((loadpos = current != n))
 		buffers_save_pos();
 
+	last = current;
 	current = n;
 	if(current_buf)
 		buffer_free(current_buf);
@@ -216,6 +226,9 @@ int buffers_del(int n)
 
 	free(fnames[n]->fname);
 	free(fnames[n]);
+
+	if(last == n)
+		last = -1;
 
 	for(i = n; i < count; i++)
 		fnames[i] = fnames[i + 1];
