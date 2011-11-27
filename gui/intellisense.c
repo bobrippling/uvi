@@ -79,14 +79,14 @@ static void intellisense_complete_to(char **pstr, int *psize, int *pos,
 
 		str = str_shell_escape(copy, &nescapes);
 		nextra += nescapes;
-		str_insert(pstr, psize, pos, str, nextra);
+		strncat(*pstr + *pos, str, nextra);
 		free(str);
 
 	}else{
-		str_insert(pstr, psize, pos, word + offset_into_word, nextra);
+		strncat(*pstr + *pos, word + offset_into_word, nextra);
 	}
 
-	*pos  += nextra;
+	*pos += nextra;
 }
 
 int intellisense_insert(char **pstr, int *psize, int *pos, char ch)
@@ -95,17 +95,11 @@ int intellisense_insert(char **pstr, int *psize, int *pos, char ch)
 	int len, wlen;
 	int ret;
 	char *w;
-	char *savepos;
-	char save;
 
 	if(ch != CTRL_AND('n'))
 		return 1;
 
-	savepos = *pstr + *pos;
-	save = *savepos;
-	*savepos = '\0';
 	w = word_at(*pstr, *pos - 1);
-	*savepos = save;
 	if(!w)
 		return 1;
 
@@ -127,12 +121,12 @@ int intellisense_insert(char **pstr, int *psize, int *pos, char ch)
 		gui_setyx(y, x);
 	}
 
-	if(!*words)
-		gui_status(GUI_ERR, "no completions");
-
 	free(w);
 	for(iter = words; *iter; iter++)
 		free(*iter);
+	if(!*words){
+		gui_status(GUI_ERR, "no completions");
+	}
 	free(words);
 
 	return ret;
@@ -170,39 +164,29 @@ int intellisense_file(char **pstr, int *psize, int *pos, char ch)
 		*psize = *pos + 1;
 	}
 
-	{
-		char *pstr_clipped;
-
-		pstr_clipped = ustrdup(*pstr);
-		pstr_clipped[*pos] = '\0';
-
-		arg = strrchr(pstr_clipped, ' ');
-		if(arg){
-			for(;;){
-				while(arg > pstr_clipped && *arg != ' ')
-					arg--;
-				if(arg == pstr_clipped)
-					break;
-				else if(arg[-1] != '\\')
-					break;
-				/* arg > pstr_clipped and we're at the space in "something\ else" */
+	arg = strrchr(*pstr, ' ');
+	if(arg){
+		for(;;){
+			while(arg > *pstr && *arg != ' ')
 				arg--;
-			}
-			if(*arg == ' ')
-				arg++;
-		}else{
-			arg = pstr_clipped;
+			if(arg == *pstr)
+				break;
+			else if(arg[-1] != '\\')
+				break;
+			/* arg > pstr and we're at the space in "something\ else" */
+			arg--;
 		}
-
-		arglen = strlen(arg) + 2;
-		match = ALLOCA(arglen);
-
-		str_shell_unescape(arg);
-		snprintf(match, arglen, "%s*", arg);
-
-		free(pstr_clipped);
+		if(*arg == ' ')
+			arg++;
+	}else{
+		arg = *pstr;
 	}
 
+	arglen = strlen(arg) + 2;
+	match = ALLOCA(arglen);
+
+	str_shell_unescape(arg);
+	snprintf(match, arglen, "%s*", arg);
 
 	if(wordexp(match, &exp, WRDE_NOCMD))
 		return 1;
@@ -291,10 +275,6 @@ void intellisense_init_opt(void *v, enum intellisense_opt o)
 {
 	struct gui_read_opts *opts = v;
 	memset(opts, 0, sizeof *opts);
-
-	if(!global_settings.intellisense)
-		return;
-
 	switch(o){
 		case INTELLI_NONE:
 			break;
