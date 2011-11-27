@@ -859,6 +859,9 @@ void filter_cmd(int argc, char **argv)
 
 	if(buffer_hasfilename(buffers_current()))
 		char_replace('%', buffer_filename(buffers_current()), argc, argv);
+
+	if(buffers_alternate())
+		char_replace('#', buffers_alternate(), argc, argv);
 }
 
 void command_run(char *in)
