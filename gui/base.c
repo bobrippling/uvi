@@ -820,6 +820,29 @@ void visual_inside(int include)
 			return;
 
 		/* highlight from {x,y][1] to {x,y}[0] */
+		if(!include){
+			int top, bottom;
+
+			if(y[0] > y[1]){
+				top    = 1;
+				bottom = 0;
+			}else{
+				bottom = 1;
+				top    = 0;
+			}
+
+			if(x[bottom] > 0)
+				x[bottom]--;
+			else
+				y[bottom]--;
+
+			if(x[top] > 0)
+				x[top]++;
+			else
+				y[top]++;
+			/* FIXME */
+		}
+
 		visual_setpoints(x, y);
 	}
 }
