@@ -90,3 +90,5 @@ fix motion_t in general actually
 fix /* */ completion
 
 dt[something not in the line] still works
+
+v[ia][bracket]
