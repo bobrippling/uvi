@@ -954,13 +954,33 @@ switch_switch:
 			 *   int when_visual;
 			 * };
 			 */
+			case '!':
+				if(visual_get() == VISUAL_NONE){
+					int ch = gui_getch(GETCH_COOKED);
+					switch(ch){
+						case 'f':
+							if(!go_file())
+								buffer_changed = 1;
+							break;
+						case 'q':
+							if(!fmt_motion())
+								buffer_changed = 1;
+							break;
+						default:
+							gui_status(GUI_ERR, "Invalid ! suffix");
+					}
+					break;
+				}
+				/* else fall */
+
 			case ':':
 			{
 				char buffer[16];
 				if(visual_get() != VISUAL_NONE)
-					snprintf(buffer, sizeof buffer, "%d,%d",
+					snprintf(buffer, sizeof buffer, "%d,%d%s",
 							visual_get_start()->start + 1, /* convert to 1-based */
-							visual_get_end(  )->start + 1);
+							visual_get_end(  )->start + 1,
+							c == '!' ? "!" : "");
 				else
 					*buffer = '\0';
 
@@ -1267,24 +1287,6 @@ case_i:
 						multiple = 1;
 					while(multiple --> 0)
 						macro_play(m);
-				}
-				break;
-			}
-
-			case '!':
-			{
-				int ch = gui_getch(GETCH_COOKED);
-				switch(ch){
-					case 'f':
-						if(!go_file())
-							buffer_changed = 1;
-						break;
-					case 'q':
-						if(!fmt_motion())
-							buffer_changed = 1;
-						break;
-					default:
-						gui_status(GUI_ERR, "Invalid ! suffix");
 				}
 				break;
 			}
