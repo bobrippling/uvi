@@ -764,6 +764,89 @@ static void colon(const char *initial)
 	free(in);
 }
 
+void visual_inside(int include)
+{
+	struct list *l;
+	char *s;
+	int i;
+	int start_y;
+	int bracket;
+
+	/* TODO: number */
+
+	bracket = gui_getch(GETCH_COOKED);
+	l = buffer_getindex(buffers_current(), gui_y());
+	s = l->data;
+
+	if(!isparen(bracket))
+		/* TODO: iw, ip (paragraph), etc - swap to a motion? */
+		return;
+
+	/* TODO: go forward if it's a close bracket, else go backward */
+
+	i = gui_x();
+	start_y = gui_y();
+	while(s[i] != bracket){
+		if(--i < 0){
+			l = l->prev;
+			start_y--;
+			if(!l)
+				return;
+			s = l->data;
+			i = strlen(s) - 1;
+		}
+	}
+
+	/* s[i] is the bracket, do a motion_percent on it and visual() */
+	{
+		/* TODO: distinguish between vi{ and va{ */
+		struct motion m;
+		struct bufferpos bp;
+		struct screeninfo si;
+		int x[2], y[2];
+
+		memset(&m, 0, sizeof m);
+		m.motion = MOTION_PAREN_MATCH;
+
+		si.top = gui_top();
+		si.height = gui_max_y();
+
+		x[0] = x[1] = i;
+		y[0] = y[1] = start_y;
+		bp.x = x + 1;
+		bp.y = y + 1;
+
+		if(motion_apply(&m, &bp, &si))
+			return;
+
+		/* highlight from {x,y][1] to {x,y}[0] */
+		if(!include){
+			int top, bottom;
+
+			if(y[0] > y[1]){
+				top    = 1;
+				bottom = 0;
+			}else{
+				bottom = 1;
+				top    = 0;
+			}
+
+			if(x[bottom] > 0)
+				x[bottom]--;
+			else
+				y[bottom]--;
+
+			if(x[top] > 0)
+				x[top]++;
+			else
+				y[top]++;
+			/* FIXME */
+		}
+
+		visual_setpoints(x, y);
+	}
+}
+
 static int is_edit_char(int c)
 {
 	switch(c){
@@ -871,13 +954,33 @@ switch_switch:
 			 *   int when_visual;
 			 * };
 			 */
+			case '!':
+				if(visual_get() == VISUAL_NONE){
+					int ch = gui_getch(GETCH_COOKED);
+					switch(ch){
+						case 'f':
+							if(!go_file())
+								buffer_changed = 1;
+							break;
+						case 'q':
+							if(!fmt_motion())
+								buffer_changed = 1;
+							break;
+						default:
+							gui_status(GUI_ERR, "Invalid ! suffix");
+					}
+					break;
+				}
+				/* else fall */
+
 			case ':':
 			{
 				char buffer[16];
 				if(visual_get() != VISUAL_NONE)
-					snprintf(buffer, sizeof buffer, "%d,%d",
+					snprintf(buffer, sizeof buffer, "%d,%d%s",
 							visual_get_start()->start + 1, /* convert to 1-based */
-							visual_get_end(  )->start + 1);
+							visual_get_end(  )->start + 1,
+							c == '!' ? "!" : "");
 				else
 					*buffer = '\0';
 
@@ -994,9 +1097,15 @@ switch_switch:
 				flag = 1;
 			case 'i':
 case_i:
-				insert(flag, 0, 0);
-				buffer_changed = 1;
-				SET_DOT();
+				if(visual_get() == VISUAL_NONE){
+					insert(flag, 0, 0);
+					buffer_changed = 1;
+					SET_DOT();
+				}else{
+					/* ibracket */
+					visual_inside(flag);
+					view_changed = 1;
+				}
 				break;
 			case 'I':
 				SET_MOTION(MOTION_LINE_START);
@@ -1178,24 +1287,6 @@ case_i:
 						multiple = 1;
 					while(multiple --> 0)
 						macro_play(m);
-				}
-				break;
-			}
-
-			case '!':
-			{
-				int ch = gui_getch(GETCH_COOKED);
-				switch(ch){
-					case 'f':
-						if(!go_file())
-							buffer_changed = 1;
-						break;
-					case 'q':
-						if(!fmt_motion())
-							buffer_changed = 1;
-						break;
-					default:
-						gui_status(GUI_ERR, "Invalid ! suffix");
 				}
 				break;
 			}

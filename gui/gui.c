@@ -115,6 +115,7 @@ void gui_reload()
 	/* put stdin into non canonical mode */
 	term_canon(STDIN_FILENO, 0);
 	gui_refresh();
+	scrl(-1);
 }
 
 void gui_refresh()

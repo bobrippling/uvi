@@ -13,6 +13,8 @@ enum visual visual_get();
 void        visual_swap();
 void        visual_join();
 
+void        visual_setpoints(int x[2], int y[2]);
+
 const struct range *visual_get_start();
 const struct range *visual_get_end();
 const struct range *visual_get_col_start();

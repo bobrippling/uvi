@@ -24,6 +24,20 @@ int isfnamechar(int c)
 	return !isspace(c) && !ispunct(c) && c != '"' && c != '\''; /* TODO: ignore trailing punctuation */
 }
 
+int isparen(int c)
+{
+	switch(c){
+		case '{':
+		case '(':
+		case '[':
+		case '}':
+		case ')':
+		case ']':
+			return 1;
+	}
+	return 0;
+}
+
 char *chars_at(const char *line, int x, int (*cmp)(int))
 {
 	const char *wordstart, *wordend;

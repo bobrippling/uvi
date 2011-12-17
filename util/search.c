@@ -79,7 +79,7 @@ const char *usearch_rev(struct usearch *us, const char *parliment, int offset)
 	/* start at the middle, and binary jump until we find the last match, up to offset */
 	curoffset = offset / 2;
 
-	for(;;){
+	for(; curoffset < (signed)strlen(dup);){
 		if((ret = usearch(us, dup + curoffset, 0))){
 			lastmatch = ret;
 
@@ -95,15 +95,16 @@ const char *usearch_rev(struct usearch *us, const char *parliment, int offset)
 
 		}else{
 			/* if we're here then either we have never found a match, step back */
-			if(curoffset <= 0){
-				free(dup);
-				return NULL;
-			}
+			if(curoffset <= 0)
+				break;
 
 			curoffset -= term_len + 1;
 			if(curoffset < 0) curoffset = 0;
 		}
 	}
+
+	free(dup);
+	return NULL;
 }
 
 void usearch_free(struct usearch *us)

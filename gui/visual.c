@@ -10,6 +10,15 @@ static enum  visual visual_state = VISUAL_NONE;
 static struct range visual_cursor;
 static struct range visual_anchor;
 
+void visual_setpoints(int x[2], int y[2])
+{
+	visual_cursor.start = y[0];
+	visual_cursor.end   = x[0];
+	visual_anchor.start = y[1];
+	visual_anchor.end   = x[1];
+	gui_move(visual_cursor.start, visual_cursor.end);
+}
+
 void visual_update(struct range *v)
 {
 	v->start = gui_y();
