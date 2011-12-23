@@ -209,9 +209,6 @@ usage:
 
 		buffer_setfilename(buffers_current(), argv[1]);
 		buffer_modified(buffers_current()) = 1;
-
-		/* new, or read from stdin, now given a name, add it to buffer list and set as current buf */
-		buffers_goto(buffers_add(buffer_filename(buffers_current())));
 	}
 
 	if(!buffer_hasfilename(buffers_current())){
@@ -282,11 +279,17 @@ retry:
 		gui_status(GUI_ERR, "couldn't write \"%s\": %s", buffer_filename(buffers_current()), strerror(errno));
 		after = NONE;
 	}else{
+		const char *fname = buffer_filename(buffers_current());
+
 		buffer_modified(buffers_current()) = 0;
 		gui_status(GUI_NONE, "\"%s\" %s%dL, %dC written",
 				buffer_filename(buffers_current()),
 				list_to_write ? "[partial-range] ":"",
 				nl, nw);
+
+		/* ensure we're on the buffer we just wrote */
+		if(!buffers_at_fname(fname))
+			buffers_goto(buffers_add(fname));
 	}
 
 after:
