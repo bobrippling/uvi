@@ -625,35 +625,71 @@ void cmd_ls(int argc, char **argv, int force, struct range *rng)
 	gui_status_wait();
 }
 
-void buffer_cmd(int argc, char **argv, int force, struct range *rng, int (*f)(int), int use_cur)
+int ncompar(const void *pa, const void *pb)
 {
-	int n = -1;
+	int a, b;
+
+	a = *(int *)pa;
+	b = *(int *)pb;
+
+	if(a < b)
+		return -1;
+	if(a > b)
+		return 1;
+	return 0;
+}
+
+void buffer_cmd(int argc, char **argv, int force, struct range *rng, int (*f)(int), int any_count)
+{
+	int i, n;
+	int *bufs, nbufs;
+
+	bufs = NULL;
+	nbufs = 0;
+	i = 0;
 
 	if(rng->start != -1 || rng->end != -1){
 usage:
-		gui_status(GUI_ERR, "usage: %s idx", *argv);
+		gui_status(GUI_ERR, "usage: %s index(s)", *argv);
 		return;
 	}
 
-	if(argc != 2){
-		if(use_cur && argc == 1){
+	if(any_count){
+		if(argc <= 1){
 			n = buffers_idx();
 			if(n == -1){
 				gui_status(GUI_ERR, "no buffer selected");
 				return;
 			}
-		}else{
+			goto perform;
+		}
+	}else if(argc != 2){
+		goto usage;
+	}
+
+	for(i = 1; i < argc; i++){
+		if(sscanf(argv[i], "%d", &n) != 1)
 			goto usage;
+
+		bufs = urealloc(bufs, ++nbufs);
+		bufs[i-1] = n;
+	}
+
+	qsort(bufs, nbufs, sizeof *bufs, ncompar);
+
+	for(i = nbufs - 1; i >= 0; i--){
+		n = bufs[i];
+perform:
+		if(n == buffers_idx())
+			MODIFIED_CHECK();
+
+		if(f(n)){
+			gui_status(GUI_ERR, "index %d out of range", n);
+			return;
 		}
 	}
 
-	MODIFIED_CHECK();
-
-	if(n == -1 && sscanf(argv[1], "%d", &n) != 1)
-		goto usage;
-
-	if(f(n))
-		gui_status(GUI_ERR, "index %d out of range", n);
+	free(bufs);
 }
 
 void cmd_b(int argc, char **argv, int force, struct range *rng)
