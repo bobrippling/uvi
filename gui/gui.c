@@ -336,13 +336,6 @@ restart:
 			goto restart;
 	}
 
-	if(c == '\t' && global_settings.et){
-		int i;
-		for(i = 1; i < global_settings.tabstop; i++)
-			gui_ungetch(' ');
-		c = ' ';
-	}
-
 skip:
 	if(macro_record_char)
 		macro_append(c);
@@ -522,6 +515,15 @@ fin:
 				goto ins_ch;
 			}
 
+            case '\t':
+            	if(global_settings.et && opts->allow_et){
+            		int i;
+            		for(i = 1; i < global_settings.tabstop; i++)
+            			gui_ungetch(' ');
+            		c = ' ';
+            	}
+                /* fall */
+
 			default:
 				if(opts->intellisense && c == opts->intellisense_ch && i > 0){
 					//fprintf(stderr, "calling intellisense(\"%s\")\n", start);
@@ -557,7 +559,7 @@ int gui_prompt(const char *p, char **pbuf, struct gui_read_opts *opts)
 {
 	gui_printprompt(p);
 
-	opts->bspc_cancel  = 1;
+	opts->bspc_cancel = 1;
 
 	return gui_getstr(pbuf, opts);
 }

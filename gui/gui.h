@@ -23,9 +23,10 @@ void gui_mvaddch(int y, int x, int c);
 #ifdef INTELLISENSE_H
 struct gui_read_opts
 {
-	int bspc_cancel;
-	int textw;
-	int newline;
+	int bspc_cancel : 1;
+	int textw : 1;
+	int newline : 1;
+    int allow_et : 1;
 
 	intellisensef intellisense;
 	int intellisense_ch;
