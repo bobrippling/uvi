@@ -27,8 +27,9 @@ int          buffers_del( int n);
  * adding to the buffer list, unless already present
  */
 
-void         buffers_load(const char *);
-int          buffers_add( const char *);
+int          buffers_add(     const char *);
+void         buffers_load(    const char *);
+int          buffers_at_fname(const char *);
 
 int          buffers_unread(void);
 
