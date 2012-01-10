@@ -515,14 +515,14 @@ fin:
 				goto ins_ch;
 			}
 
-            case '\t':
-            	if(global_settings.et && opts->allow_et){
-            		int i;
-            		for(i = 1; i < global_settings.tabstop; i++)
-            			gui_ungetch(' ');
-            		c = ' ';
-            	}
-                /* fall */
+			case '\t':
+				if(global_settings.et && opts->allow_et){
+					int i;
+					for(i = 1; i < global_settings.tabstop; i++)
+						gui_ungetch(' ');
+					c = ' ';
+				}
+				/* fall */
 
 			default:
 				if(opts->intellisense && c == opts->intellisense_ch && i > 0){
