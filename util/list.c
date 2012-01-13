@@ -402,7 +402,7 @@ fallback:
 
 			i = l = list_new(NULL);
 
-			while(fgets(buffer, sizeof buffer, f)){
+			while(fgets(buffer, sizeof buffer - 1, f)){
 				char *nl = strchr(buffer, '\n');
 				if(nl){
 					*nl = '\0';
