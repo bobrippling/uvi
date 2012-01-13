@@ -698,7 +698,6 @@ static void join(unsigned int ntimes)
 {
 	struct list *jointhese, *l, *cur;
 	struct range r;
-	char *alloced;
 	int len, initial_len;
 
 	{
@@ -720,12 +719,12 @@ static void join(unsigned int ntimes)
 	len = 0;
 	for(l = jointhese; l; l = l->next){
 		str_trim(l->data);
-		len += strlen(l->data);
+		len += strlen(l->data) + (*(char *)l->data ? 1 : 0);
 	}
 
-	alloced = urealloc(cur->data, (initial_len = strlen(cur->data)) + len + 1);
+	initial_len = strlen(cur->data);
+	cur->data = urealloc(cur->data, initial_len + len + 1);
 
-	cur->data = alloced;
 	for(l = jointhese; l; l = l->next){
 		if(*(char *)cur->data)
 			strcat(cur->data, " ");
