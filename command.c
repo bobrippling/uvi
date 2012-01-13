@@ -737,6 +737,15 @@ void cmd_so(int argc, char **argv, int force, struct range *rng)
 	gui_reload();
 }
 
+void cmd_noh(int argc, char **argv, int force, struct range *rng)
+{
+    extern char *search_str;
+	EMPTY_USAGE();
+
+    if(search_str)
+        *search_str = '\0';
+}
+
 void cmd_help(int argc, char **argv, int force, struct range *rng)
 {
 	enum vartype type;
@@ -941,6 +950,8 @@ void command_run(char *in)
 		CMD(cd,  0),
 		CMD(pwd, 0),
 		CMD(so,  0),
+
+		CMD(noh, 0),
 
 		CMD(help, 0),
 
