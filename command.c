@@ -146,7 +146,7 @@ void cmd_w(int argc, char **argv, int force, struct range *rng)
 	extern int gui_statusrestore;
 	unsigned int change_mode = 0, old_mode;
 	struct list *list_to_write = NULL;
-	enum { QUIT, EDIT, NONE } after = NONE;
+	enum { QUIT, EDIT, NEXT, NONE } after = NONE;
 	int nw, nl;
 	int x = 0;
 
@@ -175,9 +175,12 @@ void cmd_w(int argc, char **argv, int force, struct range *rng)
 		x = 1;
 	}else if(!strcmp(argv[0], "we")){
 		after = EDIT;
+	}else if(!strcmp(argv[0], "wn")){
+		after = NEXT;
+		//x = 1;
 	}else if(strcmp(argv[0], "w")){
 usage:
-		gui_status(GUI_ERR, "usage: w[qe][![!]] file|command");
+		gui_status(GUI_ERR, "usage: w[qen][![!]] file|command");
 		FINISH();
 	}
 
@@ -194,6 +197,9 @@ usage:
 
 	/* past the point of ! commands */
 	if(argc > 2)
+		goto usage;
+
+	if(after == NEXT && argc != 1)
 		goto usage;
 
 	if(argc == 2 && after != EDIT){
@@ -299,6 +305,10 @@ after:
 	}
 
 	switch(after){
+		case NEXT:
+			if(buffers_next(1))
+				gui_status(GUI_ERR, "\"%s\" written, no next buffer", buffer_filename(buffers_current()));
+			break;
 		case EDIT:
 			buffers_load(argv[1]);
 			break;
@@ -600,7 +610,7 @@ void cmd_n(int argc, char **argv, int force, struct range *rng)
 	MODIFIED_CHECK();
 
 	if(buffers_next(i))
-		gui_status(GUI_ERR, "file index %d out of range", buffers_idx() + i);
+		gui_status(GUI_ERR, "file index %d %s of buffers", buffers_idx() + i, i > 0 ? "past end" : "before start");
 }
 
 void cmd_ls(int argc, char **argv, int force, struct range *rng)
@@ -684,7 +694,7 @@ perform:
 			MODIFIED_CHECK();
 
 		if(f(n)){
-			gui_status(GUI_ERR, "index %d out of range", n);
+			gui_status(GUI_ERR, "buffer index %d out of range", n);
 			return;
 		}
 	}
@@ -926,6 +936,7 @@ void command_run(char *in)
 
 		{ "we", cmd_w, 1, 0 },
 		{ "wq", cmd_w, 1, 0 },
+		{ "wn", cmd_w, 1, 0 },
 		{ "x",  cmd_w, 1, 0 },
 		CMD(new, 0),
 		CMD(r,   1),
