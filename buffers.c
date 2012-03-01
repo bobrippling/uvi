@@ -51,6 +51,11 @@ const char *buffers_alternate(void)
 	return fnames[last]->fname;
 }
 
+int buffers_alternate_idx()
+{
+	return last;
+}
+
 struct old_buffer *new_old_buf(const char *fname)
 {
 	struct old_buffer *b;

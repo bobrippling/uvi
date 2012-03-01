@@ -177,7 +177,7 @@ void cmd_w(int argc, char **argv, int force, struct range *rng)
 		after = EDIT;
 	}else if(!strcmp(argv[0], "wn")){
 		after = NEXT;
-		//x = 1;
+		/*x = 1;*/
 	}else if(strcmp(argv[0], "w")){
 usage:
 		gui_status(GUI_ERR, "usage: w[qen][![!]] file|command");
@@ -678,10 +678,16 @@ usage:
 	}
 
 	for(i = 1; i < argc; i++){
-		if(sscanf(argv[i], "%d", &n) != 1)
-			goto usage;
+		if(sscanf(argv[i], "%d", &n) != 1){
+			/* check for '#' */
+			const char *alt = buffers_alternate();
+			if(alt && !strcmp(argv[i], alt))
+				n = buffers_alternate_idx();
+			else
+				goto usage;
+		}
 
-		bufs = urealloc(bufs, ++nbufs);
+		bufs = urealloc(bufs, ++nbufs * sizeof *bufs);
 		bufs[i-1] = n;
 	}
 
