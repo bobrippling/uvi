@@ -116,6 +116,7 @@ void gui_reload()
 	term_canon(STDIN_FILENO, 0);
 	gui_refresh();
 	scrl(-1);
+	gui_show_if_modified();
 }
 
 void gui_refresh()
@@ -136,7 +137,7 @@ void gui_term()
 	{ \
 		switch(a){ \
 			case GUI_ERR: \
-				fn(COLOR_PAIR(1 + COLOR_RED) | A_BOLD); \
+				fn(COLOR_PAIR(9 + COLOR_RED) | A_BOLD); \
 				break; \
 			case GUI_IS_NOT_PRINT: \
 				fn(COLOR_PAIR(1 + COLOR_BLUE)); \

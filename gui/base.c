@@ -875,6 +875,12 @@ static int is_edit_char(int c)
 	return 0;
 }
 
+void gui_show_if_modified()
+{
+	if(buffer_external_modified(buffers_current()))
+		gui_status(GUI_ERR, "buffer externally modified");
+}
+
 void gui_run()
 {
 	extern int gui_scrollclear;

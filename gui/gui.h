@@ -76,6 +76,8 @@ enum gui_attr
 #define GUI_SEARCH_COL GUI_COL_RED
 #define GUI_CLIP_COL   GUI_COL_BLUE
 
+void gui_show_if_modified(void);
+
 void gui_status(         enum gui_attr, const char *, ...);
 void gui_statusl(        enum gui_attr, const char *, va_list);
 void gui_status_add(     enum gui_attr, const char *s, ...);
