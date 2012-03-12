@@ -762,6 +762,14 @@ void cmd_noh(int argc, char **argv, int force, struct range *rng)
         *search_str = '\0';
 }
 
+void cmd_version(int argc, char **argv, int force, struct range *rng)
+{
+	EMPTY_USAGE();
+	gui_status_add_start();
+	gui_status_add(GUI_NONE, "UVI Version " UVI_VERSION ", built on " __DATE__);
+	gui_status_wait();
+}
+
 void cmd_help(int argc, char **argv, int force, struct range *rng)
 {
 	enum vartype type;
@@ -971,6 +979,8 @@ void command_run(char *in)
 		CMD(noh, 0),
 
 		CMD(help, 0),
+
+		CMD(version, 0),
 
 #ifdef BLOAT
 # include "bloat/command.h"
