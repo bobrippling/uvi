@@ -90,3 +90,10 @@ fix motion_t in general actually
 fix /* */ completion
 
 dt[something not in the line] still works
+
+v[ia][bracket] - fix
+
+when inserting a newline on tw=80, bring a whole word with it
+
+:!cmd
+only replaces lines if the command is successful

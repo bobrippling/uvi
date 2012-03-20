@@ -307,6 +307,7 @@ void intellisense_init_opt(void *v, enum intellisense_opt o)
 			opts->intellisense    = intellisense_file;
 			opts->intellisense_ch = '\t';
 			opts->newline         = 0;
+			opts->allow_et        = 0;
 			break;
 
 		case INTELLI_INS:
@@ -314,6 +315,7 @@ void intellisense_init_opt(void *v, enum intellisense_opt o)
 			opts->intellisense_ch = CTRL_AND('n');
 			opts->newline         = 1;
 			opts->textw           = global_settings.textwidth;
+			opts->allow_et        = 1;
 			break;
 	}
 }

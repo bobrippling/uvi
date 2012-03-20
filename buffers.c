@@ -51,6 +51,11 @@ const char *buffers_alternate(void)
 	return fnames[last]->fname;
 }
 
+int buffers_alternate_idx()
+{
+	return last;
+}
+
 struct old_buffer *new_old_buf(const char *fname)
 {
 	struct old_buffer *b;
@@ -277,6 +282,14 @@ int buffers_add(const char *fname)
 	return i;
 }
 
+int buffers_at_fname(const char *fname)
+{
+	int i = buffers_find(fname);
+	if(i == -1)
+		return 0;
+	return !strcmp(fnames[i]->fname, fname);
+}
+
 void buffers_load(const char *fname)
 {
 	int i;
@@ -284,13 +297,14 @@ void buffers_load(const char *fname)
 	buffers_save_pos();
 
 	if(fname){
-		if((i = buffers_find(fname)) != -1){
+		if((i = buffers_find(fname)) != -1)
 			buffers_goto(i);
-		}else{
+		else
 			buffers_goto(buffers_add(fname));
-		}
 	}else{
 		/* :new */
+		if(current_buf)
+			buffer_free(current_buf);
 		current_buf = buffers_readfname(NULL);
 		current     = -1;
 		gui_move(0, 0);

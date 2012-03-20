@@ -56,7 +56,7 @@ int rc_source(const char *fname)
 		goto fin;
 	}
 
-	while(fgets(buf, sizeof buf, f)){
+	while(fgets(buf, sizeof buf - 1, f)){
 #define MAKE_NUL(c) \
 			if((p = strchr(buf, c)) && (p > buf ? p[-1] != '\\' : 1)) \
 				*p = '\0'

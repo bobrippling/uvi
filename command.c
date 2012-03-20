@@ -146,7 +146,7 @@ void cmd_w(int argc, char **argv, int force, struct range *rng)
 	extern int gui_statusrestore;
 	unsigned int change_mode = 0, old_mode;
 	struct list *list_to_write = NULL;
-	enum { QUIT, EDIT, NONE } after = NONE;
+	enum { QUIT, EDIT, NEXT, NONE } after = NONE;
 	int nw, nl;
 	int x = 0;
 
@@ -175,9 +175,12 @@ void cmd_w(int argc, char **argv, int force, struct range *rng)
 		x = 1;
 	}else if(!strcmp(argv[0], "we")){
 		after = EDIT;
+	}else if(!strcmp(argv[0], "wn")){
+		after = NEXT;
+		/*x = 1;*/
 	}else if(strcmp(argv[0], "w")){
 usage:
-		gui_status(GUI_ERR, "usage: w[qe][![!]] file|command");
+		gui_status(GUI_ERR, "usage: w[qen][![!]] file|command");
 		FINISH();
 	}
 
@@ -196,6 +199,9 @@ usage:
 	if(argc > 2)
 		goto usage;
 
+	if(after == NEXT && argc != 1)
+		goto usage;
+
 	if(argc == 2 && after != EDIT){
 		/* have a filename to save to */
 		if(!force){
@@ -209,9 +215,6 @@ usage:
 
 		buffer_setfilename(buffers_current(), argv[1]);
 		buffer_modified(buffers_current()) = 1;
-
-		/* new, or read from stdin, now given a name, add it to buffer list and set as current buf */
-		buffers_goto(buffers_add(buffer_filename(buffers_current())));
 	}
 
 	if(!buffer_hasfilename(buffers_current())){
@@ -282,11 +285,17 @@ retry:
 		gui_status(GUI_ERR, "couldn't write \"%s\": %s", buffer_filename(buffers_current()), strerror(errno));
 		after = NONE;
 	}else{
+		const char *fname = buffer_filename(buffers_current());
+
 		buffer_modified(buffers_current()) = 0;
 		gui_status(GUI_NONE, "\"%s\" %s%dL, %dC written",
 				buffer_filename(buffers_current()),
 				list_to_write ? "[partial-range] ":"",
 				nl, nw);
+
+		/* ensure we're on the buffer we just wrote */
+		if(!buffers_at_fname(fname))
+			buffers_goto(buffers_add(fname));
 	}
 
 after:
@@ -296,6 +305,10 @@ after:
 	}
 
 	switch(after){
+		case NEXT:
+			if(buffers_next(1))
+				gui_status(GUI_ERR, "\"%s\" written, no next buffer", buffer_filename(buffers_current()));
+			break;
 		case EDIT:
 			buffers_load(argv[1]);
 			break;
@@ -597,7 +610,7 @@ void cmd_n(int argc, char **argv, int force, struct range *rng)
 	MODIFIED_CHECK();
 
 	if(buffers_next(i))
-		gui_status(GUI_ERR, "file index %d out of range", buffers_idx() + i);
+		gui_status(GUI_ERR, "file index %d %s of buffers", buffers_idx() + i, i > 0 ? "past end" : "before start");
 }
 
 void cmd_ls(int argc, char **argv, int force, struct range *rng)
@@ -622,35 +635,77 @@ void cmd_ls(int argc, char **argv, int force, struct range *rng)
 	gui_status_wait();
 }
 
-void buffer_cmd(int argc, char **argv, int force, struct range *rng, int (*f)(int), int use_cur)
+int ncompar(const void *pa, const void *pb)
 {
-	int n = -1;
+	int a, b;
+
+	a = *(int *)pa;
+	b = *(int *)pb;
+
+	if(a < b)
+		return -1;
+	if(a > b)
+		return 1;
+	return 0;
+}
+
+void buffer_cmd(int argc, char **argv, int force, struct range *rng, int (*f)(int), int any_count)
+{
+	int i, n;
+	int *bufs, nbufs;
+
+	bufs = NULL;
+	nbufs = 0;
+	i = 0;
 
 	if(rng->start != -1 || rng->end != -1){
 usage:
-		gui_status(GUI_ERR, "usage: %s idx", *argv);
+		gui_status(GUI_ERR, "usage: %s index(s)", *argv);
 		return;
 	}
 
-	if(argc != 2){
-		if(use_cur && argc == 1){
+	if(any_count){
+		if(argc <= 1){
 			n = buffers_idx();
 			if(n == -1){
 				gui_status(GUI_ERR, "no buffer selected");
 				return;
 			}
-		}else{
-			goto usage;
+			goto perform;
+		}
+	}else if(argc != 2){
+		goto usage;
+	}
+
+	for(i = 1; i < argc; i++){
+		if(sscanf(argv[i], "%d", &n) != 1){
+			/* check for '#' */
+			const char *alt = buffers_alternate();
+			if(alt && !strcmp(argv[i], alt))
+				n = buffers_alternate_idx();
+			else
+				goto usage;
+		}
+
+		bufs = urealloc(bufs, ++nbufs * sizeof *bufs);
+		bufs[i-1] = n;
+	}
+
+	qsort(bufs, nbufs, sizeof *bufs, ncompar);
+
+	for(i = nbufs - 1; i >= 0; i--){
+		n = bufs[i];
+perform:
+		if(n == buffers_idx())
+			MODIFIED_CHECK();
+
+		if(f(n)){
+			gui_status(GUI_ERR, "buffer index %d out of range", n);
+			return;
 		}
 	}
 
-	MODIFIED_CHECK();
-
-	if(n == -1 && sscanf(argv[1], "%d", &n) != 1)
-		goto usage;
-
-	if(f(n))
-		gui_status(GUI_ERR, "index %d out of range", n);
+	free(bufs);
 }
 
 void cmd_b(int argc, char **argv, int force, struct range *rng)
@@ -696,6 +751,23 @@ void cmd_so(int argc, char **argv, int force, struct range *rng)
 	if(!rc_source(argv[1])) /* waits by itself */
 		gui_status(GUI_NONE, "sourced %s", argv[1]);
 	gui_reload();
+}
+
+void cmd_noh(int argc, char **argv, int force, struct range *rng)
+{
+    extern char *search_str;
+	EMPTY_USAGE();
+
+    if(search_str)
+        *search_str = '\0';
+}
+
+void cmd_version(int argc, char **argv, int force, struct range *rng)
+{
+	EMPTY_USAGE();
+	gui_status_add_start();
+	gui_status_add(GUI_NONE, "UVI Version " UVI_VERSION ", built on " __DATE__);
+	gui_status_wait();
 }
 
 void cmd_help(int argc, char **argv, int force, struct range *rng)
@@ -878,6 +950,7 @@ void command_run(char *in)
 
 		{ "we", cmd_w, 1, 0 },
 		{ "wq", cmd_w, 1, 0 },
+		{ "wn", cmd_w, 1, 0 },
 		{ "x",  cmd_w, 1, 0 },
 		CMD(new, 0),
 		CMD(r,   1),
@@ -903,7 +976,11 @@ void command_run(char *in)
 		CMD(pwd, 0),
 		CMD(so,  0),
 
+		CMD(noh, 0),
+
 		CMD(help, 0),
+
+		CMD(version, 0),
 
 #ifdef BLOAT
 # include "bloat/command.h"
