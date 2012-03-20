@@ -26,6 +26,7 @@ struct gui_read_opts
 	int bspc_cancel;
 	int textw;
 	int newline;
+	int allow_et;
 
 	intellisensef intellisense;
 	int intellisense_ch;
@@ -74,6 +75,8 @@ enum gui_attr
 
 #define GUI_SEARCH_COL GUI_COL_RED
 #define GUI_CLIP_COL   GUI_COL_BLUE
+
+void gui_show_if_modified(void);
 
 void gui_status(         enum gui_attr, const char *, ...);
 void gui_statusl(        enum gui_attr, const char *, va_list);

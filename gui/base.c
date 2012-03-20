@@ -698,7 +698,6 @@ static void join(unsigned int ntimes)
 {
 	struct list *jointhese, *l, *cur;
 	struct range r;
-	char *alloced;
 	int len, initial_len;
 
 	{
@@ -720,12 +719,12 @@ static void join(unsigned int ntimes)
 	len = 0;
 	for(l = jointhese; l; l = l->next){
 		str_trim(l->data);
-		len += strlen(l->data);
+		len += strlen(l->data) + (*(char *)l->data ? 1 : 0);
 	}
 
-	alloced = urealloc(cur->data, (initial_len = strlen(cur->data)) + len + 1);
+	initial_len = strlen(cur->data);
+	cur->data = urealloc(cur->data, initial_len + len + 1);
 
-	cur->data = alloced;
 	for(l = jointhese; l; l = l->next){
 		if(*(char *)cur->data)
 			strcat(cur->data, " ");
@@ -820,6 +819,29 @@ void visual_inside(int include)
 			return;
 
 		/* highlight from {x,y][1] to {x,y}[0] */
+		if(!include){
+			int top, bottom;
+
+			if(y[0] > y[1]){
+				top    = 1;
+				bottom = 0;
+			}else{
+				bottom = 1;
+				top    = 0;
+			}
+
+			if(x[bottom] > 0)
+				x[bottom]--;
+			else
+				y[bottom]--;
+
+			if(x[top] > 0)
+				x[top]++;
+			else
+				y[top]++;
+			/* FIXME */
+		}
+
 		visual_setpoints(x, y);
 	}
 }
@@ -851,6 +873,12 @@ static int is_edit_char(int c)
 			return 1;
 	}
 	return 0;
+}
+
+void gui_show_if_modified()
+{
+	if(buffer_external_modified(buffers_current()))
+		gui_status(GUI_ERR, "buffer externally modified");
 }
 
 void gui_run()
@@ -931,13 +959,33 @@ switch_switch:
 			 *   int when_visual;
 			 * };
 			 */
+			case '!':
+				if(visual_get() == VISUAL_NONE){
+					int ch = gui_getch(GETCH_COOKED);
+					switch(ch){
+						case 'f':
+							if(!go_file())
+								buffer_changed = 1;
+							break;
+						case 'q':
+							if(!fmt_motion())
+								buffer_changed = 1;
+							break;
+						default:
+							gui_status(GUI_ERR, "Invalid ! suffix");
+					}
+					break;
+				}
+				/* else fall */
+
 			case ':':
 			{
 				char buffer[16];
 				if(visual_get() != VISUAL_NONE)
-					snprintf(buffer, sizeof buffer, "%d,%d",
+					snprintf(buffer, sizeof buffer, "%d,%d%s",
 							visual_get_start()->start + 1, /* convert to 1-based */
-							visual_get_end(  )->start + 1);
+							visual_get_end(  )->start + 1,
+							c == '!' ? "!" : "");
 				else
 					*buffer = '\0';
 
@@ -1244,24 +1292,6 @@ case_i:
 						multiple = 1;
 					while(multiple --> 0)
 						macro_play(m);
-				}
-				break;
-			}
-
-			case '!':
-			{
-				int ch = gui_getch(GETCH_COOKED);
-				switch(ch){
-					case 'f':
-						if(!go_file())
-							buffer_changed = 1;
-						break;
-					case 'q':
-						if(!fmt_motion())
-							buffer_changed = 1;
-						break;
-					default:
-						gui_status(GUI_ERR, "Invalid ! suffix");
 				}
 				break;
 			}
