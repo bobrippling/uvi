@@ -472,21 +472,17 @@ void cmd_set(int argc, char **argv, int force, struct range *rng)
 
 void cmd_yanks(int argc, char **argv, int force, struct range *rng)
 {
-	int one = 0;
 	int i;
 
 	EMPTY_USAGE();
+
+	gui_status_add_start();
 
 	for(i = 'a' - 1; i <= 'z'; i++){
 		struct yank *y = yank_get(i);
 		char c = i == '`' ? '"': i;
 
 		if(y->v){
-			if(!one){
-				gui_status_add_start();
-				one = 1;
-			}
-
 			if(y->is_list)
 				gui_status_add(GUI_NONE, "%c: list, length %d, head: \"%s\"", c, list_count(y->v), (const char *)(((struct list *)y->v)->data));
 			else
@@ -494,10 +490,7 @@ void cmd_yanks(int argc, char **argv, int force, struct range *rng)
 		}
 	}
 
-	if(one)
-		gui_status_wait();
-	else
-		gui_status(GUI_ERR, "no yanks");
+	gui_status_wait();
 }
 
 void cmd_marks(int argc, char **argv, int force, struct range *rng)
