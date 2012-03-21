@@ -326,7 +326,7 @@ restart:
 		goto restart;
 	}else if(c == CTRL_AND('z')){
 		gui_term();
-		raise(SIGSTOP);
+		raise(SIGTSTP); /*raise(SIGSTOP);*/
 		gui_reload();
 		goto restart;
 	}else if(c == 410 || c == -1){
