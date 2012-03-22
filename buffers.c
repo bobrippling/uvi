@@ -213,8 +213,8 @@ int buffers_goto(int n)
 
 	fnames[n]->read = 1;
 
+	gui_move(fnames[n]->last_y, 0); /* do this for checking regardless */
 	if(loadpos){
-		gui_move(fnames[n]->last_y, 0);
 		gui_scrollclear = 0;
 		gui_scroll(CURSOR_MIDDLE);
 		gui_scrollclear = 1;
