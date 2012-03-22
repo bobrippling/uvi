@@ -247,14 +247,19 @@ int buffers_del(int n)
 	return 0;
 }
 
-int buffers_unread()
+int buffers_first_unread()
 {
 	int i;
 
 	for(i = 0; i < count; i++)
 		if(!fnames[i]->read)
-			return 1;
-	return 0;
+			return i;
+	return -1;
+}
+
+int buffers_unread()
+{
+	return buffers_first_unread() != -1;
 }
 
 int buffers_find(const char *fname)
