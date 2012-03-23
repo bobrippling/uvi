@@ -91,6 +91,7 @@ int buffer_read(buffer_t **buffer, FILE *f)
 	b = buffer_new_list(l);
 
 	b->eol = eol;
+	b->touched_fs = 1;
 
 	b->dirty = 1;
 	if(buffer_nlines(b) == 0){
@@ -166,6 +167,7 @@ int buffer_write_list(buffer_t *b, struct list *l)
 		nwrite += w;
 
 	b->opentime = time(NULL);
+	b->touched_fs = 1;
 
 	if(global_settings.fsync && (fflush(f) || fsync(fileno(f)))){
 		nwrite = -1;
@@ -271,6 +273,11 @@ void buffer_dump(buffer_t *b, FILE *f)
 	struct list *head;
 	for(head = buffer_gethead(b); head; head = head->next)
 		fprintf(f, "%s\n", (char *)head->data);
+}
+
+int buffer_file_exists(buffer_t *b)
+{
+	return buffer_hasfilename(b) && access(buffer_filename(b), F_OK) == 0;
 }
 
 int buffer_external_modified(buffer_t *b)
