@@ -371,6 +371,17 @@ void readlines(int do_indent, int can_trim_initial, struct gui_read_opts *opts, 
 #undef INDENT_ADJ
 }
 
+static void trim_buffer(void)
+{
+	buffer_t *cb = buffers_current();
+	struct list *l;
+
+	buffer_modified(cb) = 1;
+
+	for(l = buffer_gethead(cb); l; l = l->next)
+		str_rtrim(l->data);
+}
+
 static void insert(int append, int do_indent, int trim_initial)
 {
 	char **lines;
@@ -420,6 +431,9 @@ static void insert(int append, int do_indent, int trim_initial)
 
 	buffer_modified(buffers_current()) = 1;
 	free(lines);
+
+	if(global_settings.esctrim)
+		trim_buffer();
 }
 
 void overwrite()

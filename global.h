@@ -23,7 +23,7 @@ struct settings
 	int intellisense;
 
 	int fsync;
-	int wtrim;
+	int esctrim;
 };
 
 extern struct settings global_settings;
