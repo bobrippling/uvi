@@ -29,7 +29,7 @@ enum vartype
 	VARS_INTELLI,
 
 	VARS_FSYNC,
-	VARS_WTRIM,
+	VARS_ESCTRIM,
 
 	VARS_UNKNOWN
 } vars_gettype(const char *);
