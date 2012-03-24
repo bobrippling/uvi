@@ -15,6 +15,7 @@ typedef struct
 	/* internal variables */
 	int dirty;
 	int nlines;
+	int touched_fs; /* if we have read or written to the file system */
 	time_t opentime;
 } buffer_t;
 
@@ -37,6 +38,8 @@ int buffer_nlines(buffer_t *);
 
 void buffer_setfilename(buffer_t *, const char *);
 
+int buffer_file_exists(buffer_t *b);
+
 /* these can't be macros, since the buffer list pointer needs to be adjusted */
 void buffer_remove_range(buffer_t *, struct range *);
 struct list *buffer_extract_range(buffer_t *, struct range *);
@@ -55,6 +58,8 @@ void buffer_dump(buffer_t *, FILE *);
 
 #define buffer_filename(b)                ((b)->fname ? (b)->fname : "(no name)")
 #define buffer_hasfilename(b)             (!!(b)->fname)
+
+#define buffer_touched_filesystem(b)      ((b)->touched_fs)
 
 
 /* functions that change the buffer */

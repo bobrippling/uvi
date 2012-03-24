@@ -602,8 +602,14 @@ void cmd_n(int argc, char **argv, int force, struct range *rng)
 
 	MODIFIED_CHECK();
 
-	if(buffers_next(i))
-		gui_status(GUI_ERR, "file index %d %s of buffers", buffers_idx() + i, i > 0 ? "past end" : "before start");
+	if(buffers_next(i)){
+		if(i > 0 && buffers_unread()){
+			buffers_goto(buffers_first_unread());
+			gui_status(GUI_ERR, "looping round to unread buffer");
+		}else{
+			gui_status(GUI_ERR, "file index %d %s of buffers", buffers_idx() + i, i > 0 ? "past end" : "before start");
+		}
+	}
 }
 
 void cmd_ls(int argc, char **argv, int force, struct range *rng)
