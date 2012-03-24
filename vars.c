@@ -50,7 +50,7 @@ static struct
 	[VARS_INTELLI]         = { "intelli",    "intellisense switch",         1, 1, 1, &global_settings.intellisense },
 
 	[VARS_FSYNC]           = { "fsync",      "call fsync() after write()",  0, 1, 1, &global_settings.fsync },
-	[VARS_WTRIM]           = { "wtrim",      "trim lines when writing",     0, 1, 1, &global_settings.wtrim },
+	[VARS_ESCTRIM]         = { "esctrim",    "trim lines on escape press",  0, 1, 1, &global_settings.esctrim },
 };
 
 void vars_default()

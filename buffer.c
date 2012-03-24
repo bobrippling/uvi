@@ -143,8 +143,6 @@ int buffer_write_list(buffer_t *b, struct list *l)
 		crlf = "";
 
 	while(l->next){
-		if(global_settings.wtrim)
-			str_rtrim(l->data);
 		if((w = fprintf(f, "%s%s\n", (char *)l->data, crlf)) < 0){
 			nwrite = -1;
 			goto bail;
@@ -158,8 +156,6 @@ int buffer_write_list(buffer_t *b, struct list *l)
 	 * (possibly the first)
 	 */
 
-	if(global_settings.wtrim)
-		str_rtrim(l->data);
 	w = fprintf(f, "%s%s%s", (char *)l->data, b->eol ? crlf : "", b->eol ? "\n" : "");
 	if(w < 0)
 		nwrite = -1;
