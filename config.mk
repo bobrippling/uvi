@@ -1,7 +1,7 @@
 VERSION = 0.1
 
 WARN_EXTRA = -Wno-unused-parameter -Wno-char-subscripts
-PREFIX     = /usr
+PREFIX     = /usr/local
 
 # if on a FreeBSD derived system (inc. Mac OS), add -DUVI_ALLOCA
 MACROS     = -D_POSIX_SOURCE -D_GNU_SOURCE

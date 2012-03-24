@@ -32,6 +32,7 @@ void         buffers_load(    const char *);
 int          buffers_at_fname(const char *);
 
 int          buffers_unread(void);
+int          buffers_first_unread(void);
 
 const char  *buffers_alternate(void);
 int          buffers_alternate_idx(void);

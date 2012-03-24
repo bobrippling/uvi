@@ -260,14 +260,13 @@ void gui_status_add_start()
 	scrl(1);
 }
 
-
 void gui_status_wait()
 {
 	int y, x;
 	gui_status_add(GUI_NONE, "any key to continue...");
 	getyx(stdscr, y, x);
-	move(y, 0);
 	(void)x;
+	move(y, 0);
 	gui_peekch(GETCH_MEDIUM_RARE);
 	gui_clrtoeol();
 }

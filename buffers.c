@@ -213,8 +213,8 @@ int buffers_goto(int n)
 
 	fnames[n]->read = 1;
 
+	gui_move(fnames[n]->last_y, 0); /* do this for checking regardless */
 	if(loadpos){
-		gui_move(fnames[n]->last_y, 0);
 		gui_scrollclear = 0;
 		gui_scroll(CURSOR_MIDDLE);
 		gui_scrollclear = 1;
@@ -247,14 +247,19 @@ int buffers_del(int n)
 	return 0;
 }
 
-int buffers_unread()
+int buffers_first_unread()
 {
 	int i;
 
 	for(i = 0; i < count; i++)
 		if(!fnames[i]->read)
-			return 1;
-	return 0;
+			return i;
+	return -1;
+}
+
+int buffers_unread()
+{
+	return buffers_first_unread() != -1;
 }
 
 int buffers_find(const char *fname)

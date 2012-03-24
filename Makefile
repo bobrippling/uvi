@@ -26,6 +26,8 @@ clean:
 
 install: uvi
 	cp uvi ${PREFIX}/bin
+	mkdir -p ${PREFIX}/man/man1
+	cp uvi.1 ${PREFIX}/man/man1
 
 uninstall:
 	rm -f ${PREFIX}/bin/uvi
