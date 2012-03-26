@@ -893,10 +893,12 @@ void gui_show_if_modified()
 {
 	buffer_t *const cb = buffers_current();
 
-	if(buffer_external_modified(cb))
-		gui_status(GUI_ERR, "buffer externally modified");
-	else if(buffer_touched_filesystem(cb) && !buffer_file_exists(cb))
-		gui_status(GUI_ERR, "buffer's file doesn't exist");
+	if(buffer_hasfilename(cb)){
+		if(buffer_external_modified(cb))
+			gui_status(GUI_ERR, "buffer externally modified");
+		else if(buffer_touched_filesystem(cb) && !buffer_file_exists(cb))
+			gui_status(GUI_ERR, "buffer's file doesn't exist");
+	}
 }
 
 void gui_run()
