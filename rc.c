@@ -13,26 +13,11 @@
 #include "util/io.h"
 #include "gui/map.h"
 #include "buffers.h"
-
-static const char *rc_file(void)
-{
-	static char fname[256];
-
-	if(!*fname){
-		const char *home = getenv("HOME");
-
-		if(!home)
-			home = "";
-
-		snprintf(fname, sizeof fname, "%s/.uvirc", home);
-	}
-
-	return fname;
-}
+#include "files.h"
 
 int rc_read()
 {
-	const char *fn = rc_file();
+	const char *fn = file_rc();
 	if(!access(fn, F_OK))
 		return rc_source(fn);
 	return 1;

@@ -478,7 +478,7 @@ void cmd_yanks(int argc, char **argv, int force, struct range *rng)
 
 	gui_status_add_start();
 
-	for(i = 'a' - 1; i <= 'z'; i++){
+	ITER_YANKS(i){
 		struct yank *y = yank_get(i);
 		char c = i == '`' ? '"': i;
 
@@ -501,19 +501,9 @@ void cmd_marks(int argc, char **argv, int force, struct range *rng)
 
 	gui_status_add_start();
 
-#define MARK_SHOW_1(i) \
-		if(!mark_get(i, &y, &x)) \
-			gui_status_add(GUI_NONE, "'%c' => (%d, %d)", i, x, y) \
-
-#define MARK_SHOW(START, END) \
-	for(i = START; i <= END; i++){ \
-		MARK_SHOW_1(i); \
-	}
-
-	MARK_SHOW('a', 'z')
-	MARK_SHOW('0', '9')
-	MARK_SHOW_1('\'');
-	MARK_SHOW_1('.');
+	ITER_MARKS(i)
+		if(mark_get_idx(i, &y, &x) == 0)
+			gui_status_add(GUI_NONE, "'%c' => (%d, %d)", mark_from_idx(i), x, y);
 
 	gui_status_wait();
 }

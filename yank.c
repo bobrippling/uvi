@@ -10,9 +10,7 @@ static struct yank yanks[27]; /* named regs + default */
 
 static int yank_index(char reg)
 {
-	if('a' <= reg && reg <= 'z')
-		return reg - 'a';
-	return 26;
+	return reg - 'a' + 1;
 }
 
 struct yank *yank_get(char reg)
@@ -47,5 +45,5 @@ void yank_set_list(char reg, struct list *l)
 
 int yank_char_valid(int reg)
 {
-	return !reg || ('a' <= reg && reg <= 'z');
+	return 'a' - 1 <= reg && reg <= 'z';
 }

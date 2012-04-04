@@ -10,6 +10,7 @@
 #include "../range.h"
 #include "list.h"
 #include "alloc.h"
+#include "io.h"
 
 struct list *list_new(void *d)
 {
@@ -389,12 +390,10 @@ struct list *list_from_fd(int fd, int *haseol)
 	if(mem == MAP_FAILED){
 		if(errno == EINVAL){
 			/* fallback to fread - probably stdin */
-			char buffer[2048];
-			struct list *l;
-			struct list *i;
+			struct list *i, *l;
 			FILE *f;
-			int eol = 1;
-
+			char *line;
+			
 fallback:
 			f = fdopen(fd, "r");
 			if(!f)
@@ -402,20 +401,10 @@ fallback:
 
 			i = l = list_new(NULL);
 
-			while(fgets(buffer, sizeof buffer - 1, f)){
-				char *nl = strchr(buffer, '\n');
-				if(nl){
-					*nl = '\0';
-					eol = 1;
-				}else{
-					eol = 0;
-				}
-				list_append(i, ustrdup(buffer));
+			while((line = fline(f, haseol))){
+				list_append(i, line);
 				i = list_gettail(i);
 			}
-
-			if(haseol)
-				*haseol = eol;
 
 			if(ferror(f)){
 				list_free(l, free);

@@ -24,6 +24,7 @@
 #include "util/list.h"
 #include "buffers.h"
 #include "vars.h"
+#include "info.h"
 
 static void usage(const char *);
 
@@ -147,7 +148,8 @@ at_fnames:
 	map_init();
 	gui_init();
 	gui_term();
-	rc_read();
+	rc_read(); /* must be before info_read() */
+	info_read();
 
 	buffers_init(
 			argc - argv_fname_start,
@@ -158,6 +160,7 @@ at_fnames:
 	gui_run();
 
 	gui_term();
+	info_write();
 	map_term();
 
 	return 0;

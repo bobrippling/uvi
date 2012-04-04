@@ -1,4 +1,4 @@
-VERSION = 0.1
+VERSION = 0.2
 
 WARN_EXTRA = -Wno-unused-parameter -Wno-char-subscripts
 PREFIX     = /usr/local

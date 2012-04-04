@@ -31,6 +31,8 @@ enum vartype
 	VARS_FSYNC,
 	VARS_ESCTRIM,
 
+	VARS_UVI_INFO,
+
 	VARS_UNKNOWN
 } vars_gettype(const char *);
 

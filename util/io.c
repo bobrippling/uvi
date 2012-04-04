@@ -103,3 +103,45 @@ void dumpbuffer(buffer_t *b)
 		fclose(f);
 	}
 }
+
+char *fline(FILE *f, int *eol)
+{
+	int c, pos, len;
+	char *line;
+
+	if(feof(f) || ferror(f))
+		return NULL;
+
+	pos = 0;
+	len = 10;
+	line = umalloc(len);
+
+	do{
+		errno = 0;
+		if((c = fgetc(f)) == EOF){
+			if(errno == EINTR)
+				continue;
+			if(pos){
+				if(eol)
+					*eol = 0;
+				return line;
+			}
+			free(line);
+			return NULL;
+		}
+
+		line[pos++] = c;
+		if(pos == len){
+			len *= 2;
+			line = urealloc(line, len);
+			line[pos] = '\0';
+		}
+
+		if(c == '\n'){
+			line[pos-1] = '\0';
+			if(eol)
+				*eol = 1;
+			return line;
+		}
+	}while(1);
+}

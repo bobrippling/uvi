@@ -24,6 +24,8 @@ struct settings
 
 	int fsync;
 	int esctrim;
+
+	int read_info;
 };
 
 extern struct settings global_settings;

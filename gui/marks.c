@@ -3,8 +3,6 @@
 #include "marks.h"
 #include "gui.h"
 
-#define NMARKS 38
-
 struct mark
 {
 	int y, x;
@@ -22,6 +20,9 @@ struct mark
 
 static int mark_idx(int c)
 {
+	if(!mark_valid(c))
+		return 0;
+
 	switch(c){
 		case '\'': return 36;
 		case '.':  return 37;
@@ -31,7 +32,7 @@ static int mark_idx(int c)
 	return c - '0';
 }
 
-static int mark_to_idx(int c)
+char mark_from_idx(int c)
 {
 	switch(c){
 		case 36: return '\'';
@@ -56,24 +57,31 @@ int mark_count()
 void mark_jump(void) { mark_cur('\''); }
 void mark_edit(void) { mark_cur('.');  }
 
-void mark_set(int c, int y, int x)
+void mark_set_idx(int i, int y, int x)
 {
-	int i = mark_idx(c);
 	marks[i].y   = y;
 	marks[i].x   = x;
 	marks[i].set = 1;
 }
 
-int mark_get(int c, int *y, int *x)
+void mark_set(int c, int y, int x)
 {
-	int i = mark_idx(c);
+	mark_set_idx(mark_idx(c), y, x);
+}
 
+int mark_get_idx(int i, int *y, int *x)
+{
 	if(marks[i].set){
 		*y = marks[i].y;
 		*x = marks[i].x;
 		return 0;
 	}
 	return 1;
+}
+
+int mark_get(int c, int *y, int *x)
+{
+	return mark_get_idx(mark_idx(c), y, x);
 }
 
 int mark_is_set(int c)
@@ -86,6 +94,6 @@ int mark_find(int y, int x)
 	int i;
 	for(i = 0; i < NMARKS; i++)
 		if(marks[i].set && marks[i].y == y && marks[i].x == x)
-			return mark_to_idx(i);
+			return mark_from_idx(i);
 	return -1;
 }

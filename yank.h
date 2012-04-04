@@ -13,4 +13,6 @@ void         yank_set_list(char reg, struct list *);
 
 int yank_char_valid(int c);
 
+#define ITER_YANKS(i) for(i = 'a' - 1; i <= 'z'; i++)
+
 #endif
