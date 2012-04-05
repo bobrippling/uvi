@@ -6,21 +6,29 @@
 #include "util/list.h"
 #include "yank.h"
 
-static struct yank yanks[27]; /* named regs + default */
+static struct yank yanks[1 + YANK_CHAR_LAST - YANK_CHAR_FIRST]; /* named regs + default */
 
 static int yank_index(char reg)
 {
-	return reg - 'a' + 1;
+	if(yank_char_valid(reg))
+		return reg - YANK_CHAR_FIRST;
+	return -1;
 }
 
 struct yank *yank_get(char reg)
 {
-	return &yanks[yank_index(reg)];
+	int i = yank_index(reg);
+	if(i == -1)
+		return &yanks[0]; /* eh.. */
+	return &yanks[i];
 }
 
 static void yank_set(char reg, void *d, int is_l)
 {
 	int i = yank_index(reg);
+
+	if(i == -1)
+		return;
 
 	if(yanks[i].v){
 		if(yanks[i].is_list)
@@ -45,5 +53,5 @@ void yank_set_list(char reg, struct list *l)
 
 int yank_char_valid(int reg)
 {
-	return 'a' - 1 <= reg && reg <= 'z';
+	return YANK_CHAR_FIRST <= reg && reg <= YANK_CHAR_LAST;
 }

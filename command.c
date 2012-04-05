@@ -480,13 +480,12 @@ void cmd_yanks(int argc, char **argv, int force, struct range *rng)
 
 	ITER_YANKS(i){
 		struct yank *y = yank_get(i);
-		char c = i == '`' ? '"': i;
 
 		if(y->v){
 			if(y->is_list)
-				gui_status_add(GUI_NONE, "%c: list, length %d, head: \"%s\"", c, list_count(y->v), (const char *)(((struct list *)y->v)->data));
+				gui_status_add(GUI_NONE, "%c: list, length %d, head: \"%s\"", i, list_count(y->v), (const char *)(((struct list *)y->v)->data));
 			else
-				gui_status_add(GUI_NONE, "%c: string: \"%s\"", c, (const char *)y->v);
+				gui_status_add(GUI_NONE, "%c: string: \"%s\"", i, (const char *)y->v);
 		}
 	}
 

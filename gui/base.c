@@ -51,7 +51,7 @@ static void showpos(void);
 
 char *search_str = NULL;
 static int  search_rev  = 0;
-static int  yank_char = 0;
+static int  yank_char = YANK_CHAR_ANON;
 
 static int search(int next, int rev)
 {
@@ -667,7 +667,7 @@ static void put(unsigned int ntimes, int rev)
 	struct yank *ynk = yank_get(yank_char);
 
 	if(!ynk->v){
-		gui_status(GUI_ERR, "register %c empty", yank_char ? yank_char : '"');
+		gui_status(GUI_ERR, "register %c empty", yank_char);
 		return;
 	}
 
@@ -951,7 +951,7 @@ void gui_run()
 				}while(0)
 
 switch_start:
-		yank_char = 0;
+		yank_char = YANK_CHAR_ANON;
 		c = gui_getch(GETCH_MEDIUM_RARE);
 		if(is_edit_char(c)){
 			if(buffer_readonly(buffers_current())){
@@ -1094,7 +1094,7 @@ switch_switch:
 			case '"':
 				yank_char = gui_getch(GETCH_COOKED);
 				if(!yank_char_valid(yank_char)){
-					yank_char = 0;
+					yank_char = YANK_CHAR_ANON;
 					break;
 				}
 				c = gui_getch(GETCH_COOKED);

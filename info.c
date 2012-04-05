@@ -31,6 +31,7 @@ void info_read(void)
 		return;
 
 	while((line = fline(f, NULL))){
+check:
 		switch(*line){
 			case '\'':
 			{
@@ -68,6 +69,9 @@ void info_read(void)
 							yank_set_list(c, y);
 						else
 							list_free(y, free);
+
+						if(line)
+							goto check; /* don't discard the current line */
 
 					}else{
 						/* single line */
