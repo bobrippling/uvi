@@ -551,9 +551,7 @@ void cmd_A(int argc, char **argv, int force, struct range *rng)
 
 	*ext++ = '\0';
 
-	if(!strcmp(ext, "c") || !strcmp(ext, "cpp")){
-		fname = ustrprintf("%s.h",  bfname);
-	}else if(!strcmp(ext, "h")){
+	if(!strcmp(ext, "h")){
 		fname = ustrprintf("%s.c",  bfname);
 
 		if(access(fname, F_OK)){
@@ -566,8 +564,8 @@ void cmd_A(int argc, char **argv, int force, struct range *rng)
 			}
 		}
 	}else{
-		gui_status(GUI_ERR, "unknown file extension \"%s\"", ext);
-		return;
+		/* attempt a header for any other file */
+		fname = ustrprintf("%s.h",  bfname);
 	}
 
 	buffers_load(fname);
@@ -756,6 +754,35 @@ void cmd_version(int argc, char **argv, int force, struct range *rng)
 	gui_status_add_start();
 	gui_status_add(GUI_NONE, "UVI Version " UVI_VERSION ", built on " __DATE__);
 	gui_status_wait();
+}
+
+void cmd_echo(int argc, char **argv, int force, struct range *rng)
+{
+	char *cmd = argv_to_str(argc - 1, argv + 1);
+	/* replace vars */
+	for(;;){
+		char *s, *var, *fin;
+		enum vartype type;
+
+		s = strchr(cmd, '$');
+		if(!s)
+			break;
+		
+		for(fin = s + 1; isalpha(*fin); fin++);
+
+		var = ustrdup2(s + 1, fin);
+
+		if((type = vars_gettype(var)) != VARS_UNKNOWN){
+			/* assume number */
+			const int lenstr = strlen(var) + 1; /* include '$' */
+			const int lennum = snprintf(s, lenstr, "%d", vars_get(type, buffers_current()));
+
+			memmove(s + lennum, s + lenstr, strlen(s + lenstr) + 1);
+		}
+		free(var);
+	}
+	gui_status(GUI_NONE, "%s", cmd);
+	free(cmd);
 }
 
 void cmd_help(int argc, char **argv, int force, struct range *rng)
@@ -962,6 +989,7 @@ void command_run(char *in)
 
 		CMD(cd,  0),
 		CMD(pwd, 0),
+		CMD(echo, 0),
 		CMD(so,  0),
 
 		CMD(noh, 0),
