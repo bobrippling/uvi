@@ -759,12 +759,14 @@ void cmd_version(int argc, char **argv, int force, struct range *rng)
 void cmd_echo(int argc, char **argv, int force, struct range *rng)
 {
 	char *cmd = argv_to_str(argc - 1, argv + 1);
+	char *replace_pos = cmd;
+
 	/* replace vars */
 	for(;;){
 		char *s, *var, *fin;
 		enum vartype type;
 
-		s = strchr(cmd, '$');
+		s = strchr(replace_pos, '$');
 		if(!s)
 			break;
 		
@@ -778,6 +780,8 @@ void cmd_echo(int argc, char **argv, int force, struct range *rng)
 			const int lennum = snprintf(s, lenstr, "%d", vars_get(type, buffers_current()));
 
 			memmove(s + lennum, s + lenstr, strlen(s + lenstr) + 1);
+		}else{
+			replace_pos = s + 1;
 		}
 		free(var);
 	}
