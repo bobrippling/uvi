@@ -82,10 +82,3 @@ void ustrcat(char **p, int *siz_arg, ...)
 		strcat(*p, s);
 	va_end(l);
 }
-
-#ifdef UVI_ALLOCA
-void *uvi_alloca(size_t l)
-{
-	return umalloc(l);
-}
-#endif

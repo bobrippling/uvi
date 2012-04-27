@@ -8,9 +8,8 @@ char *ustrdup2(const char *, const char *);
 void ustrcat(char **p, int *siz, ...);
 char *ustrprintf(const char *fmt, ...);
 
-#ifdef UVI_ALLOCA
-void *uvi_alloca(size_t);
-# define ALLOCA uvi_alloca
+#ifdef __GNUC__
+# define ALLOCA __builtin_alloca
 #else
 # define ALLOCA alloca
 #endif
